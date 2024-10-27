@@ -9,8 +9,8 @@ export default function LandingPage() {
   return (
     <div className="container mx-auto px-6 py-12">
       <section className="text-center mb-16">
-        <h1 className="text-5xl font-bold mb-4 text-primary">Welcome to Reggie</h1>
-        <p className="text-2xl mb-8 text-secondary-foreground">Streamline Your Education Admin Workflows</p>
+        <h1 className="text-5xl font-bold mb-4 text-primary">Welcome to Spreadsheet Assist</h1>
+        <p className="text-2xl mb-8 text-secondary-foreground">Streamline Your Data Processing Workflows</p>
         <div className="flex flex-col items-center space-y-4">
           <div className="flex justify-center space-x-4">
             <Link href="/signup">
@@ -21,11 +21,11 @@ export default function LandingPage() {
             </Link>
           </div>
           <div className="mt-4">
-            <Link href="/try-reggie">
-              <Button variant="outline" size="lg" className="text-lg px-8 py-6">Try Reggie for Free</Button>
+            <Link href="/try-spreadsheet-assist">
+              <Button variant="outline" size="lg" className="text-lg px-8 py-6">Try for Free</Button>
             </Link>
             <p className="text-sm mt-2 text-muted-foreground">
-              Free service includes drive file structure and limited Reggie email/spreadsheet assistant actions
+              Free service includes 10 free actions per month.
             </p>
           </div>
         </div>
