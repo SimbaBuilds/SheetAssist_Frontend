@@ -1,100 +1,66 @@
 import { useState, useEffect } from 'react'
-import { User, AuthContextType } from '@/types/auth'
+import { User } from '@supabase/supabase-js'
+import { useRouter } from 'next/navigation'
+import { createBrowserClient } from '@supabase/ssr'
 
-export function useAuth(): AuthContextType {
+export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const router = useRouter()
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
 
   useEffect(() => {
-    checkAuthStatus()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null)
+      setIsLoading(false)
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [])
 
-  async function checkAuthStatus() {
-    try {
-      const response = await fetch('/api/auth/me')
-      if (response.ok) {
-        const userData = await response.json()
-        setUser(userData)
-      } else {
-        setUser(null)
-      }
-    } catch (error) {
-      console.error('Failed to check auth status:', error)
-      setUser(null)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  async function login(email: string, password: string) {
+  const login = async (email: string, password: string) => {
     setIsLoading(true)
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       })
-      if (!response.ok) {
-        throw new Error('Login failed')
-      }
-      await checkAuthStatus()
-    } catch (error) {
-      console.error('Login error:', error)
-      throw error
+      if (error) throw error
     } finally {
       setIsLoading(false)
     }
   }
 
-  async function logout() {
+  const logout = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch('/api/auth/logout', { method: 'POST' })
-      if (!response.ok) {
-        throw new Error('Logout failed')
-      }
-      setUser(null)
-    } catch (error) {
-      console.error('Logout error:', error)
-      throw error
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
+      router.push('/login')
     } finally {
       setIsLoading(false)
     }
   }
 
-  async function getToken(): Promise<string | null> {
+  const initiateGoogleLogin = async () => {
     try {
-      const response = await fetch('/api/auth/token')
-      if (response.ok) {
-        const data = await response.json()
-        return data.token
-      }
-      return null
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+      if (error) throw error
+      return data.url
     } catch (error) {
-      console.error('Failed to get token:', error)
+      console.error('Google login error:', error)
       return null
-    }
-  }
-
-
-  const clearGoogleCache = () => {
-    // Clear Google's OAuth cache
-    window.location.href = 'https://accounts.google.com/logout';
-  }
-
-  async function initiateGoogleLogin(): Promise<string | null> {
-    try {
-      const response = await fetch('/api/auth/signin/google');
-      const data = await response.json();
-      
-      if (data.url) {
-        window.location.href = data.url;
-        return data.url; // Return the URL
-      }
-      throw new Error('No auth URL received');
-    } catch (error) {
-      console.error('Error initiating Google login:', error);
-      return null; // Return null on error
     }
   }
 
@@ -103,8 +69,6 @@ export function useAuth(): AuthContextType {
     login,
     logout,
     isLoading,
-    getToken,
     initiateGoogleLogin,
-    clearGoogleCache
   }
 }
