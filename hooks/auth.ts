@@ -32,6 +32,9 @@ export function useAuth() {
         password,
       })
       if (error) throw error
+      router.push('/dashboard')
+    } catch (error) {
+      throw error
     } finally {
       setIsLoading(false)
     }
@@ -54,6 +57,10 @@ export function useAuth() {
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       })
       if (error) throw error

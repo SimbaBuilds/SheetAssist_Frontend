@@ -34,7 +34,7 @@ export default function Header() {
         <div className="flex items-center space-x-4">
           {/* <Link href="/about" className="text-foreground hover:text-primary">About</Link> */}
           <Link href="/demos" className="text-foreground hover:text-primary">Demos</Link>
-          <Link href="/faq" className="text-foreground hover:text-primary">FAQ</Link>
+          {/* <Link href="/faq" className="text-foreground hover:text-primary">FAQ</Link> */}
           {user ? (
             <>
               <Link href="/dashboard" className="text-foreground hover:text-primary">Dashboard</Link>
