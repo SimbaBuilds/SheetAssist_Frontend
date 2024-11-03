@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/hooks/auth'
-import { DashboardPage } from '@/components/pages/private/DashboardPage'
+import { DashboardPage } from '@/components/pages/DashboardPage'
 
 export default function Dashboard() {
   const { user, isLoading } = useAuth()

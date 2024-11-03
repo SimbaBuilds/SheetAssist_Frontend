@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import * as LabelPrimitive from "@radix-ui/react-label"
 import { useAuth } from '@/hooks/auth'
 
 export default function LoginPage() {
@@ -44,7 +44,7 @@ export default function LoginPage() {
         <h1 className="text-2xl font-bold mb-6 text-center">Login</h1>
         <form onSubmit={handleLogin} className="bg-background shadow-md rounded px-8 pt-6 pb-8 mb-4 space-y-4">
           <div>
-            <Label htmlFor="email">Email</Label>
+            <LabelPrimitive.Root htmlFor="email">Email</LabelPrimitive.Root>
             <Input
               id="email"
               type="email"
@@ -55,7 +55,7 @@ export default function LoginPage() {
             />
           </div>
           <div>
-            <Label htmlFor="password">Password</Label>
+            <LabelPrimitive.Root htmlFor="password">Password</LabelPrimitive.Root>
             <Input
               id="password"
               type="password"

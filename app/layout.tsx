@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import "./globals.css";
 import { AuthProvider } from '@/providers/AuthProvider'
-import Header from "@/components/pages/public/Header";
-import Footer from "@/components/pages/public/Footer";
+import Header from "@/components/pages/Header";
+import Footer from "@/components/pages/Footer";
 
 const inter = Inter({
   subsets: ['latin'],
