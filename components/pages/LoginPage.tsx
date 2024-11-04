@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import * as LabelPrimitive from "@radix-ui/react-label"
 import { useAuth } from '@/hooks/auth'
+import Link from 'next/link'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -64,6 +65,14 @@ export default function LoginPage() {
               required
               className="border-2 border-gray-300 focus:border-primary"
             />
+          </div>
+          <div className="flex justify-end mb-2">
+            <Link 
+              href="/auth/forgot-password"
+              className="text-sm text-primary hover:text-primary/90"
+            >
+              Forgot Password?
+            </Link>
           </div>
           <div className="flex flex-col gap-4">
             <Button type="submit" className="w-full">Login</Button>

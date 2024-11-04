@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/auth'
 import { processQuery } from '@/services/python_backend';
 import axios from 'axios';
 import { useDashboard } from '@/hooks/useDashboard';
+import { PlusIcon, ArrowTopRightOnSquareIcon as ExternalLinkIcon } from '@heroicons/react/24/outline'
 
 const ACCEPTED_FILE_TYPES = '.xlsx,.csv,.json,.docx,.txt,.pdf,.jpeg,.png'
 const MAX_FILES = 10
@@ -30,7 +31,11 @@ const EXAMPLE_QUERIES = [
   "Filter and count items sold per category in the product sales sheet, summarizing by month"
 ]
 
-export function DashboardPage() {
+type DashboardPageProps = {
+  initialData?: any // Type this according to your data structure
+}
+
+export function DashboardPage({ initialData }: DashboardPageProps) {
   const {
     showPermissionsPrompt,
     setShowPermissionsPrompt,
@@ -51,8 +56,9 @@ export function DashboardPage() {
     handleMicrosoftSetup,
     handleFileChange,
     handleUrlChange,
-    handleSubmit
-  } = useDashboard()
+    handleSubmit,
+    recentUrls,
+  } = useDashboard(initialData)
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -152,6 +158,54 @@ export function DashboardPage() {
             </div>
           )}
         </div>
+
+        {/* Recent URLs */}
+        {recentUrls.length > 0 && (
+          <div className="mb-4">
+            <Label>Recent URLs</Label>
+            <div className="mt-2 space-y-2">
+              {recentUrls.map((url, index) => (
+                <div 
+                  key={index}
+                  className="flex items-center gap-2 p-2 bg-gray-50 rounded-md hover:bg-gray-100 group"
+                >
+                  <span className="text-sm text-gray-600 truncate flex-1">
+                    {url}
+                  </span>
+                  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        // Find an empty URL input or add to the end
+                        const emptyIndex = urls.findIndex(u => !u)
+                        const targetIndex = emptyIndex >= 0 ? emptyIndex : urls.length - 1
+                        handleUrlChange(targetIndex, url)
+                      }}
+                      className="h-7 px-2"
+                    >
+                      <span className="sr-only">Use URL</span>
+                      <PlusIcon className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        window.open(url, '_blank')
+                      }}
+                      className="h-7 px-2"
+                    >
+                      <span className="sr-only">Open URL</span>
+                      <ExternalLinkIcon className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* URL Inputs */}
         <div>

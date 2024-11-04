@@ -2,11 +2,19 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/auth'
 import { processQuery } from '@/services/python_backend'
 import axios from 'axios'
+import { createClient } from '@supabase/supabase-js'
 
 const MAX_FILES = 10
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
-export function useDashboard() {
+type UserPreferences = {
+  output_type?: 'download' | 'online'
+  last_query?: string
+  recent_urls?: string[]
+  // Add other preference fields as needed
+}
+
+export function useDashboard(initialData?: UserPreferences) {
   const { user, initiateGoogleLogin, initiateMicrosoftAuth } = useAuth()
   const [showPermissionsPrompt, setShowPermissionsPrompt] = useState(false)
   const [files, setFiles] = useState<File[]>([])
@@ -21,6 +29,23 @@ export function useDashboard() {
     microsoft: false
   })
   const [urlPermissionError, setUrlPermissionError] = useState<string | null>(null)
+  const [recentUrls, setRecentUrls] = useState<string[]>([])
+
+  useEffect(() => {
+    if (initialData) {
+      // Set any saved preferences from the database
+      if (initialData.output_type) {
+        setOutputType(initialData.output_type)
+      }
+      if (initialData.last_query) {
+        setQuery(initialData.last_query)
+      }
+      if (initialData.recent_urls) {
+        setRecentUrls(initialData.recent_urls)
+      }
+      // Add any other state initialization based on your needs
+    }
+  }, [initialData])
 
   useEffect(() => {
     const checkPermissions = async () => {
@@ -109,6 +134,13 @@ export function useDashboard() {
     if (index === urls.length - 1 && value && urls.length < MAX_FILES) {
       setUrls([...newUrls, ''])
     }
+
+    if (value && /^https?:\/\/.+/.test(value)) {
+      setRecentUrls(prev => {
+        const newRecents = [value, ...prev.filter(url => url !== value)]
+        return newRecents.slice(0, 5) // Keep only last 5 URLs
+      })
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -170,6 +202,26 @@ export function useDashboard() {
     }
   }
 
+  const saveRecentUrls = async (urls: string[]) => {
+    try {
+      const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+      await supabase
+        .from('user_usage')
+        .upsert({ 
+          user_id: user?.id,
+          recent_urls: urls
+        })
+    } catch (error) {
+      console.error('Error saving recent URLs:', error)
+    }
+  }
+
+  useEffect(() => {
+    if (recentUrls.length > 0) {
+      saveRecentUrls(recentUrls)
+    }
+  }, [recentUrls])
+
   return {
     showPermissionsPrompt,
     setShowPermissionsPrompt,
@@ -190,6 +242,7 @@ export function useDashboard() {
     handleMicrosoftSetup,
     handleFileChange,
     handleUrlChange,
-    handleSubmit
+    handleSubmit,
+    recentUrls,
   }
 } 
