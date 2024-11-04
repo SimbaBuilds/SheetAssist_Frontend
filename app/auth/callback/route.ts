@@ -10,6 +10,15 @@ export async function GET(request: Request) {
     await supabase.auth.exchangeCodeForSession(code)
   }
 
-  // Redirect to dashboard after successful authentication
+  // Check if we need to do Microsoft auth next
+  const pendingMicrosoftAuth = requestUrl.searchParams.get('pendingMicrosoftAuth')
+  
+  if (pendingMicrosoftAuth) {
+    // Clear the pending flag
+    const response = NextResponse.redirect(`${requestUrl.origin}/auth/microsoft`)
+    return response
+  }
+
+  // If no pending auth, redirect to dashboard
   return NextResponse.redirect(`${requestUrl.origin}/dashboard`)
 }

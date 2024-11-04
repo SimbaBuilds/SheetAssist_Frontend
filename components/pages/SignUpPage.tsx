@@ -38,7 +38,8 @@ type SignUpFormValues = z.infer<typeof signUpSchema>
 export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
-  const { initiateGoogleLogin } = useAuth()
+  const { initiateGoogleLogin, initiateMicrosoftAuth } = useAuth()
+  const [showPermissionsDialog, setShowPermissionsDialog] = useState(false)
 
   const form = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),
@@ -54,7 +55,9 @@ export default function SignUpPage() {
     try {
       // TODO: Implement your signup logic here
       // const response = await signUp(values)
-      router.push("/dashboard")
+      
+      // After successful signup, show the permissions dialog
+      setShowPermissionsDialog(true)
     } catch (error) {
       console.error("Signup failed:", error)
     } finally {
@@ -64,15 +67,32 @@ export default function SignUpPage() {
 
   const handleGoogleSignUp = async () => {
     try {
-      const authUrl = await initiateGoogleLogin()
-      if (authUrl) {
-        window.location.href = authUrl
+      const googleAuthUrl = await initiateGoogleLogin()
+      if (googleAuthUrl) {
+        // For direct Google signup, we don't set pendingMicrosoftAuth
+        window.location.href = googleAuthUrl
       } else {
-        alert('Failed to initiate Google sign up')
+        throw new Error('Failed to initiate Google authentication')
       }
     } catch (error) {
       console.error('Error signing up with Google:', error)
       alert('Error signing up with Google')
+    }
+  }
+
+  const handlePermissionsSetup = async () => {
+    try {
+      const googleAuthUrl = await initiateGoogleLogin()
+      if (googleAuthUrl) {
+        // Only set pendingMicrosoftAuth when coming from permissions dialog
+        localStorage.setItem('pendingMicrosoftAuth', 'true')
+        window.location.href = googleAuthUrl
+      } else {
+        throw new Error('Failed to initiate Google authentication')
+      }
+    } catch (error) {
+      console.error('Error setting up permissions:', error)
+      alert('Error setting up permissions. Please try again.')
     }
   }
 
@@ -182,6 +202,37 @@ export default function SignUpPage() {
           </Link>
         </div>
       </div>
+
+      {showPermissionsDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-8 rounded-lg max-w-md w-full space-y-4">
+            <h2 className="text-2xl font-bold">Set Up Permissions</h2>
+            <p className="text-gray-600">
+              To get the most out of our app, we need permission to access:
+            </p>
+            <ul className="list-disc list-inside text-gray-600">
+              <li>Google Sheets</li>
+              <li>Google Docs</li>
+              <li>Microsoft Excel Online</li>
+              <li>Microsoft Word Online</li>
+            </ul>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
+              >
+                Skip for now
+              </button>
+              <button
+                onClick={handlePermissionsSetup}
+                className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
+              >
+                Set up permissions
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

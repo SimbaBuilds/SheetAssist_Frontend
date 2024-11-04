@@ -3,6 +3,18 @@ import { User } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 
+const GOOGLE_SCOPES = [
+  'https://www.googleapis.com/auth/spreadsheets',
+  'https://www.googleapis.com/auth/documents',
+  'https://www.googleapis.com/auth/drive'
+].join(' ')
+
+const MICROSOFT_SCOPES = [
+  'Files.ReadWrite',
+  'Sites.ReadWrite.All',
+  'offline_access'
+].join(' ')
+
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -60,6 +72,7 @@ export function useAuth() {
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
+            scope: GOOGLE_SCOPES
           },
         },
       })
@@ -71,11 +84,32 @@ export function useAuth() {
     }
   }
 
+  const initiateMicrosoftAuth = async () => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'azure',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            prompt: 'consent',
+            scope: MICROSOFT_SCOPES
+          },
+        },
+      })
+      if (error) throw error
+      return data.url
+    } catch (error) {
+      console.error('Microsoft auth error:', error)
+      return null
+    }
+  }
+
   return {
     user,
     login,
     logout,
     isLoading,
     initiateGoogleLogin,
+    initiateMicrosoftAuth,
   }
 }

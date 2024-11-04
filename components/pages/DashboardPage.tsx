@@ -1,9 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { useAuth } from '@/hooks/auth'
+import { processQuery } from '@/services/python_backend';
+import axios from 'axios';
+import { useDashboard } from '@/hooks/useDashboard';
 
 const ACCEPTED_FILE_TYPES = '.xlsx,.csv,.json,.docx,.txt,.pdf,.jpeg,.png'
 const MAX_FILES = 10
@@ -27,76 +31,93 @@ const EXAMPLE_QUERIES = [
 ]
 
 export function DashboardPage() {
-  const [files, setFiles] = useState<File[]>([])
-  const [urls, setUrls] = useState<string[]>([''])
-  const [query, setQuery] = useState('')
-  const [outputType, setOutputType] = useState<'download' | 'online'>('download')
-  const [outputUrl, setOutputUrl] = useState('')
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [error, setError] = useState('')
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(e.target.files || [])
-    if (selectedFiles.length + files.length > MAX_FILES) {
-      setError(`Maximum ${MAX_FILES} files allowed`)
-      return
-    }
-
-    const invalidFiles = selectedFiles.filter(file => file.size > MAX_FILE_SIZE)
-    if (invalidFiles.length > 0) {
-      setError(`Some files exceed the ${MAX_FILE_SIZE / 1024 / 1024}MB limit`)
-      return
-    }
-
-    setFiles(prev => [...prev, ...selectedFiles])
-    setError('')
-  }
-
-  const handleUrlChange = (index: number, value: string) => {
-    const newUrls = [...urls]
-    newUrls[index] = value
-    setUrls(newUrls)
-
-    // Add new empty field if last field is filled and we haven't reached MAX_FILES
-    if (index === urls.length - 1 && value && urls.length < MAX_FILES) {
-      setUrls([...newUrls, ''])
-    }
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsProcessing(true)
-    setError('')
-
-    try {
-      const formData = new FormData()
-      files.forEach(file => formData.append('files', file))
-      urls.filter(url => url).forEach(url => formData.append('urls', url))
-      formData.append('query', query)
-      formData.append('outputType', outputType)
-      if (outputType === 'online') {
-        formData.append('outputUrl', outputUrl)
-      }
-
-      // TODO: Implement API call
-      console.log('Submitting form data:', {
-        files: files.map(f => f.name),
-        urls: urls.filter(url => url),
-        query,
-        outputType,
-        outputUrl
-      })
-
-    } catch (error) {
-      setError('An error occurred while processing your request')
-      console.error(error)
-    } finally {
-      setIsProcessing(false)
-    }
-  }
+  const {
+    showPermissionsPrompt,
+    setShowPermissionsPrompt,
+    files,
+    setFiles,
+    urls,
+    query,
+    setQuery,
+    outputType,
+    setOutputType,
+    outputUrl,
+    setOutputUrl,
+    isProcessing,
+    error,
+    permissions,
+    urlPermissionError,
+    handleGoogleSetup,
+    handleMicrosoftSetup,
+    handleFileChange,
+    handleUrlChange,
+    handleSubmit
+  } = useDashboard()
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
+      {showPermissionsPrompt && (
+        <div className="mb-8 p-4 border rounded-lg bg-yellow-50">
+          <div className="space-y-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="font-semibold">Set Up Integrations</h3>
+                <p className="text-sm text-gray-600">
+                  Connect your accounts to work with your documents and spreadsheets.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowPermissionsPrompt(false)}
+              >
+                Dismiss
+              </Button>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1 p-4 border rounded bg-white">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <h4 className="font-medium">Google Integration</h4>
+                    <p className="text-sm text-gray-500">Google Docs & Sheets</p>
+                  </div>
+                  {permissions.google ? (
+                    <span className="text-green-600 text-sm">✓ Connected</span>
+                  ) : (
+                    <Button
+                      size="sm"
+                      onClick={handleGoogleSetup}
+                    >
+                      Connect Google
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex-1 p-4 border rounded bg-white">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <h4 className="font-medium">Microsoft Integration</h4>
+                    <p className="text-sm text-gray-500">Excel & Word Online</p>
+                  </div>
+                  {permissions.microsoft ? (
+                    <span className="text-green-600 text-sm">✓ Connected</span>
+                  ) : (
+                    <Button
+                      size="sm"
+                      onClick={handleMicrosoftSetup}
+                    >
+                      Connect Microsoft
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <h1 className="text-2xl font-bold mb-8">AI File Processing</h1>
       
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -142,9 +163,41 @@ export function DashboardPage() {
               value={url}
               onChange={(e) => handleUrlChange(index, e.target.value)}
               placeholder="Enter URL"
-              className="mt-1"
+              className={`mt-1 ${urlPermissionError && url ? 'border-red-500' : ''}`}
             />
           ))}
+          {urlPermissionError && (
+            <div className="mt-2 text-sm text-red-600 flex items-center gap-2">
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                className="h-4 w-4" 
+                viewBox="0 0 20 20" 
+                fill="currentColor"
+              >
+                <path 
+                  fillRule="evenodd" 
+                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" 
+                  clipRule="evenodd" 
+                />
+              </svg>
+              {urlPermissionError}
+              <Button
+                type="button"
+                variant="link"
+                size="sm"
+                className="text-primary hover:text-primary/90 p-0 h-auto font-normal"
+                onClick={() => {
+                  if (urlPermissionError.includes('Google')) {
+                    handleGoogleSetup()
+                  } else if (urlPermissionError.includes('Microsoft')) {
+                    handleMicrosoftSetup()
+                  }
+                }}
+              >
+                Connect now
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Query Input */}
