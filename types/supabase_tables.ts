@@ -1,5 +1,6 @@
 export type PlanType = 'free' | 'base' | 'pro'
 
+// user_profile table
 export interface UserProfile {
   id: string // UUID
   first_name: string | null
@@ -9,6 +10,7 @@ export interface UserProfile {
   plan: PlanType
 }
 
+// user_usage table
 export interface UserUsage {
   id: string // UUID
   recent_urls: string[]
@@ -18,6 +20,7 @@ export interface UserUsage {
   requests_previous_3_months: number
 }
 
+// error_messages table
 export interface ErrorMessage {
   id: string // UUID
   user_id: string // UUID

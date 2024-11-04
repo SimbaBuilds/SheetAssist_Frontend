@@ -1,0 +1,3 @@
+[functions.reset-monthly-usage]
+verify_jwt = false
+regions = ["us-east-1"] 

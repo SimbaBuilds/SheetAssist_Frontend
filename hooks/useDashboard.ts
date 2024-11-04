@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/auth'
 import { processQuery } from '@/services/python_backend'
 import axios from 'axios'
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
+
 
 const MAX_FILES = 10
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
@@ -30,6 +31,11 @@ export function useDashboard(initialData?: UserPreferences) {
   })
   const [urlPermissionError, setUrlPermissionError] = useState<string | null>(null)
   const [recentUrls, setRecentUrls] = useState<string[]>([])
+
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
 
   useEffect(() => {
     if (initialData) {
@@ -112,7 +118,7 @@ export function useDashboard(initialData?: UserPreferences) {
     setError('')
   }
 
-  const handleUrlChange = (index: number, value: string) => {
+  const handleUrlChange = async (index: number, value: string) => {
     const newUrls = [...urls]
     newUrls[index] = value
     setUrls(newUrls)
@@ -136,10 +142,25 @@ export function useDashboard(initialData?: UserPreferences) {
     }
 
     if (value && /^https?:\/\/.+/.test(value)) {
-      setRecentUrls(prev => {
-        const newRecents = [value, ...prev.filter(url => url !== value)]
-        return newRecents.slice(0, 5) // Keep only last 5 URLs
-      })
+      const newRecentUrls = [value, ...recentUrls.filter(url => url !== value)].slice(0, 5)
+      setRecentUrls(newRecentUrls)
+      
+      // Update in database
+      const { error } = await supabase
+        .from('user_usage')
+        .update({ recent_urls: newRecentUrls })
+        .eq('id', user?.id)
+
+      if (error) {
+        await supabase
+          .from('error_messages')
+          .insert({
+            user_id: user?.id,
+            message: 'Failed to update recent URLs',
+            error_code: error.code,
+            resolved: false
+          })
+      }
     }
   }
 
@@ -149,6 +170,24 @@ export function useDashboard(initialData?: UserPreferences) {
     setError('')
 
     try {
+      // Update user usage stats
+      const { data: usageData, error: usageError } = await supabase
+        .from('user_usage')
+        .select('*')
+        .eq('id', user?.id)
+        .single()
+
+      if (!usageError) {
+        await supabase
+          .from('user_usage')
+          .update({
+            recent_queries: [query, ...(usageData.recent_queries || [])].slice(0, 10),
+            requests_this_week: usageData.requests_this_week + 1,
+            requests_this_month: usageData.requests_this_month + 1
+          })
+          .eq('id', user?.id)
+      }
+
       const validUrls = urls.filter(url => url)
       const enhancedQuery = `${query} ${outputType === 'online' ? 
         `and save the result to this document: ${outputUrl}` : 
@@ -158,6 +197,15 @@ export function useDashboard(initialData?: UserPreferences) {
 
       if (result.result.error) {
         setError(result.result.error)
+        // Log error
+        await supabase
+          .from('error_messages')
+          .insert({
+            user_id: user?.id,
+            message: result.result.error,
+            error_code: 'QUERY_PROCESSING_ERROR',
+            resolved: false
+          })
         return
       }
 
@@ -197,6 +245,26 @@ export function useDashboard(initialData?: UserPreferences) {
         setError('An unexpected error occurred')
       }
       console.error(error)
+      // Log error
+      if (error instanceof Error) {
+        await supabase
+          .from('error_messages')
+          .insert({
+            user_id: user?.id,
+            message: error.message,
+            error_code: 'UNKNOWN_ERROR',
+            resolved: false
+          })
+      } else {
+        await supabase
+          .from('error_messages')
+          .insert({
+            user_id: user?.id,
+            message: 'An unknown error occurred',
+            error_code: 'UNKNOWN_ERROR',
+            resolved: false
+          })
+      }
     } finally {
       setIsProcessing(false)
     }
@@ -204,7 +272,6 @@ export function useDashboard(initialData?: UserPreferences) {
 
   const saveRecentUrls = async (urls: string[]) => {
     try {
-      const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
       await supabase
         .from('user_usage')
         .upsert({ 

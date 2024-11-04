@@ -63,6 +63,24 @@ export function useAuth() {
     }
   }
 
+  const updatePermissionsStatus = async (provider: 'google' | 'microsoft') => {
+    const { error } = await supabase
+      .from('user_profile')
+      .update({
+        [`${provider}_permissions_set`]: true
+      })
+      .eq('id', user?.id)
+
+    if (error) {
+      await supabase.from('error_messages').insert({
+        user_id: user?.id,
+        message: `Failed to update ${provider} permissions status`,
+        error_code: error.code,
+        resolved: false
+      })
+    }
+  }
+
   const initiateGoogleLogin = async () => {
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -77,6 +95,7 @@ export function useAuth() {
         },
       })
       if (error) throw error
+      await updatePermissionsStatus('google')
       return data.url
     } catch (error) {
       console.error('Google login error:', error)
@@ -97,6 +116,7 @@ export function useAuth() {
         },
       })
       if (error) throw error
+      await updatePermissionsStatus('microsoft')
       return data.url
     } catch (error) {
       console.error('Microsoft auth error:', error)

@@ -17,6 +17,12 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from '@/hooks/auth'
+import { createBrowserClient } from '@supabase/ssr'
+
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 const signUpSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -56,14 +62,67 @@ export default function SignUpPage() {
 
   async function onSubmit(values: SignUpFormValues) {
     setIsLoading(true)
+    let signupData: { user: { id: string } | null } | null = null
+
     try {
-      // TODO: Implement your signup logic here
-      // const response = await signUp(values)
-      
-      // After successful signup, show the permissions dialog
+      // First create auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: values.email,
+        password: values.password
+      })
+      if (authError) throw authError
+
+      signupData = authData // Store the auth data for error logging
+
+      // Then create user profile
+      const { error: profileError } = await supabase
+        .from('user_profile')
+        .insert({
+          id: authData.user!.id,
+          first_name: values.firstName,
+          last_name: values.lastName,
+          google_permissions_set: false,
+          microsoft_permissions_set: false,
+          plan: 'free'
+        })
+      if (profileError) throw profileError
+
+      // Initialize user usage
+      const { error: usageError } = await supabase
+        .from('user_usage')
+        .insert({
+          id: authData.user!.id,
+          recent_urls: [],
+          recent_queries: [],
+          requests_this_week: 0,
+          requests_this_month: 0,
+          requests_previous_3_months: 0
+        })
+      if (usageError) throw usageError
+
       setShowPermissionsDialog(true)
     } catch (error) {
       console.error("Signup failed:", error)
+      // Log error with proper type checking
+      if (error instanceof Error) {
+        await supabase
+          .from('error_messages')
+          .insert({
+            user_id: signupData?.user?.id || null,
+            message: error.message,
+            error_code: 'AUTH_ERROR',
+            resolved: false
+          })
+      } else {
+        await supabase
+          .from('error_messages')
+          .insert({
+            user_id: signupData?.user?.id || null,
+            message: 'An unknown error occurred during signup',
+            error_code: 'UNKNOWN_ERROR',
+            resolved: false
+          })
+      }
     } finally {
       setIsLoading(false)
     }
