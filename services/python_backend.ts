@@ -6,6 +6,10 @@ export interface QueryRequest {
   web_urls?: string[];
   files?: File[];
   query: string;
+  output_preferences?: {
+    type: 'download' | 'online';
+    destination_url?: string;
+  };
 }
 
 export interface SandboxResult {
@@ -27,7 +31,8 @@ export interface ProcessedQueryResult {
 export const processQuery = async (
   query: string,
   webUrls: string[] = [],
-  files: File[] = []
+  files: File[] = [],
+  outputPreferences?: { type: 'download' | 'online'; destination_url?: string }
 ): Promise<ProcessedQueryResult> => {
   // Create form data if files are present
   const formData = new FormData();
@@ -36,6 +41,7 @@ export const processQuery = async (
   const jsonData = {
     query,
     web_urls: webUrls,
+    output_preferences: outputPreferences
   };
   formData.append('json', new Blob([JSON.stringify(jsonData)], {
     type: 'application/json'

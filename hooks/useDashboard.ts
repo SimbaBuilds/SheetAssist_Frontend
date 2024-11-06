@@ -189,11 +189,20 @@ export function useDashboard(initialData?: UserPreferences) {
       }
 
       const validUrls = urls.filter(url => url)
-      const enhancedQuery = `${query} ${outputType === 'online' ? 
-        `and save the result to this document: ${outputUrl}` : 
-        'and provide the result as a downloadable file'}`
       
-      const result = await processQuery(enhancedQuery, validUrls, files)
+      // Create output preferences object
+      const outputPreferences = {
+        type: outputType,
+        destination_url: outputType === 'online' ? outputUrl : undefined
+      }
+
+      // Remove the output type from the query string since it's now in the preferences
+      const result = await processQuery(
+        query,
+        validUrls,
+        files,
+        outputPreferences
+      )
 
       if (result.result.error) {
         setError(result.result.error)
@@ -224,10 +233,57 @@ export function useDashboard(initialData?: UserPreferences) {
           document.body.removeChild(a);
         }
       } else if (outputType === 'online') {
-        if (result.result.return_value?.url) {
-          window.open(result.result.return_value.url, '_blank');
+        const isGoogleUrl = outputUrl.includes('google.com') || outputUrl.includes('docs.google.com') || outputUrl.includes('sheets.google.com')
+        const isMicrosoftUrl = outputUrl.includes('office.com') || outputUrl.includes('live.com') || outputUrl.includes('sharepoint.com')
+        
+        try {
+            if (isGoogleUrl) {
+                if (outputUrl.includes('docs.google.com')) {
+                    // Handle Google Docs text append
+                    await axios.post('/api/google/docs/append', {
+                        documentId: extractGoogleDocId(outputUrl),
+                        content: result.result.return_value
+                    });
+                } else if (outputUrl.includes('sheets.google.com')) {
+                    // Handle Google Sheets DataFrame append
+                    await axios.post('/api/google/sheets/append', {
+                        spreadsheetId: extractGoogleSheetId(outputUrl),
+                        data: result.result.return_value
+                    });
+                }
+            } else if (isMicrosoftUrl) {
+                if (outputUrl.includes('word')) {
+                    // Handle Microsoft Word text append
+                    await axios.post('/api/microsoft/word/append', {
+                        documentId: extractMicrosoftDocId(outputUrl),
+                        content: result.result.return_value
+                    });
+                } else if (outputUrl.includes('excel')) {
+                    // Handle Microsoft Excel DataFrame append
+                    await axios.post('/api/microsoft/excel/append', {
+                        workbookId: extractMicrosoftWorkbookId(outputUrl),
+                        data: result.result.return_value
+                    });
+                }
+            } else {
+                throw new Error('Unsupported document URL');
+            }
+            
+            alert('Document updated successfully!');
+        } catch (error) {
+            console.error('Error updating document:', error);
+            setError('Failed to update the document. Please check the URL and try again.');
+            
+            // Log error to Supabase
+            await supabase
+                .from('error_messages')
+                .insert({
+                    user_id: user?.id,
+                    message: error instanceof Error ? error.message : 'Document update failed',
+                    error_code: 'DOCUMENT_UPDATE_ERROR',
+                    resolved: false
+                });
         }
-        alert('Document updated successfully! ' + (result.message || ''));
       }
 
     } catch (error) {
@@ -313,3 +369,26 @@ export function useDashboard(initialData?: UserPreferences) {
     recentUrls,
   }
 } 
+
+// Helper functions to extract document IDs
+function extractGoogleDocId(url: string): string {
+    const match = url.match(/\/d\/([-\w]+)/);
+    return match ? match[1] : '';
+}
+
+function extractGoogleSheetId(url: string): string {
+    const match = url.match(/\/d\/([-\w]+)/);
+    return match ? match[1] : '';
+}
+
+function extractMicrosoftDocId(url: string): string {
+    // Extract document ID from Microsoft URL format
+    const match = url.match(/[\w\-]+\?.*$/);
+    return match ? match[0].split('?')[0] : '';
+}
+
+function extractMicrosoftWorkbookId(url: string): string {
+    // Extract workbook ID from Microsoft URL format
+    const match = url.match(/[\w\-]+\?.*$/);
+    return match ? match[0].split('?')[0] : '';
+}
