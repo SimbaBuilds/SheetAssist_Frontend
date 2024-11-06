@@ -12,9 +12,11 @@ export default function LandingPage() {
         <h1 className="text-4xl md:text-6xl font-bold mb-6">AI File</h1>
         <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto mb-12">
           AI tool for your spreadsheets, pdfs, text documents, and images. 
-          Integrate with Google and Microsoft services. 
-          Instantly transfer images to spreadsheets. 
-          Combine/convert spreadsheets and pdfs.
+          Delivers consistent, reliable results.
+          Handles large files with accuracy.
+          Integrates with Google and Microsoft services. 
+          Instantly transfers images to spreadsheets. 
+          Combines/converts spreadsheets and pdfs.
         </p>
         <Button size="lg" asChild>
           <Link href="/login">Get Started</Link>
