@@ -49,8 +49,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false)
     })
 
+    const refreshSession = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession()
+      if (error) {
+        console.error('Error refreshing session:', error)
+        return
+      }
+      if (!session && window.location.pathname !== '/auth/login') {
+        window.location.href = '/auth/login'
+      }
+    }
+
+    // Refresh session every 10 minutes
+    const interval = setInterval(refreshSession, 10 * 60 * 1000)
+
+    const recoverAuthState = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession()
+      if (!error && session) {
+        setUser(session.user)
+        const { data: profile } = await supabase
+          .from('user_profile')
+          .select('google_permissions_set, microsoft_permissions_set, permissions_setup_completed')
+          .eq('id', session.user.id)
+          .single()
+          
+        if (profile) {
+          setPermissionsStatus({
+            googlePermissionsSet: profile.google_permissions_set,
+            microsoftPermissionsSet: profile.microsoft_permissions_set,
+            permissionsSetupCompleted: profile.permissions_setup_completed
+          })
+        }
+      }
+    }
+
     return () => {
       subscription.unsubscribe()
+      clearInterval(interval)
     }
   }, [supabase])
 

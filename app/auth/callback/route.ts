@@ -8,7 +8,6 @@ export async function GET(request: Request) {
   try {
     const requestUrl = new URL(request.url)
     const code = requestUrl.searchParams.get('code')
-    const provider = requestUrl.searchParams.get('provider')
     
     if (!code) {
       return NextResponse.redirect(new URL('/auth/error', request.url))
@@ -31,37 +30,81 @@ export async function GET(request: Request) {
       return NextResponse.redirect(new URL('/auth/error', request.url))
     }
 
-    // Update permissions status if this was an OAuth callback
-    if (provider) {
-      const { error: updateError } = await supabase
+    // For new Google sign-ups, create or update user profile
+    if (user.app_metadata.provider === 'google') {
+      const { error: profileError } = await supabase
         .from('user_profile')
-        .update({
-          [`${provider}_permissions_set`]: true,
-          permissions_setup_completed: true
+        .upsert({
+          id: user.id,
+          email: user.email,
+          first_name: user.user_metadata.full_name?.split(' ')[0] || '',
+          last_name: user.user_metadata.full_name?.split(' ').slice(1).join(' ') || '',
+          google_permissions_set: true,
+          permissions_setup_completed: true,
+          plan: 'free'
         })
-        .eq('id', user.id)
 
-      if (updateError) {
-        console.error('Failed to update permissions status:', updateError)
+      if (profileError) {
+        console.error('Failed to create/update user profile:', profileError)
+      }
+
+      // Initialize usage tracking for new users
+      const { data: existingUsage } = await supabase
+        .from('user_usage')
+        .select('id')
+        .eq('user_id', user.id)
+        .single()
+
+      if (!existingUsage) {
+        await supabase
+          .from('user_usage')
+          .insert({
+            user_id: user.id,
+            recent_urls: [],
+            recent_queries: [],
+            requests_this_week: 0,
+            requests_this_month: 0,
+            requests_previous_3_months: 0
+          })
       }
     }
 
-    // Check for pending Microsoft auth
-    const pendingMicrosoft = requestUrl.searchParams.get('pendingMicrosoft')
-    if (pendingMicrosoft === 'true') {
-      const { data: microsoftAuthData, error: microsoftError } = await supabase.auth.signInWithOAuth({
-        provider: 'azure',
-        options: {
-          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?provider=microsoft`,
-          queryParams: {
-            prompt: 'consent',
-            access_type: 'offline',
-          },
-        },
-      })
+    // For new Microsoft sign-ups, create or update user profile
+    if (user.app_metadata.provider === 'azure') {
+      const { error: profileError } = await supabase
+        .from('user_profile')
+        .upsert({
+          id: user.id,
+          email: user.email,
+          first_name: user.user_metadata.full_name?.split(' ')[0] || '',
+          last_name: user.user_metadata.full_name?.split(' ').slice(1).join(' ') || '',
+          microsoft_permissions_set: true,
+          permissions_setup_completed: true,
+          plan: 'free'
+        })
 
-      if (!microsoftError && microsoftAuthData?.url) {
-        return NextResponse.redirect(microsoftAuthData.url)
+      if (profileError) {
+        console.error('Failed to create/update user profile:', profileError)
+      }
+
+      // Initialize usage tracking for new users
+      const { data: existingUsage } = await supabase
+        .from('user_usage')
+        .select('id')
+        .eq('user_id', user.id)
+        .single()
+
+      if (!existingUsage) {
+        await supabase
+          .from('user_usage')
+          .insert({
+            user_id: user.id,
+            recent_urls: [],
+            recent_queries: [],
+            requests_this_week: 0,
+            requests_this_month: 0,
+            requests_previous_3_months: 0
+          })
       }
     }
 

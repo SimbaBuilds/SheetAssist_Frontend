@@ -8,7 +8,10 @@ const SCOPES = {
   google: [
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/documents',
-    'https://www.googleapis.com/auth/drive'
+    'https://www.googleapis.com/auth/drive',
+    'https://www.googleapis.com/auth/userinfo.email',
+    'https://www.googleapis.com/auth/userinfo.profile',
+    'openid'
   ].join(' '),
   microsoft: [
     'Files.ReadWrite',
@@ -66,43 +69,45 @@ export function useAuth() {
     if (error) throw error
   }
 
-  const initiateGoogleLogin = async () => {
+  const signInWithGoogle = async () => {
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?provider=google`,
+          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
             scope: SCOPES.google
-          },
-        },
+          }
+        }
       })
+
       if (error) throw error
       if (data.url) window.location.href = data.url
     } catch (error) {
-      console.error('Google login error:', error)
+      console.error('Google sign in error:', error)
       throw error
     }
   }
 
-  const initiateMicrosoftAuth = async () => {
+  const signInWithMicrosoft = async () => {
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'azure',
         options: {
-          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?provider=microsoft`,
+          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
           queryParams: {
             prompt: 'consent',
             scope: SCOPES.microsoft
-          },
-        },
+          }
+        }
       })
+
       if (error) throw error
       if (data.url) window.location.href = data.url
     } catch (error) {
-      console.error('Microsoft auth error:', error)
+      console.error('Microsoft sign in error:', error)
       throw error
     }
   }
@@ -151,10 +156,10 @@ export function useAuth() {
     permissionsStatus,
     login,
     logout,
+    signInWithGoogle,
+    signInWithMicrosoft,
     requestPasswordReset,
     updatePassword,
-    initiateGoogleLogin,
-    initiateMicrosoftAuth,
     setupPermissions,
     skipPermissionsSetup
   }

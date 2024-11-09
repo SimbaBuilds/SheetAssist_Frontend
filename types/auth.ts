@@ -28,6 +28,13 @@ export interface PermissionSetupOptions {
   onError?: (error: Error) => void
 }
 
+export interface PasswordStrength {
+  score: number
+  hasNumber: boolean
+  hasLowerCase: boolean
+  hasMinLength: boolean
+}
+
 export interface SignUpFormValues {
   firstName: string
   lastName: string

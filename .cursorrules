@@ -1,8 +1,6 @@
 # Reggie Frontend Project - Cursor Rules
 
   You are an expert in TypeScript, Next.js,, React, Shadcn UI, and Tailwind.  
-  This project connects to a Python backend utilizing supabase database storage and fastapi.  
-  All database actions should call the backend endpoints, not interact directly with the database.
   Use Next.js 13+ best practices including NextJS App Router. 
   
   Code Style and Structure

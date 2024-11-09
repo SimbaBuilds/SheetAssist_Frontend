@@ -15,6 +15,7 @@ import Link from "next/link"
 import { useSignUp } from '@/hooks/useSignUp'
 import { ErrorBoundary } from '@/components/pages/signup/ErrorBoundary'
 import { LoadingSpinner } from '@/components/pages/signup/LoadingSpinner'
+import { GoogleIcon, MicrosoftIcon } from '@/components/icons'
 
 export default function SignUpPage() {
   const {
@@ -203,18 +204,24 @@ export default function SignUpPage() {
                 <li>Microsoft Excel Online</li>
                 <li>Microsoft Word Online</li>
               </ul>
-              <div className="flex justify-end space-x-3">
+              <div className="flex flex-col space-y-3">
                 <button
-                  onClick={handleSkipPermissions}
-                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded"
+                  onClick={() => handlePermissionsSetup('google')}
+                  className="w-full flex items-center justify-center gap-2 bg-white text-gray-700 hover:bg-gray-50 py-2 px-4 rounded border border-gray-300"
                 >
-                  Skip for now
+                  <GoogleIcon /> Set up Google permissions
                 </button>
                 <button
-                  onClick={handlePermissionsSetup}
-                  className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90"
+                  onClick={() => handlePermissionsSetup('azure')}
+                  className="w-full flex items-center justify-center gap-2 bg-white text-gray-700 hover:bg-gray-50 py-2 px-4 rounded border border-gray-300"
                 >
-                  Set up permissions
+                  <MicrosoftIcon /> Set up Microsoft permissions
+                </button>
+                <button
+                  onClick={handleSkipPermissions}
+                  className="text-gray-600 hover:text-gray-800"
+                >
+                  Skip for now
                 </button>
               </div>
             </div>

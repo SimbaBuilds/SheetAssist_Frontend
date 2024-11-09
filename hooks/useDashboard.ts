@@ -16,7 +16,7 @@ type UserPreferences = {
 }
 
 export function useDashboard(initialData?: UserPreferences) {
-  const { user, initiateGoogleLogin, initiateMicrosoftAuth } = useAuth()
+  const { user, signInWithGoogle, signInWithMicrosoft } = useAuth()
   const [showPermissionsPrompt, setShowPermissionsPrompt] = useState(false)
   const [files, setFiles] = useState<File[]>([])
   const [urls, setUrls] = useState<string[]>([''])
@@ -75,8 +75,8 @@ export function useDashboard(initialData?: UserPreferences) {
 
   const handleGoogleSetup = async () => {
     try {
-      const googleAuthUrl = await initiateGoogleLogin()
-      if (googleAuthUrl) {
+      const googleAuthUrl = await signInWithGoogle()
+      if (typeof googleAuthUrl === 'string' && googleAuthUrl) {
         window.location.href = googleAuthUrl
       } else {
         throw new Error('Failed to initiate Google authentication')
@@ -89,8 +89,8 @@ export function useDashboard(initialData?: UserPreferences) {
 
   const handleMicrosoftSetup = async () => {
     try {
-      const microsoftAuthUrl = await initiateMicrosoftAuth()
-      if (microsoftAuthUrl) {
+      const microsoftAuthUrl = await signInWithMicrosoft()
+      if (typeof microsoftAuthUrl === 'string' && microsoftAuthUrl) {
         window.location.href = microsoftAuthUrl
       } else {
         throw new Error('Failed to initiate Microsoft authentication')

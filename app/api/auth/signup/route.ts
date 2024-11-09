@@ -9,19 +9,23 @@ export async function POST(request: Request) {
     const { firstName, lastName, email, password } = await request.json()
     const supabase = createRouteHandlerClient({ cookies })
     
-    // Check if user already exists
-    const { data: existingUser } = await supabase
-      .from('user_profile')
-      .select('id')
-      .eq('email', email)
-      .single()
-
-    if (existingUser) {
+    // Validate input
+    if (!firstName || !lastName || !email || !password) {
       return NextResponse.json(
-        { error: 'User already exists' },
+        { error: 'Missing required fields' },
         { status: 400 }
       )
     }
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { error: 'Invalid email format' },
+        { status: 400 }
+      )
+    }
+
 
     // Sign up the user
     const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -37,9 +41,17 @@ export async function POST(request: Request) {
     })
 
     if (authError) {
+      console.error('Auth error:', authError)
       return NextResponse.json(
         { error: authError.message },
         { status: 400 }
+      )
+    }
+
+    if (!authData.user) {
+      return NextResponse.json(
+        { error: 'Failed to create user' },
+        { status: 500 }
       )
     }
 
@@ -47,8 +59,7 @@ export async function POST(request: Request) {
     const { error: profileError } = await supabase
       .from('user_profile')
       .insert({
-        id: authData.user!.id,
-        email,
+        id: authData.user.id,
         first_name: firstName,
         last_name: lastName,
         google_permissions_set: false,
@@ -58,6 +69,7 @@ export async function POST(request: Request) {
       })
 
     if (profileError) {
+      console.error('Profile creation error:', profileError)
       return NextResponse.json(
         { error: 'Failed to create user profile' },
         { status: 500 }
@@ -68,7 +80,7 @@ export async function POST(request: Request) {
     const { error: usageError } = await supabase
       .from('user_usage')
       .insert({
-        user_id: authData.user!.id,
+        user_id: authData.user.id,
         recent_urls: [],
         recent_queries: [],
         requests_this_week: 0,
@@ -77,10 +89,21 @@ export async function POST(request: Request) {
       })
 
     if (usageError) {
+      console.error('Usage tracking initialization error:', usageError)
       return NextResponse.json(
         { error: 'Failed to initialize usage tracking' },
         { status: 500 }
       )
+    }
+
+    // Set up database trigger for auto trial
+    const { error: trialError } = await supabase.rpc('start_trial', {
+      user_id: authData.user.id
+    })
+
+    if (trialError) {
+      console.error('Trial setup error:', trialError)
+      // Don't return error - trial setup is not critical
     }
 
     return NextResponse.json({ 
@@ -90,7 +113,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Signup error:', error)
     return NextResponse.json(
-      { error: 'An unexpected error occurred' },
+      { error: error instanceof Error ? error.message : 'An unexpected error occurred' },
       { status: 500 }
     )
   }

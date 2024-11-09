@@ -11,7 +11,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const router = useRouter()
-  const { login, initiateGoogleLogin } = useAuth()
+  const { login, signInWithGoogle } = useAuth()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -26,12 +26,7 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     try {
-      const authUrl = await initiateGoogleLogin()
-      if (authUrl) {
-        window.location.href = authUrl
-      } else {
-        alert('Failed to initiate Google login')
-      }
+      await signInWithGoogle()
     } catch (error) {
       console.error('Error logging in with Google:', error)
       alert('Error logging in with Google')
