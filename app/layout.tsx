@@ -5,6 +5,9 @@ import { AuthProvider } from '@/providers/AuthProvider'
 import Header from "@/components/pages/Header";
 import Footer from "@/components/pages/Footer";
 import { RouteLoadingIndicator } from '@/components/pages/signup/RouteLoadingIndicator'
+import { Suspense } from 'react';
+import { ErrorBoundary } from '@/components/pages/ErrorBoundary';
+import { ClearStateButton } from '@/components/dev/ClearStateButton'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -29,14 +32,19 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}
+        className={`${inter.variable} ${jetbrainsMono.variable} antialiased min-h-screen flex flex-col`}
       >
-        <RouteLoadingIndicator />
-        <AuthProvider>
-          <Header />
-          {children}
-          <Footer />
-        </AuthProvider>
+        <ErrorBoundary>
+          <Suspense fallback={<RouteLoadingIndicator />}>
+            <AuthProvider>
+              <Header />
+              <main className="flex-grow">
+                {children}
+              </main>
+              <Footer />
+            </AuthProvider>
+          </Suspense>
+        </ErrorBoundary>
       </body>
     </html>
   );

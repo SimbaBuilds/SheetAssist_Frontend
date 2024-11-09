@@ -22,70 +22,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const fetchPermissionsStatus = async (userId: string) => {
-      const { data, error } = await supabase
-        .from('user_profile')
-        .select('google_permissions_set, microsoft_permissions_set, permissions_setup_completed')
-        .eq('id', userId)
-        .single()
+      try {
+        const { data, error } = await supabase
+          .from('user_profile')
+          .select('google_permissions_set, microsoft_permissions_set, permissions_setup_completed')
+          .eq('id', userId)
+          .single()
 
-      if (!error && data) {
-        setPermissionsStatus({
-          googlePermissionsSet: data.google_permissions_set,
-          microsoftPermissionsSet: data.microsoft_permissions_set,
-          permissionsSetupCompleted: data.permissions_setup_completed
-        })
+        if (error) throw error
+
+        if (data) {
+          setPermissionsStatus({
+            googlePermissionsSet: data.google_permissions_set,
+            microsoftPermissionsSet: data.microsoft_permissions_set,
+            permissionsSetupCompleted: data.permissions_setup_completed
+          })
+        }
+      } catch (error) {
+        console.error('Error fetching permissions:', error)
+        setError(error as Error)
       }
     }
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const initializeAuth = async () => {
+      try {
+        await supabase.auth.signOut()
+        
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        
+        if (sessionError) throw sessionError
+
+        if (session?.user) {
+          setUser(session.user)
+          await fetchPermissionsStatus(session.user.id)
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error)
+        setError(error as Error)
+        setUser(null)
+        setPermissionsStatus(null)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    initializeAuth()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setUser(session?.user ?? null)
       if (session?.user) {
         await fetchPermissionsStatus(session.user.id)
       } else {
         setPermissionsStatus(null)
       }
-      setIsLoading(false)
     })
 
-    const refreshSession = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession()
+    const refreshInterval = setInterval(async () => {
+      const { error } = await supabase.auth.getSession()
       if (error) {
         console.error('Error refreshing session:', error)
-        return
       }
-      if (!session && window.location.pathname !== '/auth/login') {
-        window.location.href = '/auth/login'
-      }
-    }
-
-    // Refresh session every 10 minutes
-    const interval = setInterval(refreshSession, 10 * 60 * 1000)
-
-    const recoverAuthState = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession()
-      if (!error && session) {
-        setUser(session.user)
-        const { data: profile } = await supabase
-          .from('user_profile')
-          .select('google_permissions_set, microsoft_permissions_set, permissions_setup_completed')
-          .eq('id', session.user.id)
-          .single()
-          
-        if (profile) {
-          setPermissionsStatus({
-            googlePermissionsSet: profile.google_permissions_set,
-            microsoftPermissionsSet: profile.microsoft_permissions_set,
-            permissionsSetupCompleted: profile.permissions_setup_completed
-          })
-        }
-      }
-    }
+    }, 10 * 60 * 1000)
 
     return () => {
       subscription.unsubscribe()
-      clearInterval(interval)
+      clearInterval(refreshInterval)
     }
   }, [supabase])
 

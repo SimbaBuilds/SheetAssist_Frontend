@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input"
 import Link from "next/link"
 
 import { useSignUp } from '@/hooks/useSignUp'
-import { ErrorBoundary } from '@/components/pages/signup/ErrorBoundary'
+import { ErrorBoundary } from '@/components/pages/ErrorBoundary'
 import { LoadingSpinner } from '@/components/pages/signup/LoadingSpinner'
 import { GoogleIcon, MicrosoftIcon } from '@/components/icons'
 
