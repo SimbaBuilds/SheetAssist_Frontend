@@ -4,17 +4,9 @@ import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
-  return NextResponse.json(
-    { error: 'Method not allowed' },
-    { status: 405 }
-  )
-}
-
 export async function POST(request: Request) {
   try {
     const { firstName, lastName, email, password } = await request.json()
-    
     const supabase = createRouteHandlerClient({ cookies })
     
     // Check if user already exists
@@ -51,7 +43,7 @@ export async function POST(request: Request) {
       )
     }
 
-    // Create user profile
+    // Create user profile with permission tracking
     const { error: profileError } = await supabase
       .from('user_profile')
       .insert({
@@ -61,12 +53,32 @@ export async function POST(request: Request) {
         last_name: lastName,
         google_permissions_set: false,
         microsoft_permissions_set: false,
+        permissions_setup_completed: false,
         plan: 'free'
       })
 
     if (profileError) {
       return NextResponse.json(
         { error: 'Failed to create user profile' },
+        { status: 500 }
+      )
+    }
+
+    // Initialize usage tracking
+    const { error: usageError } = await supabase
+      .from('user_usage')
+      .insert({
+        user_id: authData.user!.id,
+        recent_urls: [],
+        recent_queries: [],
+        requests_this_week: 0,
+        requests_this_month: 0,
+        requests_previous_3_months: 0
+      })
+
+    if (usageError) {
+      return NextResponse.json(
+        { error: 'Failed to initialize usage tracking' },
         { status: 500 }
       )
     }
@@ -82,4 +94,4 @@ export async function POST(request: Request) {
       { status: 500 }
     )
   }
-}
+} 

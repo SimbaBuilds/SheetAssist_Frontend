@@ -1,43 +1,34 @@
-import { useState, useEffect } from 'react'
-import { User } from '@supabase/supabase-js'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
-import { createBrowserClient } from '@supabase/ssr'
+import { useContext } from 'react'
+import { AuthContext } from '@/providers/AuthProvider'
+import type { PermissionSetupOptions } from '@/types/auth'
 
-const GOOGLE_SCOPES = [
-  'https://www.googleapis.com/auth/spreadsheets',
-  'https://www.googleapis.com/auth/documents',
-  'https://www.googleapis.com/auth/drive'
-].join(' ')
-
-const MICROSOFT_SCOPES = [
-  'Files.ReadWrite',
-  'Sites.ReadWrite.All',
-  'offline_access'
-].join(' ')
+const SCOPES = {
+  google: [
+    'https://www.googleapis.com/auth/spreadsheets',
+    'https://www.googleapis.com/auth/documents',
+    'https://www.googleapis.com/auth/drive'
+  ].join(' '),
+  microsoft: [
+    'Files.ReadWrite',
+    'Sites.ReadWrite.All',
+    'offline_access'
+  ].join(' ')
+} as const
 
 export function useAuth() {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const context = useContext(AuthContext)
   const router = useRouter()
+  const supabase = createClientComponentClient()
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
 
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null)
-      setIsLoading(false)
-    })
-
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [])
+  const { user, isLoading, error, permissionsStatus } = context
 
   const login = async (email: string, password: string) => {
-    setIsLoading(true)
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -47,38 +38,32 @@ export function useAuth() {
       router.push('/dashboard')
     } catch (error) {
       throw error
-    } finally {
-      setIsLoading(false)
     }
   }
 
   const logout = async () => {
-    setIsLoading(true)
     try {
       const { error } = await supabase.auth.signOut()
       if (error) throw error
-      router.push('/login')
-    } finally {
-      setIsLoading(false)
+      router.push('/auth/login')
+    } catch (error) {
+      console.error('Logout error:', error)
+      throw error
     }
   }
 
-  const updatePermissionsStatus = async (provider: 'google' | 'microsoft') => {
-    const { error } = await supabase
-      .from('user_profile')
-      .update({
-        [`${provider}_permissions_set`]: true
-      })
-      .eq('id', user?.id)
+  const requestPasswordReset = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/reset-password`,
+    })
+    if (error) throw error
+  }
 
-    if (error) {
-      await supabase.from('error_messages').insert({
-        user_id: user?.id,
-        message: `Failed to update ${provider} permissions status`,
-        error_code: error.code,
-        resolved: false
-      })
-    }
+  const updatePassword = async (newPassword: string) => {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword
+    })
+    if (error) throw error
   }
 
   const initiateGoogleLogin = async () => {
@@ -86,20 +71,19 @@ export function useAuth() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?provider=google`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
-            scope: GOOGLE_SCOPES
+            scope: SCOPES.google
           },
         },
       })
       if (error) throw error
-      await updatePermissionsStatus('google')
-      return data.url
+      if (data.url) window.location.href = data.url
     } catch (error) {
       console.error('Google login error:', error)
-      return null
+      throw error
     }
   }
 
@@ -108,50 +92,70 @@ export function useAuth() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'azure',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?provider=microsoft`,
           queryParams: {
             prompt: 'consent',
-            scope: MICROSOFT_SCOPES
+            scope: SCOPES.microsoft
           },
         },
       })
       if (error) throw error
-      await updatePermissionsStatus('microsoft')
-      return data.url
+      if (data.url) window.location.href = data.url
     } catch (error) {
       console.error('Microsoft auth error:', error)
-      return null
-    }
-  }
-
-  const requestPasswordReset = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/reset-password`,
-    })
-
-    if (error) {
       throw error
     }
   }
 
-  const updatePassword = async (newPassword: string) => {
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword
-    })
+  const setupPermissions = async ({ provider, redirectUrl, onSuccess, onError }: PermissionSetupOptions) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: provider === 'microsoft' ? 'azure' : provider,
+        options: {
+          redirectTo: redirectUrl || `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?provider=${provider}`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+            scope: SCOPES[provider]
+          },
+        },
+      })
 
-    if (error) {
-      throw error
+      if (error) throw error
+      if (data.url) {
+        onSuccess?.()
+        window.location.href = data.url
+      }
+    } catch (error) {
+      console.error(`${provider} auth error:`, error)
+      onError?.(error instanceof Error ? error : new Error(`${provider} auth failed`))
     }
+  }
+
+  const skipPermissionsSetup = async () => {
+    if (!user) return
+
+    const { error } = await supabase
+      .from('user_profile')
+      .update({ permissions_setup_completed: true })
+      .eq('id', user.id)
+
+    if (error) throw error
+    router.push('/dashboard')
   }
 
   return {
     user,
+    isLoading,
+    error,
+    permissionsStatus,
     login,
     logout,
-    isLoading,
-    initiateGoogleLogin,
-    initiateMicrosoftAuth,
     requestPasswordReset,
     updatePassword,
+    initiateGoogleLogin,
+    initiateMicrosoftAuth,
+    setupPermissions,
+    skipPermissionsSetup
   }
 }

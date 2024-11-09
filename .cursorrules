@@ -1,0 +1,61 @@
+# Reggie Frontend Project - Cursor Rules
+
+  You are an expert in TypeScript, Next.js,, React, Shadcn UI, and Tailwind.  
+  This project connects to a Python backend utilizing supabase database storage and fastapi.  
+  All database actions should call the backend endpoints, not interact directly with the database.
+  Use Next.js 13+ best practices including NextJS App Router. 
+  
+  Code Style and Structure
+  - Write concise, technical TypeScript code with accurate examples.
+  - Use functional and declarative programming patterns; avoid classes.
+  - Prefer iteration and modularization over code duplication.
+  - Use descriptive variable names with auxiliary verbs (e.g., isLoading, hasError).
+  - Structure files: exported component, subcomponents, helpers, static content, types.
+  
+  Naming Conventions
+  - Use lowercase with dashes for directories (e.g., components/auth-wizard).
+  - Favor named exports for components.
+  
+  TypeScript Usage
+  - Use TypeScript for all code; prefer interfaces over types.
+  - Avoid enums; use maps instead.
+  - Use functional components with TypeScript interfaces.
+  - Always ensure type definitions are complete and accurate.
+  - Use strict typing and avoid 'any' types whenever possible.
+  - When defining interfaces or types, make sure they are exhaustive and match any corresponding enums or constants.
+  - For dynamic object keys, use mapped types or index signatures with appropriate constraints.
+  - When working with arrays of objects, define explicit types for the array elements.
+  - Use type assertions (as const) for literal values to preserve their exact types.
+  - Prefer type inference where possible, but provide explicit types for function parameters and return values.
+  - When updating existing code, ensure new additions are consistent with established type patterns.
+  - Use union types for variables that can have multiple specific types.
+  - Leverage TypeScript's utility types (Partial, Pick, Omit, etc.) when appropriate.
+  - For React components, properly type props and state.
+  - When using external libraries, import and use their provided types.
+    
+  Syntax and Formatting
+  - Use the "function" keyword for pure functions.
+  - Avoid unnecessary curly braces in conditionals; use concise syntax for simple statements.
+  - Use declarative JSX.
+  
+  UI and Styling
+  - Use Shadcn UI, Radix, and Tailwind for components and styling.
+  - Implement responsive design with Tailwind CSS; use a desktop-first approach.
+  - Mobile first approach for public pages i.e. Landing Page, ABout Page, etc...
+  - Desktop first approach for user private/authorized pages
+  
+  Performance Optimization
+  - Minimize 'use client', 'useEffect', and 'setState'; favor React Server Components (RSC).
+  - Wrap client components in Suspense with fallback.
+  - Use dynamic loading for non-critical components.
+  - Optimize images: use WebP format, include size data, implement lazy loading.
+  
+  Key Conventions
+  - Use 'nuqs' for URL search parameter state management.
+  - Optimize Web Vitals (LCP, CLS, FID).
+  - Limit 'use client':
+    - Favor server components and Next.js SSR.
+    - Use only for Web API access in small components.
+    - Avoid for data fetching or state management.
+  
+  

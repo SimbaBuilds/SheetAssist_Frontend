@@ -2,14 +2,9 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { createBrowserClient } from '@supabase/ssr'
 import { useRouter } from "next/navigation"
-import { useAuth } from './auth'
-
-const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import type { SignUpFormValues } from "@/types/auth"
 
 const signUpSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -28,13 +23,11 @@ const signUpSchema = z.object({
   path: ["confirmPassword"],
 })
 
-export type SignUpFormValues = z.infer<typeof signUpSchema>
-
 export function useSignUp() {
   const [isLoading, setIsLoading] = useState(false)
   const [showPermissionsDialog, setShowPermissionsDialog] = useState(false)
   const router = useRouter()
-  const { initiateGoogleLogin, initiateMicrosoftAuth } = useAuth()
+  const supabase = createClientComponentClient()
 
   const form = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),
@@ -49,63 +42,28 @@ export function useSignUp() {
 
   async function onSubmit(values: SignUpFormValues) {
     setIsLoading(true)
-    let signupData: { user: { id: string } | null } | null = null
-
+    
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: values.email,
-        password: values.password
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(values),
       })
-      if (authError) throw authError
 
-      signupData = authData
+      const data = await response.json()
 
-      const { error: profileError } = await supabase
-        .from('user_profile')
-        .insert({
-          id: authData.user!.id,
-          first_name: values.firstName,
-          last_name: values.lastName,
-          google_permissions_set: false,
-          microsoft_permissions_set: false,
-          plan: 'free'
-        })
-      if (profileError) throw profileError
-
-      const { error: usageError } = await supabase
-        .from('user_usage')
-        .insert({
-          id: authData.user!.id,
-          recent_urls: [],
-          recent_queries: [],
-          requests_this_week: 0,
-          requests_this_month: 0,
-          requests_previous_3_months: 0
-        })
-      if (usageError) throw usageError
+      if (!response.ok) {
+        throw new Error(data.error || 'Signup failed')
+      }
 
       setShowPermissionsDialog(true)
     } catch (error) {
       console.error("Signup failed:", error)
-      if (error instanceof Error) {
-        await supabase
-          .from('error_messages')
-          .insert({
-            user_id: signupData?.user?.id || null,
-            message: error.message,
-            error_code: 'AUTH_ERROR',
-            resolved: false
-          })
-      } else {
-        await supabase
-          .from('error_messages')
-          .insert({
-            user_id: signupData?.user?.id || null,
-            message: 'An unknown error occurred during signup',
-            error_code: 'UNKNOWN_ERROR',
-            resolved: false
-          })
-      }
+      form.setError('root', { 
+        message: error instanceof Error ? error.message : 'Signup failed' 
+      })
     } finally {
       setIsLoading(false)
     }
@@ -113,35 +71,81 @@ export function useSignUp() {
 
   const handleGoogleSignUp = async () => {
     try {
-      const googleAuthUrl = await initiateGoogleLogin()
-      if (googleAuthUrl) {
-        window.location.href = googleAuthUrl
-      } else {
-        throw new Error('Failed to initiate Google authentication')
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?provider=google`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+            scope: [
+              'https://www.googleapis.com/auth/spreadsheets',
+              'https://www.googleapis.com/auth/documents',
+              'https://www.googleapis.com/auth/drive'
+            ].join(' ')
+          },
+        },
+      })
+
+      if (error) throw error
+      if (data.url) {
+        window.location.href = data.url
       }
     } catch (error) {
       console.error('Error signing up with Google:', error)
-      alert('Error signing up with Google')
+      form.setError('root', {
+        message: 'Failed to sign up with Google'
+      })
     }
   }
 
   const handlePermissionsSetup = async () => {
     try {
-      const googleAuthUrl = await initiateGoogleLogin()
-      if (googleAuthUrl) {
-        localStorage.setItem('pendingMicrosoftAuth', 'true')
-        window.location.href = googleAuthUrl
-      } else {
-        throw new Error('Failed to initiate Google authentication')
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?provider=google&pendingMicrosoft=true`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+            scope: [
+              'https://www.googleapis.com/auth/spreadsheets',
+              'https://www.googleapis.com/auth/documents',
+              'https://www.googleapis.com/auth/drive'
+            ].join(' ')
+          },
+        },
+      })
+
+      if (error) throw error
+      if (data.url) {
+        window.location.href = data.url
       }
     } catch (error) {
       console.error('Error setting up permissions:', error)
-      alert('Error setting up permissions. Please try again.')
+      form.setError('root', {
+        message: 'Failed to set up permissions'
+      })
     }
   }
 
-  const handleSkipPermissions = () => {
-    router.push('/dashboard')
+  const handleSkipPermissions = async () => {
+    try {
+      const { error } = await supabase
+        .from('user_profile')
+        .update({
+          permissions_setup_completed: true
+        })
+        .eq('id', supabase.auth.getUser().then(({ data }) => data.user?.id))
+
+      if (error) throw error
+      router.push('/dashboard')
+    } catch (error) {
+      console.error('Error skipping permissions:', error)
+      form.setError('root', {
+        message: 'Failed to skip permissions setup'
+      })
+    }
   }
 
   return {

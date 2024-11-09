@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from '@/providers/AuthProvider'
 import Header from "@/components/pages/Header";
 import Footer from "@/components/pages/Footer";
+import { RouteLoadingIndicator } from '@/components/pages/signup/RouteLoadingIndicator'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -30,6 +31,7 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}
       >
+        <RouteLoadingIndicator />
         <AuthProvider>
           <Header />
           {children}
