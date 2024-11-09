@@ -196,30 +196,44 @@ export default function SignUpPage() {
             <div className="bg-white p-8 rounded-lg max-w-md w-full space-y-4">
               <h2 className="text-2xl font-bold">Set Up Permissions</h2>
               <p className="text-gray-600">
-                To get the most out of our app, we need permission to access:
+                To get the most out of our app, please allow us access to your:
               </p>
-              <ul className="list-disc list-inside text-gray-600">
-                <li>Google Sheets</li>
-                <li>Google Docs</li>
-                <li>Microsoft Excel Online</li>
-                <li>Microsoft Word Online</li>
-              </ul>
-              <div className="flex flex-col space-y-3">
-                <button
-                  onClick={() => handlePermissionsSetup('google')}
-                  className="w-full flex items-center justify-center gap-2 bg-white text-gray-700 hover:bg-gray-50 py-2 px-4 rounded border border-gray-300"
-                >
-                  <GoogleIcon /> Set up Google permissions
-                </button>
-                <button
-                  onClick={() => handlePermissionsSetup('azure')}
-                  className="w-full flex items-center justify-center gap-2 bg-white text-gray-700 hover:bg-gray-50 py-2 px-4 rounded border border-gray-300"
-                >
-                  <MicrosoftIcon /> Set up Microsoft permissions
-                </button>
+              <div className="space-y-4 text-gray-600">
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <li className="list-disc list-inside">Google Sheets</li>
+                    <li className="list-disc list-inside">Google Docs</li>
+                  </div>
+                  <button
+                    onClick={() => handlePermissionsSetup('google')}
+                    className="w-full flex items-center justify-center gap-2 bg-white text-gray-700 hover:bg-gray-50 py-2 px-4 rounded border border-gray-300"
+                  >
+                    <GoogleIcon /> Allow Google permissions
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-center">
+                  <div className="flex-grow border-t border-gray-200"></div>
+                  <span className="px-4 text-sm text-gray-500">and/or</span>
+                  <div className="flex-grow border-t border-gray-200"></div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <li className="list-disc list-inside">Microsoft Excel Online</li>
+                    <li className="list-disc list-inside">Microsoft Word Online</li>
+                  </div>
+                  <button
+                    onClick={() => handlePermissionsSetup('azure')}
+                    className="w-full flex items-center justify-center gap-2 bg-white text-gray-700 hover:bg-gray-50 py-2 px-4 rounded border border-gray-300"
+                  >
+                    <MicrosoftIcon /> Allow Microsoft permissions
+                  </button>
+                </div>
+
                 <button
                   onClick={handleSkipPermissions}
-                  className="text-gray-600 hover:text-gray-800"
+                  className="w-full text-gray-600 hover:text-gray-800"
                 >
                   Skip for now
                 </button>

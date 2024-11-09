@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 // import { useTheme } from "next-themes"
 import { Moon, Sun } from "lucide-react"
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/auth'
+import { useAuth } from '@/hooks/useAuth'
 
 export default function Header() {
   // const { setTheme, theme } = useTheme()

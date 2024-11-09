@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useAuth } from '@/hooks/auth'
+import { useAuth } from '@/hooks/useAuth'
 import { processQuery } from '@/services/python_backend'
 import axios from 'axios'
 import { createBrowserClient } from '@supabase/ssr'

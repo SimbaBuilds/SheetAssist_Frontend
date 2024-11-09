@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation"
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { SignUpFormValues, PasswordStrength } from "@/types/auth"
 import React from "react"
+import { DOCUMENT_SCOPES } from "@/hooks/useAuth"
+import { useAuth } from '@/hooks/useAuth'
 
 // Password strength regex patterns
 const passwordStrengthPatterns = {
@@ -40,6 +42,7 @@ export function useSignUp() {
   })
   const router = useRouter()
   const supabase = createClientComponentClient()
+  const { linkIdentity } = useAuth()
 
   const form = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),
@@ -150,44 +153,31 @@ export function useSignUp() {
 
   const handlePermissionsSetup = async (provider: 'google' | 'azure') => {
     try {
-      const scopes = provider === 'google' 
-        ? [
-            'https://www.googleapis.com/auth/spreadsheets',
-            'https://www.googleapis.com/auth/documents',
-            'https://www.googleapis.com/auth/drive'
-          ]
-        : [
-            'offline_access',
-            'Files.ReadWrite.All',
-            'Sites.ReadWrite.All'
-          ]
-
       const { data, error } = await supabase.auth.signInWithOAuth({
-        provider,
+        provider: provider === 'azure' ? 'azure' : 'google',
         options: {
-          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?provider=${provider}`,
-          queryParams: provider === 'google' 
-            ? {
-                access_type: 'offline',
-                prompt: 'consent',
-                scope: scopes.join(' ')
-              }
-            : {
-                prompt: 'consent',
-                scope: scopes.join(' ')
-              }
-        },
-      })
+          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?setup=permissions&provider=${provider}`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+            scope: provider === 'google' 
+              ? DOCUMENT_SCOPES.google 
+              : DOCUMENT_SCOPES.microsoft
+          }
+        }
+      });
 
-      if (error) throw error
-      if (data.url) window.location.href = data.url
+      if (error) throw error;
+      if (data.url) {
+        window.location.href = data.url;
+      }
     } catch (error) {
-      console.error(`Error setting up ${provider === 'azure' ? 'Microsoft' : 'Google'} permissions:`, error)
+      console.error(`Error setting up ${provider} permissions:`, error);
       form.setError('root', {
-        message: `Failed to set up ${provider === 'azure' ? 'Microsoft' : 'Google'} permissions`
-      })
+        message: `Failed to set up ${provider} permissions`
+      });
     }
-  }
+  };
 
   const handleSkipPermissions = async () => {
     try {

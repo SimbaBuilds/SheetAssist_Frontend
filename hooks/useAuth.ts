@@ -4,19 +4,15 @@ import { useContext } from 'react'
 import { AuthContext } from '@/providers/AuthProvider'
 import type { PermissionSetupOptions } from '@/types/auth'
 
-const SCOPES = {
+export const DOCUMENT_SCOPES = {
   google: [
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/documents',
-    'https://www.googleapis.com/auth/drive',
-    'https://www.googleapis.com/auth/userinfo.email',
-    'https://www.googleapis.com/auth/userinfo.profile',
-    'openid'
+    'https://www.googleapis.com/auth/drive'
   ].join(' '),
   microsoft: [
-    'Files.ReadWrite',
-    'Sites.ReadWrite.All',
-    'offline_access'
+    'Files.ReadWrite.All',
+    'Sites.ReadWrite.All'
   ].join(' ')
 } as const
 
@@ -78,7 +74,7 @@ export function useAuth() {
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
-            scope: SCOPES.google
+            scope: DOCUMENT_SCOPES.google
           }
         }
       })
@@ -99,7 +95,7 @@ export function useAuth() {
           redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
           queryParams: {
             prompt: 'consent',
-            scope: SCOPES.microsoft
+            scope: DOCUMENT_SCOPES.microsoft
           }
         }
       })
@@ -117,20 +113,29 @@ export function useAuth() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: provider === 'microsoft' ? 'azure' : provider,
         options: {
-          redirectTo: redirectUrl || `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?provider=${provider}`,
+          redirectTo: redirectUrl || `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
-            scope: SCOPES[provider]
+            scope: DOCUMENT_SCOPES[provider],
+            ...(provider === 'google' && {
+              response_type: 'code',
+              access_type: 'offline',
+              prompt: 'consent select_account'
+            })
           },
         },
       })
 
       if (error) throw error
-      if (data.url) {
+      
+      if (data?.url) {
         onSuccess?.()
         window.location.href = data.url
+        return
       }
+      
+      throw new Error('No authentication URL returned')
     } catch (error) {
       console.error(`${provider} auth error:`, error)
       onError?.(error instanceof Error ? error : new Error(`${provider} auth failed`))
@@ -149,6 +154,33 @@ export function useAuth() {
     router.push('/dashboard')
   }
 
+  const linkIdentity = async (provider: 'google' | 'azure', scopes: string) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: provider === 'azure' ? 'azure' : 'google',
+        options: {
+          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?setup=permissions&provider=${provider}`,
+          scopes,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      });
+
+      if (error) throw error;
+      if (data?.url) {
+        window.location.href = data.url;
+        return { data, error: null };
+      }
+
+      throw new Error('Authentication URL not returned');
+    } catch (error) {
+      console.error(`Error linking ${provider} identity:`, error);
+      return { data: null, error };
+    }
+  };
+
   return {
     user,
     isLoading,
@@ -161,6 +193,8 @@ export function useAuth() {
     requestPasswordReset,
     updatePassword,
     setupPermissions,
-    skipPermissionsSetup
+    skipPermissionsSetup,
+    DOCUMENT_SCOPES,
+    linkIdentity,
   }
 }

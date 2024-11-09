@@ -42,3 +42,4 @@ export interface SignUpFormValues {
   password: string
   confirmPassword: string
 }
+

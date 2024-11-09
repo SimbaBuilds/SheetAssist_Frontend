@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import * as LabelPrimitive from "@radix-ui/react-label"
-import { useAuth } from '@/hooks/auth'
+import { useAuth } from '@/hooks/useAuth'
 import { useRouter } from 'next/navigation'
 
 export default function ResetPasswordPage() {

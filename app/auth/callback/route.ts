@@ -5,112 +5,42 @@ import { NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
+  const requestUrl = new URL(request.url)
+  const code = requestUrl.searchParams.get('code')
+  const setup = requestUrl.searchParams.get('setup')
+  const provider = requestUrl.searchParams.get('provider')
+  
+  if (!code) {
+    return NextResponse.redirect(`${requestUrl.origin}/error?message=No code provided`)
+  }
+
+  const supabase = createRouteHandlerClient({ cookies })
+
   try {
-    const requestUrl = new URL(request.url)
-    const code = requestUrl.searchParams.get('code')
-    
-    if (!code) {
-      return NextResponse.redirect(new URL('/auth/error', request.url))
-    }
-
-    const supabase = createRouteHandlerClient({ cookies })
-    
     // Exchange the code for a session
-    const { error: sessionError } = await supabase.auth.exchangeCodeForSession(code)
-    
-    if (sessionError) {
-      console.error('Session exchange error:', sessionError)
-      return NextResponse.redirect(new URL('/auth/error', request.url))
-    }
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    if (error) throw error
 
-    // Get current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    
-    if (userError || !user) {
-      return NextResponse.redirect(new URL('/auth/error', request.url))
-    }
-
-    // For new Google sign-ups, create or update user profile
-    if (user.app_metadata.provider === 'google') {
-      const { error: profileError } = await supabase
-        .from('user_profile')
-        .upsert({
-          id: user.id,
-          email: user.email,
-          first_name: user.user_metadata.full_name?.split(' ')[0] || '',
-          last_name: user.user_metadata.full_name?.split(' ').slice(1).join(' ') || '',
-          google_permissions_set: true,
-          permissions_setup_completed: true,
-          plan: 'free'
-        })
-
-      if (profileError) {
-        console.error('Failed to create/update user profile:', profileError)
-      }
-
-      // Initialize usage tracking for new users
-      const { data: existingUsage } = await supabase
-        .from('user_usage')
-        .select('id')
-        .eq('user_id', user.id)
-        .single()
-
-      if (!existingUsage) {
+    // If this was a permissions setup flow, update the user profile
+    if (setup === 'permissions') {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
         await supabase
-          .from('user_usage')
-          .insert({
-            user_id: user.id,
-            recent_urls: [],
-            recent_queries: [],
-            requests_this_week: 0,
-            requests_this_month: 0,
-            requests_previous_3_months: 0
+          .from('user_profile')
+          .update({ 
+            permissions_setup_completed: true,
+            [`${provider}_permissions_set`]: true,
           })
+          .eq('id', user.id)
       }
     }
 
-    // For new Microsoft sign-ups, create or update user profile
-    if (user.app_metadata.provider === 'azure') {
-      const { error: profileError } = await supabase
-        .from('user_profile')
-        .upsert({
-          id: user.id,
-          email: user.email,
-          first_name: user.user_metadata.full_name?.split(' ')[0] || '',
-          last_name: user.user_metadata.full_name?.split(' ').slice(1).join(' ') || '',
-          microsoft_permissions_set: true,
-          permissions_setup_completed: true,
-          plan: 'free'
-        })
-
-      if (profileError) {
-        console.error('Failed to create/update user profile:', profileError)
-      }
-
-      // Initialize usage tracking for new users
-      const { data: existingUsage } = await supabase
-        .from('user_usage')
-        .select('id')
-        .eq('user_id', user.id)
-        .single()
-
-      if (!existingUsage) {
-        await supabase
-          .from('user_usage')
-          .insert({
-            user_id: user.id,
-            recent_urls: [],
-            recent_queries: [],
-            requests_this_week: 0,
-            requests_this_month: 0,
-            requests_previous_3_months: 0
-          })
-      }
-    }
-
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    // Redirect to dashboard
+    return NextResponse.redirect(`${requestUrl.origin}/dashboard`)
   } catch (error) {
-    console.error('Auth callback error:', error)
-    return NextResponse.redirect(new URL('/auth/error', request.url))
+    console.error('Error in callback:', error)
+    return NextResponse.redirect(
+      `${requestUrl.origin}/error?message=Failed to setup permissions`
+    )
   }
 }
