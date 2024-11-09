@@ -1,3 +1,5 @@
+// For SUPABASE auth callback
+
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
@@ -10,6 +12,9 @@ export async function GET(request: Request) {
   const setup = requestUrl.searchParams.get('setup')
   const provider = requestUrl.searchParams.get('provider')
   
+  // Log incoming parameters for debugging
+  console.log('Callback params:', { code: !!code, setup, provider })
+  
   if (!code) {
     return NextResponse.redirect(`${requestUrl.origin}/error?message=No code provided`)
   }
@@ -18,20 +23,26 @@ export async function GET(request: Request) {
 
   try {
     // Exchange the code for a session
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-    if (error) throw error
+    const { data, error: sessionError } = await supabase.auth.exchangeCodeForSession(code)
+    
+    if (sessionError) {
+      console.error('Session exchange error:', sessionError)
+      throw sessionError
+    }
 
     // If this was a permissions setup flow, update the user profile
-    if (setup === 'permissions') {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        await supabase
-          .from('user_profile')
-          .update({ 
-            permissions_setup_completed: true,
-            [`${provider}_permissions_set`]: true,
-          })
-          .eq('id', user.id)
+    if (setup === 'permissions' && data?.user) {
+      const { error: updateError } = await supabase
+        .from('user_profile')
+        .update({ 
+          permissions_setup_completed: true,
+          [`${provider}_permissions_set`]: true,
+        })
+        .eq('id', data.user.id)
+
+      if (updateError) {
+        console.error('Profile update error:', updateError)
+        throw updateError
       }
     }
 
@@ -39,8 +50,9 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${requestUrl.origin}/dashboard`)
   } catch (error) {
     console.error('Error in callback:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.redirect(
-      `${requestUrl.origin}/error?message=Failed to setup permissions`
+      `${requestUrl.origin}/auth/error?error=${encodeURIComponent(errorMessage)}`
     )
   }
 }

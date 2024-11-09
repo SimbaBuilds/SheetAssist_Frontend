@@ -1,13 +1,15 @@
 import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import * as z from "zod"
+  import * as z from "zod"
 import { useRouter } from "next/navigation"
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { SignUpFormValues, PasswordStrength } from "@/types/auth"
 import React from "react"
 import { DOCUMENT_SCOPES } from "@/hooks/useAuth"
 import { useAuth } from '@/hooks/useAuth'
+import { getGoogleOAuthURL } from "@/utils/google-oauth"
+import { getMicrosoftOAuthURL } from "@/utils/microsoft-oauth"
 
 // Password strength regex patterns
 const passwordStrengthPatterns = {
@@ -26,7 +28,7 @@ const signUpSchema = z.object({
     .regex(passwordStrengthPatterns.hasLowerCase, "Password must contain at least one lowercase letter")
     .regex(passwordStrengthPatterns.hasNumber, "Password must contain at least one number"),
   confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
+}).refine((data: { password: string; confirmPassword: string }) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
   path: ["confirmPassword"],
 })
@@ -152,32 +154,14 @@ export function useSignUp() {
   }
 
   const handlePermissionsSetup = async (provider: 'google' | 'azure') => {
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: provider === 'azure' ? 'azure' : 'google',
-        options: {
-          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?setup=permissions&provider=${provider}`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-            scope: provider === 'google' 
-              ? DOCUMENT_SCOPES.google 
-              : DOCUMENT_SCOPES.microsoft
-          }
-        }
-      });
-
-      if (error) throw error;
-      if (data.url) {
-        window.location.href = data.url;
-      }
-    } catch (error) {
-      console.error(`Error setting up ${provider} permissions:`, error);
-      form.setError('root', {
-        message: `Failed to set up ${provider} permissions`
-      });
+    if (provider === 'google') {
+      const googleAuthUrl = getGoogleOAuthURL()
+      window.location.href = googleAuthUrl
+    } else {
+      const microsoftAuthUrl = getMicrosoftOAuthURL()
+      window.location.href = microsoftAuthUrl
     }
-  };
+  }
 
   const handleSkipPermissions = async () => {
     try {
