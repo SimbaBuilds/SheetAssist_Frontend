@@ -1,6 +1,8 @@
+import { CALLBACK_ROUTES } from "../utils/constants"
+
 const MICROSOFT_OAUTH_CONFIG = {
   client_id: process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID!,
-  redirect_uri: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/microsoft/callback`,
+  redirect_uri: `${process.env.NEXT_PUBLIC_SITE_URL}${CALLBACK_ROUTES.MICROSOFT_CALLBACK}`,
   scopes: [
     'offline_access',
     'Files.ReadWrite.All',

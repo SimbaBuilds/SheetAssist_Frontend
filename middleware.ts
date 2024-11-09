@@ -1,22 +1,26 @@
 import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { CALLBACK_ROUTES, REDIRECT_ROUTES } from '@/utils/constants'
 
 const PUBLIC_ROUTES = [
   '/',
-  '/auth/login',
+  REDIRECT_ROUTES.LOGIN,
   '/auth/signup',
-  '/auth/callback',
-  '/auth/error',
+  CALLBACK_ROUTES.SUPABASE_CALLBACK,
+  CALLBACK_ROUTES.GOOGLE_CALLBACK,
+  CALLBACK_ROUTES.MICROSOFT_CALLBACK,
+  REDIRECT_ROUTES.ERROR,
   '/demos',
   '/about',
   '/api/auth/signup'
-]
+] as string[]
 
 const isPublicRoute = (path: string) => {
   return PUBLIC_ROUTES.includes(path) ||
          path.startsWith('/_next') ||
          path.startsWith('/static') ||
+         path.startsWith('/auth/callback') ||
          path.match(/\.(ico|png|jpg|jpeg|gif|svg)$/)
 }
 
@@ -30,6 +34,12 @@ export async function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname
   const isAuthRoute = path.startsWith('/auth')
   const isApiRoute = path.startsWith('/api')
+  const isCallbackRoute = path.includes('/callback')
+
+  // Allow all callback routes to proceed
+  if (isCallbackRoute) {
+    return res
+  }
 
   // Redirect rules
   if (!isPublicRoute(path) && !isApiRoute && !session) {
@@ -39,7 +49,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
-  if (session && isAuthRoute && !path.includes('/callback')) {
+  if (session && isAuthRoute && !isCallbackRoute) {
     // Check if permissions are set up
     const { data: profile } = await supabase
       .from('user_profile')

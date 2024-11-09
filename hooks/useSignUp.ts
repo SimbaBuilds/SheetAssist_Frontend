@@ -8,9 +8,9 @@ import type { SignUpFormValues, PasswordStrength } from "@/types/auth"
 import React from "react"
 import { DOCUMENT_SCOPES } from "@/hooks/useAuth"
 import { useAuth } from '@/hooks/useAuth'
-import { getGoogleOAuthURL } from "@/utils/google-oauth"
-import { getMicrosoftOAuthURL } from "@/utils/microsoft-oauth"
-
+import { getGoogleOAuthURL } from "@/hooks/google-oauth"
+import { getMicrosoftOAuthURL } from "@/hooks/microsoft-oauth"
+import { CALLBACK_ROUTES } from "@/utils/constants"
 // Password strength regex patterns
 const passwordStrengthPatterns = {
   hasNumber: /\d/,
@@ -130,7 +130,7 @@ export function useSignUp() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}${CALLBACK_ROUTES.SUPABASE_CALLBACK}`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
