@@ -74,7 +74,7 @@ export function useAuth() {
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
-            scope: DOCUMENT_SCOPES.google
+            scope: 'openid email profile'
           }
         }
       })

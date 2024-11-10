@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "setup-https": "chmod +x scripts/setup-https.sh && ./scripts/setup-https.sh",
+    "dev:https": "ts-node --project tsconfig.server.json server/https-server.ts"
   },
   "dependencies": {
     "@heroicons/react": "^2.1.5",
@@ -47,8 +49,12 @@
     "@types/react-dom": "^18",
     "eslint": "^8",
     "eslint-config-next": "14.2.16",
+    "https": "^1.0.0",
+    "local-ssl-proxy": "^2.0.5",
+    "mkcert": "^3.2.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
+    "ts-node": "^10.9.2",
     "typescript": "^5"
   }
 }

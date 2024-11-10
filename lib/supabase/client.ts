@@ -1,12 +1,14 @@
-import { createBrowserClient } from '@supabase/ssr'
+import { createPagesBrowserClient } from '@supabase/auth-helpers-nextjs'
 
 export const createClient = () => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Missing Supabase environment variables')
-  }
-
-  return createBrowserClient(supabaseUrl, supabaseAnonKey)
+  return createPagesBrowserClient({
+    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    cookieOptions: {
+      sameSite: 'none',
+      secure: true,
+      domain: '',
+      path: '/'
+    },
+  })
 }

@@ -14,10 +14,10 @@ const PUBLIC_ROUTES = [
   '/demos',
   '/about',
   '/api/auth/signup'
-] as string[]
+] as const
 
 const isPublicRoute = (path: string) => {
-  return PUBLIC_ROUTES.includes(path) ||
+  return PUBLIC_ROUTES.includes(path as typeof PUBLIC_ROUTES[number]) ||
          path.startsWith('/_next') ||
          path.startsWith('/static') ||
          path.startsWith('/auth/callback') ||
@@ -26,44 +26,49 @@ const isPublicRoute = (path: string) => {
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
-  const supabase = createMiddlewareClient({ req, res })
+  const supabase = createMiddlewareClient({
+    req,
+    res
+  })
 
-  // Refresh session if expired
-  const { data: { session }, error } = await supabase.auth.getSession()
+  // Get session
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
   const path = req.nextUrl.pathname
-  const isAuthRoute = path.startsWith('/auth')
-  const isApiRoute = path.startsWith('/api')
   const isCallbackRoute = path.includes('/callback')
 
-  // Allow all callback routes to proceed
+  // Always allow callback routes to proceed
   if (isCallbackRoute) {
     return res
   }
 
   // Redirect rules
-  if (!isPublicRoute(path) && !isApiRoute && !session) {
+  if (!isPublicRoute(path) && !path.startsWith('/api') && !session) {
     // Redirect to login if accessing protected route without session
     const redirectUrl = new URL('/auth/login', req.url)
     redirectUrl.searchParams.set('redirectTo', path)
     return NextResponse.redirect(redirectUrl)
   }
 
-  if (session && isAuthRoute && !isCallbackRoute) {
-    // Check if permissions are set up
-    const { data: profile } = await supabase
-      .from('user_profile')
-      .select('permissions_setup_completed')
-      .eq('id', session.user.id)
-      .single()
+  if (session?.user && path.startsWith('/auth') && !isCallbackRoute) {
+    try {
+      // Check if permissions are set up
+      const { data: profile } = await supabase
+        .from('user_profile')
+        .select('permissions_setup_completed')
+        .eq('id', session.user.id)
+        .single()
 
-    if (profile?.permissions_setup_completed) {
-      // If permissions are set up, redirect to dashboard
-      return NextResponse.redirect(new URL('/dashboard', req.url))
-    } else {
-      // If permissions are not set up, allow access to auth routes
-      return res
+      if (profile?.permissions_setup_completed) {
+        // If permissions are set up, redirect to dashboard
+        return NextResponse.redirect(new URL('/dashboard', req.url))
+      }
+    } catch (error) {
+      console.error('Error checking permissions:', error)
     }
+    
+    // If permissions are not set up or there was an error, allow access to auth routes
+    return res
   }
 
   return res

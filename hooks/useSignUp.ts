@@ -44,7 +44,6 @@ export function useSignUp() {
   })
   const router = useRouter()
   const supabase = createClientComponentClient()
-  const { linkIdentity } = useAuth()
 
   const form = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),
@@ -131,15 +130,6 @@ export function useSignUp() {
         provider: 'google',
         options: {
           redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}${CALLBACK_ROUTES.SUPABASE_CALLBACK}`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-            scope: [
-              'https://www.googleapis.com/auth/spreadsheets',
-              'https://www.googleapis.com/auth/documents',
-              'https://www.googleapis.com/auth/drive'
-            ].join(' ')
-          }
         }
       })
 
@@ -153,13 +143,27 @@ export function useSignUp() {
     }
   }
 
-  const handlePermissionsSetup = async (provider: 'google' | 'azure') => {
-    if (provider === 'google') {
-      const googleAuthUrl = getGoogleOAuthURL()
+  const handleSetGooglePermissions = async () => {
+    try {
+      const googleAuthUrl = getGoogleOAuthURL(true)
       window.location.href = googleAuthUrl
-    } else {
+    } catch (error) {
+      console.error('Error setting up Google permissions:', error)
+      form.setError('root', {
+        message: 'Failed to set up Google permissions'
+      })
+    }
+  }
+
+  const handleSetMicrsoftPermissions = async () => {
+    try {
       const microsoftAuthUrl = getMicrosoftOAuthURL()
       window.location.href = microsoftAuthUrl
+    } catch (error) {
+      console.error('Error setting up Microsoft permissions:', error)
+      form.setError('root', {
+        message: 'Failed to set up Microsoft permissions'
+      })
     }
   }
 
@@ -182,32 +186,7 @@ export function useSignUp() {
     }
   }
 
-  const handleMicrosoftSignUp = async () => {
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'azure',
-        options: {
-          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
-          queryParams: {
-            prompt: 'consent',
-            scope: [
-              'offline_access',
-              'Files.ReadWrite.All',
-              'Sites.ReadWrite.All'
-            ].join(' ')
-          }
-        }
-      })
-
-      if (error) throw error
-      if (data.url) window.location.href = data.url
-    } catch (error) {
-      console.error('Error signing up with Microsoft:', error)
-      form.setError('root', {
-        message: 'Failed to sign up with Microsoft'
-      })
-    }
-  }
+ 
 
   return {
     form,
@@ -216,8 +195,8 @@ export function useSignUp() {
     passwordStrength,
     onSubmit,
     handleGoogleSignUp,
-    handleMicrosoftSignUp,
-    handlePermissionsSetup,
+    handleSetGooglePermissions,
+    handleSetMicrsoftPermissions,
     handleSkipPermissions,
   }
 } 

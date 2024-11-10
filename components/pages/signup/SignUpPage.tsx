@@ -24,8 +24,9 @@ export default function SignUpPage() {
     showPermissionsDialog,
     onSubmit,
     handleGoogleSignUp,
-    handlePermissionsSetup,
-    handleSkipPermissions
+    handleSkipPermissions,
+    handleSetGooglePermissions,
+    handleSetMicrsoftPermissions
   } = useSignUp()
 
   const formErrors = form.formState.errors
@@ -205,7 +206,7 @@ export default function SignUpPage() {
                     <li className="list-disc list-inside">Google Docs</li>
                   </div>
                   <button
-                    onClick={() => handlePermissionsSetup('google')}
+                    onClick={handleSetGooglePermissions}
                     className="w-full flex items-center justify-center gap-2 bg-white text-gray-700 hover:bg-gray-50 py-2 px-4 rounded border border-gray-300"
                   >
                     <GoogleIcon /> Allow Google permissions
@@ -224,7 +225,7 @@ export default function SignUpPage() {
                     <li className="list-disc list-inside">Microsoft Word Online</li>
                   </div>
                   <button
-                    onClick={() => handlePermissionsSetup('azure')}
+                    onClick={handleSetMicrsoftPermissions}
                     className="w-full flex items-center justify-center gap-2 bg-white text-gray-700 hover:bg-gray-50 py-2 px-4 rounded border border-gray-300"
                   >
                     <MicrosoftIcon /> Allow Microsoft permissions
