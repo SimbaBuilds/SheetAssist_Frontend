@@ -14,7 +14,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 const MAX_QUERY_LENGTH = 500
 
 const EXAMPLE_QUERIES = [
-  "Add this receipt to the sheet",
+  "Add this receipt as a row in the sheet provided,",
   "Match the student number to populate the grades sheet with phone numbers from the household contacts sheet",
   "Convert this pdf to a sheet with headers 'teacher' 'course load'",
   "Combine these pdfs into one large pdf and sort the pages alphabetically by last name",
@@ -125,7 +125,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
         </div>
       )}
 
-      <h1 className="text-2xl font-bold mb-8">AI File Processing</h1>
+      {/* <h1 className="text-2xl font-bold mb-8">AI File Processing</h1> */}
       
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* File Input */}
@@ -210,14 +210,14 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
 
         {/* URL Inputs */}
         <div>
-          <Label>URLs (Excel Online, Google Sheets, etc.)</Label>
+          <Label>URLs (Google Sheets, Excel Online, Google Docs, etc. -- max 10 URLs)</Label>
           {urls.map((url, index) => (
             <Input
               key={index}
               type="url"
               value={url}
               onChange={(e) => handleUrlChange(index, e.target.value)}
-              placeholder="Enter URL"
+              placeholder="Enter URL(s)"
               className={`mt-1 ${urlPermissionError && url ? 'border-red-500' : ''}`}
             />
           ))}
@@ -311,7 +311,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="online" id="online" />
-              <Label htmlFor="online">Add to Online Document</Label>
+              <Label htmlFor="online">Add to Online Sheet Workbook or Document</Label>
             </div>
           </RadioGroup>
 
@@ -320,7 +320,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
               type="url"
               value={outputUrl}
               onChange={(e) => setOutputUrl(e.target.value)}
-              placeholder="Enter destination document URL"
+              placeholder="Enter destination URL"
               className="mt-2"
               required
             />

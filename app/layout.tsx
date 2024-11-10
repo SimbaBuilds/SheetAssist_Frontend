@@ -1,13 +1,11 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import "./globals.css";
-import { AuthProvider } from '@/providers/AuthProvider'
 import Header from "@/components/pages/Header";
 import Footer from "@/components/pages/Footer";
 import { RouteLoadingIndicator } from '@/components/pages/signup/RouteLoadingIndicator'
 import { Suspense } from 'react';
 import { ErrorBoundary } from '@/components/pages/ErrorBoundary';
-import { ClearStateButton } from '@/components/dev/ClearStateButton'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -36,13 +34,11 @@ export default function RootLayout({
       >
         <ErrorBoundary>
           <Suspense fallback={<RouteLoadingIndicator />}>
-            <AuthProvider>
               <Header />
               <main className="flex-grow">
                 {children}
               </main>
               <Footer />
-            </AuthProvider>
           </Suspense>
         </ErrorBoundary>
       </body>

@@ -6,30 +6,51 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import * as LabelPrimitive from "@radix-ui/react-label"
 import { useAuth } from '@/hooks/useAuth'
+import { createClient } from '@/utils/supabase/client'
+import { toast } from 'sonner'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
-  const { login, signInWithGoogle } = useAuth()
+  const { signInWithGoogle } = useAuth()
+  const supabase = createClient()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsLoading(true)
+    
     try {
-      await login(email, password)
-      router.push('/dashboard')
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (error) {
+        throw error
+      }
+
+      if (data.session) {
+        router.refresh()
+        router.push('/dashboard')
+        toast.success('Successfully logged in!')
+      }
     } catch (error) {
       console.error('Error logging in:', error)
-      alert('Error logging in')
+      toast.error('Invalid email or password')
+    } finally {
+      setIsLoading(false)
     }
   }
 
   const handleGoogleLogin = async () => {
     try {
       await signInWithGoogle()
+      router.refresh()
     } catch (error) {
       console.error('Error logging in with Google:', error)
-      alert('Error logging in with Google')
+      toast.error('Error logging in with Google')
     }
   }
 
@@ -61,7 +82,13 @@ export default function LoginPage() {
             />
           </div>
           <div className="flex flex-col gap-4">
-            <Button type="submit" className="w-full">Login</Button>
+            <Button 
+              type="submit" 
+              className="w-full"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Logging in...' : 'Login'}
+            </Button>
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300"></div>

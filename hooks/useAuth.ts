@@ -1,20 +1,28 @@
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
-import { useContext } from 'react'
-import { AuthContext } from '@/providers/AuthProvider'
-
-
+import { createClient } from '@/utils/supabase/client'
+import { User } from '@supabase/supabase-js'
+import { useState, useEffect } from 'react'
 
 export function useAuth() {
-  const context = useContext(AuthContext)
   const router = useRouter()
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
+  const [user, setUser] = useState<User | null>(null)
 
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider')
-  }
+  useEffect(() => {
+    // Get initial user
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user)
+    })
 
-  const { user, isLoading, error } = context
+    // Listen for auth state changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   const login = async (email: string, password: string) => {
     try {
@@ -76,11 +84,8 @@ export function useAuth() {
     }
   }
 
-
   return {
     user,
-    isLoading,
-    error,
     login,
     logout,
     signInWithGoogle,

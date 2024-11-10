@@ -4,6 +4,7 @@ export interface AuthContextType {
   user: User | null
   isLoading: boolean
   error: Error | null
+  permissionsStatus: PermissionsStatus | null
 }
 
 export interface PermissionsStatus {
@@ -48,10 +49,11 @@ export interface AuthCallbackParams {
 
 export interface UserProfile {
   id: string
-  email_verified: boolean
+  first_name: string
+  last_name: string
   google_permissions_set: boolean
   microsoft_permissions_set: boolean
   permissions_setup_completed: boolean
-  last_sign_in: string
+  plan: string
 }
 

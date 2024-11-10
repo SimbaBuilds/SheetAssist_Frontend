@@ -16,7 +16,7 @@ type UserPreferences = {
 }
 
 export function useDashboard(initialData?: UserPreferences) {
-  const { user, signInWithGoogle } = useAuth()
+  const { user } = useAuth()
   const [showPermissionsPrompt, setShowPermissionsPrompt] = useState(false)
   const [files, setFiles] = useState<File[]>([])
   const [urls, setUrls] = useState<string[]>([''])

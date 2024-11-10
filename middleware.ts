@@ -17,27 +17,20 @@ const PUBLIC_PATHS = [
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Skip middleware for public routes
   if (PUBLIC_PATHS.includes(pathname as any)) {
     return NextResponse.next()
   }
 
-  // For /private route, ensure session exists
-  if (pathname === '/private') {
-    const response = await updateSession(request)
+  const response = await updateSession(request)
+  
+  // Check for session in all protected routes (including dashboard)
+  if (!response.ok) {
     const url = new URL(request.url)
-    
-    // If no session, redirect to login
-    if (!response.ok) {
-      url.pathname = '/auth/login'
-      return NextResponse.redirect(url)
-    }
-    
-    return response
+    url.pathname = '/auth/login'
+    return NextResponse.redirect(url)
   }
 
-  // Handle other protected routes
-  return await updateSession(request)
+  return response
 }
 
 export const config = {

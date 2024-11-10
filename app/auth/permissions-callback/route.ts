@@ -37,8 +37,10 @@ async function exchangeCodeForTokens(code: string, provider: string, redirectUri
 }
 
 export async function GET(request: NextRequest) {
+  const requestUrl = new URL(request.url)
+  const cookieStore = cookies()
+  
   try {
-    const requestUrl = new URL(request.url)
     const code = requestUrl.searchParams.get('code')
     const provider = requestUrl.searchParams.get('state')
     const redirectUri = `${requestUrl.origin}/auth/permissions-callback`
@@ -49,7 +51,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
     
     // Get current user session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
@@ -99,13 +101,28 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    return NextResponse.redirect(
+    const response = NextResponse.redirect(
       `${requestUrl.origin}/dashboard?setup=success`
     )
+
+    // Get the current cookies from Supabase client
+    const supabaseCookies = await supabase.auth.getSession()
+    const currentCookies = cookieStore.getAll()
+
+    // Merge cookies, prioritizing Supabase session cookies
+    currentCookies.forEach(cookie => {
+      response.cookies.set(cookie.name, cookie.value, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        path: '/',
+      })
+    })
+
+    return response
   } catch (error) {
     console.error('Permissions callback error:', error)
     return NextResponse.redirect(
-      `${new URL(request.url).origin}/dashboard?error=unknown`
+      `${requestUrl.origin}/dashboard?error=unknown`
     )
   }
 } 
