@@ -19,25 +19,40 @@ export async function GET(request: Request) {
       `${process.env.NEXT_PUBLIC_SITE_URL}${CALLBACK_ROUTES.GOOGLE_CALLBACK}`
     )
 
-    // Get the current session
     const supabase = createRouteHandlerClient({ cookies })
-    const {
-      data: { session },
-      error: sessionError
-    } = await supabase.auth.getSession()
 
-    if (sessionError || !session?.user) {
-      throw new Error('No authenticated session found')
+    // Check if user exists and email verification status
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
+    if (userError) {
+      throw userError
     }
 
-    // Store tokens via your backend
+    if (!user) {
+      return NextResponse.redirect(
+        `${requestUrl.origin}/auth/error?error=${encodeURIComponent(
+          'Please verify your email before setting up Google permissions'
+        )}`
+      )
+    }
+
+    // Check if email is verified
+    if (!user.email_confirmed_at) {
+      return NextResponse.redirect(
+        `${requestUrl.origin}/auth/verify-email?message=${encodeURIComponent(
+          'Please check your email and verify your account before setting up Google permissions'
+        )}`
+      )
+    }
+
+    // If we get here, user is verified - proceed with token storage
     const storeResponse = await fetch(
       `${process.env.NEXT_PUBLIC_PYTHON_BACKEND_URL}/auth/store-google-tokens`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          user_id: session.user.id,
+          user_id: user.id,
           tokens,
         }),
       }
@@ -51,15 +66,11 @@ export async function GET(request: Request) {
     const { error: updateError } = await supabase
       .from('user_profile')
       .update({ google_permissions_set: true })
-      .eq('id', session.user.id)
+      .eq('id', user.id)
 
     if (updateError) {
       throw updateError
     }
-
-    // Log cookies
-    const cookieHeader = request.headers.get('cookie')
-    console.log('Cookie Header:', cookieHeader)
 
     return NextResponse.redirect(`${requestUrl.origin}/dashboard`)
   } catch (error) {

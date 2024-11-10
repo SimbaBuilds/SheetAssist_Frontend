@@ -6,8 +6,6 @@ import { useRouter } from "next/navigation"
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { SignUpFormValues, PasswordStrength } from "@/types/auth"
 import React from "react"
-import { DOCUMENT_SCOPES } from "@/hooks/useAuth"
-import { useAuth } from '@/hooks/useAuth'
 import { getGoogleOAuthURL } from "@/hooks/google-oauth"
 import { getMicrosoftOAuthURL } from "@/hooks/microsoft-oauth"
 import { CALLBACK_ROUTES } from "@/utils/constants"
@@ -186,7 +184,37 @@ export function useSignUp() {
     }
   }
 
- 
+  const handleEmailSignUp = async (data: SignUpFormValues) => {
+    try {
+      const { error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            first_name: data.firstName,
+            last_name: data.lastName,
+          },
+        },
+      })
+
+      if (error) {
+        form.setError('root', { 
+          type: 'manual',
+          message: error.message
+        })
+        return
+      }
+
+      // Redirect to verification page
+      router.push('/auth/verify-email')
+    } catch (error) {
+      console.error('Error signing up:', error)
+      form.setError('root', { 
+        type: 'manual',
+        message: error instanceof Error ? error.message : 'An error occurred during sign up'
+      })
+    }
+  }
 
   return {
     form,
@@ -198,5 +226,6 @@ export function useSignUp() {
     handleSetGooglePermissions,
     handleSetMicrsoftPermissions,
     handleSkipPermissions,
+    handleEmailSignUp,
   }
 } 

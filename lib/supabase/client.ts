@@ -5,10 +5,11 @@ export const createClient = () => {
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
     supabaseKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     cookieOptions: {
-      sameSite: 'none',
+      name: 'sb-access-token',
+      domain: process.env.NEXT_PUBLIC_COOKIE_DOMAIN || '',
+      path: '/',
+      sameSite: 'None',
       secure: true,
-      domain: '',
-      path: '/'
     },
   })
 }

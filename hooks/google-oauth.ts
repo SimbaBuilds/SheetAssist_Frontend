@@ -14,6 +14,12 @@ const GOOGLE_OAUTH_CONFIG = {
 export function getGoogleOAuthURL(isPermissionsSetup: boolean = false): string {
   const url = new URL('https://accounts.google.com/o/oauth2/v2/auth')
   
+  // Generate and store state
+  const state = crypto.randomUUID()
+  sessionStorage.setItem('googleOAuthState', state) // Store in sessionStorage
+
+  url.searchParams.append('state', state)
+
   url.searchParams.append('client_id', GOOGLE_OAUTH_CONFIG.client_id)
   url.searchParams.append('redirect_uri', GOOGLE_OAUTH_CONFIG.redirect_uri)
   url.searchParams.append('response_type', 'code')

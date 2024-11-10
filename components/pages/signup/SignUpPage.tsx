@@ -215,7 +215,7 @@ export default function SignUpPage() {
 
                 <div className="flex items-center justify-center">
                   <div className="flex-grow border-t border-gray-200"></div>
-                  <span className="px-4 text-sm text-gray-500">and/or</span>
+                  <span className="px-4 text-sm text-gray-500">OR</span>
                   <div className="flex-grow border-t border-gray-200"></div>
                 </div>
 

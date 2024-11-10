@@ -7,6 +7,7 @@ const PUBLIC_ROUTES = [
   '/',
   REDIRECT_ROUTES.LOGIN,
   '/auth/signup',
+  '/auth/verify-email',
   CALLBACK_ROUTES.SUPABASE_CALLBACK,
   CALLBACK_ROUTES.GOOGLE_CALLBACK,
   CALLBACK_ROUTES.MICROSOFT_CALLBACK,
@@ -32,43 +33,20 @@ export async function middleware(req: NextRequest) {
   })
 
   // Get session
-  const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+  const { data: { session } } = await supabase.auth.getSession()
 
   const path = req.nextUrl.pathname
-  const isCallbackRoute = path.includes('/callback')
-
-  // Always allow callback routes to proceed
-  if (isCallbackRoute) {
+  
+  // Allow all auth-related routes to proceed without redirect
+  if (path.startsWith('/auth/')) {
     return res
   }
 
-  // Redirect rules
-  if (!isPublicRoute(path) && !path.startsWith('/api') && !session) {
-    // Redirect to login if accessing protected route without session
+  // Protect non-public routes
+  if (!isPublicRoute(path) && !session) {
     const redirectUrl = new URL('/auth/login', req.url)
     redirectUrl.searchParams.set('redirectTo', path)
     return NextResponse.redirect(redirectUrl)
-  }
-
-  if (session?.user && path.startsWith('/auth') && !isCallbackRoute) {
-    try {
-      // Check if permissions are set up
-      const { data: profile } = await supabase
-        .from('user_profile')
-        .select('permissions_setup_completed')
-        .eq('id', session.user.id)
-        .single()
-
-      if (profile?.permissions_setup_completed) {
-        // If permissions are set up, redirect to dashboard
-        return NextResponse.redirect(new URL('/dashboard', req.url))
-      }
-    } catch (error) {
-      console.error('Error checking permissions:', error)
-    }
-    
-    // If permissions are not set up or there was an error, allow access to auth routes
-    return res
   }
 
   return res
