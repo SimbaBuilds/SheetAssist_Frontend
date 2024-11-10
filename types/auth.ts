@@ -4,7 +4,6 @@ export interface AuthContextType {
   user: User | null
   isLoading: boolean
   error: Error | null
-  permissionsStatus: PermissionsStatus | null
 }
 
 export interface PermissionsStatus {
@@ -22,9 +21,7 @@ export interface SignUpResponse {
 export type Provider = 'google' | 'microsoft'
 
 export interface PermissionSetupOptions {
-  provider: Provider
-  redirectUrl?: string
-  onSuccess?: () => void
+  provider: 'google' | 'microsoft'
   onError?: (error: Error) => void
 }
 

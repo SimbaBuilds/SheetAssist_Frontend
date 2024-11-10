@@ -16,7 +16,7 @@ type UserPreferences = {
 }
 
 export function useDashboard(initialData?: UserPreferences) {
-  const { user, signInWithGoogle, signInWithMicrosoft } = useAuth()
+  const { user, signInWithGoogle } = useAuth()
   const [showPermissionsPrompt, setShowPermissionsPrompt] = useState(false)
   const [files, setFiles] = useState<File[]>([])
   const [urls, setUrls] = useState<string[]>([''])
@@ -55,51 +55,34 @@ export function useDashboard(initialData?: UserPreferences) {
 
   useEffect(() => {
     const checkPermissions = async () => {
-      const hasGoogleAuth = user?.app_metadata?.provider === 'google' || 
-                           user?.app_metadata?.providers?.includes('google')
-      const hasMicrosoftAuth = user?.app_metadata?.provider === 'azure' || 
-                              user?.app_metadata?.providers?.includes('azure')
+      try {
+        const { data: profile, error: profileError } = await supabase
+          .from('user_profile')
+          .select('google_permissions_set, microsoft_permissions_set, permissions_setup_completed')
+          .eq('id', user?.id)
+          .single()
 
-      setPermissions({
-        google: !!hasGoogleAuth,
-        microsoft: !!hasMicrosoftAuth
-      })
+        if (profileError) throw profileError
 
-      if (!hasGoogleAuth && !hasMicrosoftAuth) {
-        setShowPermissionsPrompt(true)
+        setPermissions({
+          google: !!profile?.google_permissions_set,
+          microsoft: !!profile?.microsoft_permissions_set
+        })
+
+        if (!profile?.permissions_setup_completed) {
+          setShowPermissionsPrompt(true)
+        }
+      } catch (error) {
+        console.error('Error checking permissions:', error)
       }
     }
 
-    checkPermissions()
+    if (user) {
+      checkPermissions()
+    }
   }, [user])
 
-  const handleGoogleSetup = async () => {
-    try {
-      const googleAuthUrl = await signInWithGoogle()
-      if (typeof googleAuthUrl === 'string' && googleAuthUrl) {
-        window.location.href = googleAuthUrl
-      } else {
-        throw new Error('Failed to initiate Google authentication')
-      }
-    } catch (error) {
-      console.error('Error setting up Google permissions:', error)
-      alert('Error setting up Google permissions. Please try again.')
-    }
-  }
 
-  const handleMicrosoftSetup = async () => {
-    try {
-      const microsoftAuthUrl = await signInWithMicrosoft()
-      if (typeof microsoftAuthUrl === 'string' && microsoftAuthUrl) {
-        window.location.href = microsoftAuthUrl
-      } else {
-        throw new Error('Failed to initiate Microsoft authentication')
-      }
-    } catch (error) {
-      console.error('Error setting up Microsoft permissions:', error)
-      alert('Error setting up Microsoft permissions. Please try again.')
-    }
-  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || [])
@@ -361,8 +344,6 @@ export function useDashboard(initialData?: UserPreferences) {
     error,
     permissions,
     urlPermissionError,
-    handleGoogleSetup,
-    handleMicrosoftSetup,
     handleFileChange,
     handleUrlChange,
     handleSubmit,

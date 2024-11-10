@@ -4,10 +4,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { useAuth } from '@/hooks/useAuth'
-import { processQuery } from '@/services/python_backend';
-import axios from 'axios';
 import { useDashboard } from '@/hooks/useDashboard';
+import { useSetupPermissions } from '@/hooks/useSetupPermissions';
 import { PlusIcon, ArrowTopRightOnSquareIcon as ExternalLinkIcon } from '@heroicons/react/24/outline'
 
 const ACCEPTED_FILE_TYPES = '.xlsx,.csv,.json,.docx,.txt,.pdf,.jpeg,.png'
@@ -52,13 +50,16 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
     error,
     permissions,
     urlPermissionError,
-    handleGoogleSetup,
-    handleMicrosoftSetup,
     handleFileChange,
     handleUrlChange,
     handleSubmit,
     recentUrls,
   } = useDashboard(initialData)
+
+  const {
+    handleGoogleSetup,
+    handleMicrosoftSetup,
+  } = useSetupPermissions()
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">

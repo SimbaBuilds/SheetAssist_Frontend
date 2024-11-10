@@ -1,14 +1,28 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
-import { useAuth } from '@/hooks/useAuth'
+import type { PermissionSetupOptions } from '@/types/auth'
+
+export const DOCUMENT_SCOPES = {
+    google: [
+      'https://www.googleapis.com/auth/spreadsheets',
+      'https://www.googleapis.com/auth/documents',
+      'https://www.googleapis.com/auth/drive',
+      'https://www.googleapis.com/auth/userinfo.email',
+      'https://www.googleapis.com/auth/userinfo.profile'
+      
+    ].join(' '),
+    microsoft: [
+      'Files.ReadWrite.All',
+      'Sites.ReadWrite.All'
+    ].join(' ')
+  } as const
 
 export function useSetupPermissions() {
   const router = useRouter()
   const supabase = createClient()
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const { setupPermissions } = useAuth()
 
   useEffect(() => {
     const checkAccess = async () => {
@@ -67,6 +81,34 @@ export function useSetupPermissions() {
     }
   }
 
+  const setupPermissions = async ({ provider, onError }: PermissionSetupOptions) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: provider === 'microsoft' ? 'google' : provider,
+        options: {
+          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/permissions-callback?provider=${provider}`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+            scope: DOCUMENT_SCOPES[provider],
+          },
+        },
+      })
+
+      if (error) throw error
+      
+      if (data?.url) {
+        window.location.href = data.url
+        return
+      }
+      
+      throw new Error('No authentication URL returned')
+    } catch (error) {
+      console.error(`${provider} auth error:`, error)
+      onError?.(error instanceof Error ? error : new Error(`${provider} auth failed`))
+    }
+  }
+
   const handleSkip = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -92,6 +134,6 @@ export function useSetupPermissions() {
     error,
     handleGoogleSetup,
     handleMicrosoftSetup,
-    handleSkip
+    handleSkip,
   }
 } 
