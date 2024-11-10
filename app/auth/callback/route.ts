@@ -1,4 +1,4 @@
-// For SUPABASE auth callback
+// For SUPABASE auth callback after email verification
 
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
@@ -9,42 +9,37 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
-  const next = requestUrl.searchParams.get('next') || '/dashboard'
   
   if (code) {
     const supabase = createRouteHandlerClient({ cookies })
     
     try {
-      await supabase.auth.exchangeCodeForSession(code)
-      
-      // After successful verification, update user profile
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        console.log('Updating email verification status for user:', user.id)
-        const { error: updateError } = await supabase
-          .from('user_profile')
-          .update({ 
-            email_verified: true 
-          })
-          .eq('id', user.id)
+      // Retrieve code verifier from cookies
+      const codeVerifier = cookies().get('code_verifier')?.value
 
-        if (updateError) {
-          console.error('Error updating email verification status:', updateError)
-          throw updateError
-        }
-        console.log('Email verification status updated successfully')
+      if (!codeVerifier) {
+        throw new Error('Code verifier not found in cookies')
       }
 
-      // Redirect to permissions setup
-      return NextResponse.redirect(new URL('/auth/setup-permissions', requestUrl.origin))
+      // Exchange code for session
+      const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code, { codeVerifier })
+      
+      if (exchangeError) throw exchangeError
+      if (!data.session) throw new Error('No session returned')
+
+      // Clear code_verifier cookie
+      const response = NextResponse.redirect(new URL('/auth/setup-permissions', requestUrl.origin))
+      response.cookies.delete('code_verifier')
+      return response
     } catch (error) {
       console.error('Error in auth callback:', error)
       return NextResponse.redirect(
-        new URL(`/auth/error?message=${encodeURIComponent('Failed to verify email')}`, requestUrl.origin)
+        new URL(`/auth/error?message=${encodeURIComponent(
+          error instanceof Error ? error.message : 'Failed to verify email'
+        )}`, requestUrl.origin)
       )
     }
   }
 
-  // Return to home page if no code present
   return NextResponse.redirect(new URL('/', requestUrl.origin))
 }

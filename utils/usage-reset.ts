@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/utils/supabase/client'
 
 // This would run as a scheduled function
 export async function resetMonthlyUsage() {

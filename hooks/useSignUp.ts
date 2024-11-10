@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import type { SignUpFormValues } from '@/types/auth'
-
+import { generateCodeVerifier, generatePKCEChallenge } from '@/utils/pkce'
 // Validation schema
 const signUpSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -41,6 +41,15 @@ export function useSignUp() {
   const handleEmailSignUp = async (data: SignUpFormValues) => {
     setIsLoading(true)
     try {
+      // Generate PKCE code verifier
+      const codeVerifier = generateCodeVerifier()
+      
+      // Store verifier in cookies for the callback
+      document.cookie = `code_verifier=${codeVerifier};path=/;max-age=300;secure;samesite=lax`
+
+      // Generate code challenge
+      const codeChallenge = await generatePKCEChallenge(codeVerifier)
+
       const { error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
@@ -50,18 +59,12 @@ export function useSignUp() {
             first_name: data.firstName,
             last_name: data.lastName,
           },
+          codeChallenge: codeChallenge,
+          codeChallengeMethod: 's256'
         }
       })
 
-      if (error) {
-        form.setError('root', { 
-          type: 'manual',
-          message: error.message
-        })
-        return
-      }
-
-      // Redirect to verification page
+      if (error) throw error
       router.push('/auth/verify-email')
     } catch (error) {
       console.error('Error signing up:', error)
