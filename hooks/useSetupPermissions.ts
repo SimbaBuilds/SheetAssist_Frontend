@@ -8,9 +8,6 @@ export const DOCUMENT_SCOPES = {
       'https://www.googleapis.com/auth/spreadsheets',
       'https://www.googleapis.com/auth/documents',
       'https://www.googleapis.com/auth/drive',
-      'https://www.googleapis.com/auth/userinfo.email',
-      'https://www.googleapis.com/auth/userinfo.profile'
-      
     ].join(' '),
     microsoft: [
       'Files.ReadWrite.All',
@@ -83,29 +80,26 @@ export function useSetupPermissions() {
 
   const setupPermissions = async ({ provider, onError }: PermissionSetupOptions) => {
     try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: provider === 'microsoft' ? 'google' : provider,
-        options: {
-          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/permissions-callback?provider=${provider}`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-            scope: DOCUMENT_SCOPES[provider],
-          },
-        },
+      const params = new URLSearchParams({
+        client_id: provider === 'google' 
+          ? process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!
+          : process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID!,
+        redirect_uri: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/permissions-callback`,
+        response_type: 'code',
+        scope: DOCUMENT_SCOPES[provider],
+        access_type: 'offline',
+        prompt: 'consent',
+        state: provider
       })
 
-      if (error) throw error
-      
-      if (data?.url) {
-        window.location.href = data.url
-        return
-      }
-      
-      throw new Error('No authentication URL returned')
+      const authUrl = provider === 'google'
+        ? `https://accounts.google.com/o/oauth2/v2/auth?${params}`
+        : `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params}`
+
+      window.location.href = authUrl
     } catch (error) {
       console.error(`${provider} auth error:`, error)
-      onError?.(error instanceof Error ? error : new Error(`${provider} auth failed`))
+      onError?.(error instanceof Error ? error : new Error(`${provider} permissions setup failed`))
     }
   }
 
