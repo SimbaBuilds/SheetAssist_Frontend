@@ -1,4 +1,4 @@
-import { CALLBACK_ROUTES } from "../utils/constants"
+import { CALLBACK_ROUTES } from "@/utils/constants"
 import axios from 'axios';
 
 const GOOGLE_OAUTH_CONFIG = {

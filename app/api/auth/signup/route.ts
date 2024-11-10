@@ -96,15 +96,15 @@ export async function POST(request: Request) {
       )
     }
 
-    // Set up database trigger for auto trial
-    const { error: trialError } = await supabase.rpc('start_trial', {
-      user_id: authData.user.id
-    })
+    // // Set up database trigger for auto trial
+    // const { error: trialError } = await supabase.rpc('start_trial', {
+    //   user_id: authData.user.id
+    // })
 
-    if (trialError) {
-      console.error('Trial setup error:', trialError)
-      // Don't return error - trial setup is not critical
-    }
+    // if (trialError) {
+    //   console.error('Trial setup error:', trialError)
+    //   // Don't return error - trial setup is not critical
+    // }
 
     return NextResponse.json({ 
       success: true,

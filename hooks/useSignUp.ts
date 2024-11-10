@@ -190,11 +190,12 @@ export function useSignUp() {
         email: data.email,
         password: data.password,
         options: {
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
           data: {
             first_name: data.firstName,
             last_name: data.lastName,
           },
-        },
+        }
       })
 
       if (error) {

@@ -1,7 +1,7 @@
 import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { CALLBACK_ROUTES, REDIRECT_ROUTES } from '@/utils/constants'
+import { CALLBACK_ROUTES, REDIRECT_ROUTES } from "@/utils/constants"
 
 const PUBLIC_ROUTES = [
   '/',

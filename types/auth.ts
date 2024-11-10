@@ -43,3 +43,18 @@ export interface SignUpFormValues {
   confirmPassword: string
 }
 
+export interface AuthCallbackParams {
+  code: string | null
+  setup?: 'permissions' | null
+  provider?: 'google' | 'microsoft' | null
+}
+
+export interface UserProfile {
+  id: string
+  email_verified: boolean
+  google_permissions_set: boolean
+  microsoft_permissions_set: boolean
+  permissions_setup_completed: boolean
+  last_sign_in: string
+}
+
