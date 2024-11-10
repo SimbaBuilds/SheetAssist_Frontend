@@ -1,4 +1,3 @@
-
 export const CALLBACK_ROUTES = {
     GOOGLE_CALLBACK: '/auth/google/callback',
     MICROSOFT_CALLBACK: '/auth/microsoft/callback',
@@ -15,4 +14,17 @@ export const CALLBACK_ROUTES = {
     LOGIN: '/auth/login',
     ERROR: '/auth/error'
   } as const 
+  
+  export const DOCUMENT_SCOPES = {
+    google: [
+      'https://www.googleapis.com/auth/spreadsheets',
+      'https://www.googleapis.com/auth/documents',
+      'https://www.googleapis.com/auth/drive'
+    ].join(' '),
+    microsoft: [
+      'offline_access',
+      'Files.ReadWrite.All',
+      'Sites.ReadWrite.All'
+    ].join(' ')
+  } as const
   

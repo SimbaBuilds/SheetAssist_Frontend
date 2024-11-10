@@ -1,6 +1,6 @@
 'use client'
 
-import { createClient } from '@/utils/supabase/server'
+import { createClient } from '@/lib/supabase/client'
 import { DashboardPage } from '@/components/pages/DashboardPage'
 
 export default async function Dashboard() {

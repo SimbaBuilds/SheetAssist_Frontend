@@ -11,22 +11,16 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
-
 import { useSignUp } from '@/hooks/useSignUp'
 import { ErrorBoundary } from '@/components/pages/ErrorBoundary'
 import { LoadingSpinner } from '@/components/pages/signup/LoadingSpinner'
-import { GoogleIcon, MicrosoftIcon } from '@/components/icons'
 
 export default function SignUpPage() {
   const {
     form,
     isLoading,
-    showPermissionsDialog,
-    onSubmit,
+    handleEmailSignUp,
     handleGoogleSignUp,
-    handleSkipPermissions,
-    handleSetGooglePermissions,
-    handleSetMicrsoftPermissions
   } = useSignUp()
 
   const formErrors = form.formState.errors
@@ -49,7 +43,7 @@ export default function SignUpPage() {
           )}
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(handleEmailSignUp)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="firstName"
@@ -191,57 +185,6 @@ export default function SignUpPage() {
             </Link>
           </div>
         </div>
-
-        {showPermissionsDialog && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-            <div className="bg-white p-8 rounded-lg max-w-md w-full space-y-4">
-              <h2 className="text-2xl font-bold">Set Up Permissions</h2>
-              <p className="text-gray-600">
-                To get the most out of our app, please allow us access to your:
-              </p>
-              <div className="space-y-4 text-gray-600">
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <li className="list-disc list-inside">Google Sheets</li>
-                    <li className="list-disc list-inside">Google Docs</li>
-                  </div>
-                  <button
-                    onClick={handleSetGooglePermissions}
-                    className="w-full flex items-center justify-center gap-2 bg-white text-gray-700 hover:bg-gray-50 py-2 px-4 rounded border border-gray-300"
-                  >
-                    <GoogleIcon /> Allow Google permissions
-                  </button>
-                </div>
-
-                <div className="flex items-center justify-center">
-                  <div className="flex-grow border-t border-gray-200"></div>
-                  <span className="px-4 text-sm text-gray-500">OR</span>
-                  <div className="flex-grow border-t border-gray-200"></div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <li className="list-disc list-inside">Microsoft Excel Online</li>
-                    <li className="list-disc list-inside">Microsoft Word Online</li>
-                  </div>
-                  <button
-                    onClick={handleSetMicrsoftPermissions}
-                    className="w-full flex items-center justify-center gap-2 bg-white text-gray-700 hover:bg-gray-50 py-2 px-4 rounded border border-gray-300"
-                  >
-                    <MicrosoftIcon /> Allow Microsoft permissions
-                  </button>
-                </div>
-
-                <button
-                  onClick={handleSkipPermissions}
-                  className="w-full text-gray-600 hover:text-gray-800"
-                >
-                  Skip for now
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </ErrorBoundary>
   )

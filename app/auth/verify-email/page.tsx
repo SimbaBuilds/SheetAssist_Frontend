@@ -18,19 +18,14 @@ export default function VerifyEmailPage() {
           <p className="text-muted-foreground">
             {message || 'Please check your email and click the verification link to continue.'}
           </p>
-          
-          <p className="text-sm text-muted-foreground">
-            Once verified, you can return to set up your permissions.
-          </p>
-
           <div className="space-y-2">
-            <Button
+            {/* <Button
               onClick={() => router.push('/auth/login')}
               variant="outline"
               className="w-full"
             >
               Return to Login
-            </Button>
+            </Button> */}
           </div>
         </div>
       </div>

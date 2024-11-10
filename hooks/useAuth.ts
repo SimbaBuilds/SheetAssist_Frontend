@@ -118,6 +118,7 @@ export function useAuth() {
             access_type: 'offline',
             prompt: 'consent',
             scope: DOCUMENT_SCOPES[provider],
+            setup: 'permissions',
             ...(provider === 'google' && {
               response_type: 'code',
               access_type: 'offline',
