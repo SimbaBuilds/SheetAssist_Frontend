@@ -9,37 +9,25 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
-  
+
   if (code) {
     const supabase = createRouteHandlerClient({ cookies })
     
     try {
-      // Retrieve code verifier from cookies
-      const codeVerifier = cookies().get('code_verifier')?.value
-
-      if (!codeVerifier) {
-        throw new Error('Code verifier not found in cookies')
-      }
-
-      // Exchange code for session
-      const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code, { codeVerifier })
+      const { error } = await supabase.auth.exchangeCodeForSession(code)
       
-      if (exchangeError) throw exchangeError
-      if (!data.session) throw new Error('No session returned')
+      if (error) throw error
 
-      // Clear code_verifier cookie
-      const response = NextResponse.redirect(new URL('/auth/setup-permissions', requestUrl.origin))
-      response.cookies.delete('code_verifier')
-      return response
+      // Successful authentication, redirect to private page
+      return NextResponse.redirect(new URL('/private', requestUrl.origin))
     } catch (error) {
       console.error('Error in auth callback:', error)
       return NextResponse.redirect(
-        new URL(`/auth/error?message=${encodeURIComponent(
-          error instanceof Error ? error.message : 'Failed to verify email'
-        )}`, requestUrl.origin)
+        new URL('/auth/error', requestUrl.origin)
       )
     }
   }
 
+  // Return to home page if no code
   return NextResponse.redirect(new URL('/', requestUrl.origin))
 }

@@ -155,32 +155,7 @@ export function useAuth() {
     router.push('/dashboard')
   }
 
-  const linkIdentity = async (provider: 'google' | 'azure', scopes: string) => {
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: provider === 'azure' ? 'azure' : 'google',
-        options: {
-          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?setup=permissions&provider=${provider}`,
-          scopes,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        },
-      });
 
-      if (error) throw error;
-      if (data?.url) {
-        window.location.href = data.url;
-        return { data, error: null };
-      }
-
-      throw new Error('Authentication URL not returned');
-    } catch (error) {
-      console.error(`Error linking ${provider} identity:`, error);
-      return { data: null, error };
-    }
-  };
 
   return {
     user,
@@ -196,6 +171,5 @@ export function useAuth() {
     setupPermissions,
     skipPermissionsSetup,
     DOCUMENT_SCOPES,
-    linkIdentity,
   }
 }

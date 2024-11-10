@@ -41,26 +41,15 @@ export function useSignUp() {
   const handleEmailSignUp = async (data: SignUpFormValues) => {
     setIsLoading(true)
     try {
-      // Generate PKCE code verifier
-      const codeVerifier = generateCodeVerifier()
-      
-      // Store verifier in cookies for the callback
-      document.cookie = `code_verifier=${codeVerifier};path=/;max-age=300;secure;samesite=lax`
-
-      // Generate code challenge
-      const codeChallenge = await generatePKCEChallenge(codeVerifier)
-
       const { error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
-          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm`,
           data: {
             first_name: data.firstName,
             last_name: data.lastName,
-          },
-          codeChallenge: codeChallenge,
-          codeChallengeMethod: 's256'
+          }
         }
       })
 

@@ -1,4 +1,4 @@
-import { createClient } from '@/utils/supabase/client'
+import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 
 export default async function DashboardLayout({
@@ -6,16 +6,15 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode
 }) {
-  const supabase = createClient()
-  const { data: { user }, error } = await supabase.auth.getUser()
+  const supabase = await createClient()
+  const { data: { session } } = await supabase.auth.getSession()
 
-  if (error || !user) {
+  if (!session) {
     redirect('/auth/login')
   }
 
   return (
-    <div>
-      {/* You can add dashboard-wide layout elements here */}
+    <div className="min-h-screen bg-background">
       {children}
     </div>
   )
