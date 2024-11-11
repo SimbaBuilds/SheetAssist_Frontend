@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { processQuery } from '@/services/python_backend'
 import axios from 'axios'
-import { createBrowserClient } from '@supabase/ssr'
+import { createClient } from '@/utils/supabase/client'
 
 
 const MAX_FILES = 10
@@ -32,10 +32,7 @@ export function useDashboard(initialData?: UserPreferences) {
   const [urlPermissionError, setUrlPermissionError] = useState<string | null>(null)
   const [recentUrls, setRecentUrls] = useState<string[]>([])
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+  const supabase = createClient()
 
   useEffect(() => {
     if (initialData) {
