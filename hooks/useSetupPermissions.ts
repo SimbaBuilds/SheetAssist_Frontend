@@ -82,8 +82,8 @@ export function useSetupPermissions() {
     try {
       const params = new URLSearchParams({
         client_id: provider === 'google' 
-          ? process.env.GOOGLE_CLIENT_ID!
-          : process.env.MICROSOFT_CLIENT_ID!,
+          ? process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!
+          : process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID!,
         redirect_uri: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/permissions-callback`,
         response_type: 'code',
         scope: DOCUMENT_SCOPES[provider],

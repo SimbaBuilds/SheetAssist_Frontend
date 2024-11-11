@@ -10,11 +10,11 @@ const MICROSOFT_TOKEN_URL = 'https://login.microsoftonline.com/common/oauth2/v2.
 async function exchangeCodeForTokens(code: string, provider: string, redirectUri: string) {
   const tokenUrl = provider === 'google' ? GOOGLE_TOKEN_URL : MICROSOFT_TOKEN_URL
   const clientId = provider === 'google' 
-    ? process.env.GOOGLE_CLIENT_ID 
-    : process.env.MICROSOFT_CLIENT_ID
+    ? process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID 
+    : process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID
   const clientSecret = provider === 'google'
-    ? process.env.GOOGLE_CLIENT_SECRET
-    : process.env.MICROSOFT_CLIENT_SECRET
+    ? process.env.NEXT_PUBLIC_GOOGLE_CLIENT_SECRET
+    : process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_SECRET
 
   const response = await fetch(tokenUrl, {
     method: 'POST',

@@ -2,8 +2,8 @@ import { CALLBACK_ROUTES } from "@/utils/constants"
 import axios from 'axios';
 
 const GOOGLE_OAUTH_CONFIG = {
-  client_id: process.env.GOOGLE_CLIENT_ID!,
-  redirect_uri: `${process.env.NEXT_PUBLIC_SITE_URL}${CALLBACK_ROUTES.GOOGLE_CALLBACK}`,
+  client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
+  redirect_uri: `${process.env.NEXT_PUBLIC_SITE_URL}${CALLBACK_ROUTES.PERMISSIONS_CALLBACK}`,
   scopes: [
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/documents',
@@ -52,7 +52,7 @@ export async function exchangeCodeForTokens(code: string, redirectUri: string): 
       params: {
         code,
         client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET,
+        client_secret: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_SECRET,
         redirect_uri: redirectUri,
         grant_type: 'authorization_code',
       },
