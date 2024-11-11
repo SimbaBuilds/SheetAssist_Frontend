@@ -1,4 +1,4 @@
-import { ErrorDisplay } from '@/components/auth'
+import { ErrorDisplay } from '@/components/pages/ErrorDisplay'
 
 interface Props {
   searchParams: {

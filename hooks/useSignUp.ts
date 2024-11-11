@@ -5,7 +5,6 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
 import type { SignUpFormValues } from '@/types/auth'
-import { generateCodeVerifier, generatePKCEChallenge } from '@/utils/pkce'
 // Validation schema
 const signUpSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -41,7 +40,7 @@ export function useSignUp() {
   const handleEmailSignUp = async (data: SignUpFormValues) => {
     setIsLoading(true)
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data: authData, error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
@@ -54,6 +53,36 @@ export function useSignUp() {
       })
 
       if (error) throw error
+      
+      if (authData.user) {
+        const { error: profileError } = await supabase
+          .from('user_profile')
+          .insert({
+            id: authData.user.id,
+            first_name: data.firstName,
+            last_name: data.lastName,
+            google_permissions_set: false,
+            microsoft_permissions_set: false,
+            permissions_setup_completed: false,
+            plan: 'free'
+          })
+
+        if (profileError) throw profileError
+
+        const { error: usageError } = await supabase
+          .from('user_usage')
+          .insert({
+            user_id: authData.user.id,
+            recent_urls: [],
+            recent_queries: [],
+            requests_this_week: 0,
+            requests_this_month: 0,
+            requests_previous_3_months: 0
+          })
+
+        if (usageError) throw usageError
+      }
+
       router.push('/auth/verify-email')
     } catch (error) {
       console.error('Error signing up:', error)
@@ -71,7 +100,7 @@ export function useSignUp() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',

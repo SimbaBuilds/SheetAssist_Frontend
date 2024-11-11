@@ -47,13 +47,4 @@ export interface AuthCallbackParams {
   provider?: 'google' | 'microsoft' | null
 }
 
-export interface UserProfile {
-  id: string
-  first_name: string
-  last_name: string
-  google_permissions_set: boolean
-  microsoft_permissions_set: boolean
-  permissions_setup_completed: boolean
-  plan: string
-}
 

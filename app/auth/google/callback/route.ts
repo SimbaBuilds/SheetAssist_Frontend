@@ -1,84 +1,56 @@
-import { NextResponse } from 'next/server'
-import { exchangeCodeForTokens } from '@/hooks/google-oauth'
-import { CALLBACK_ROUTES } from '@/utils/constants'
-import { cookies } from 'next/headers'
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
-
+  const next = requestUrl.searchParams.get('next') ?? '/auth/setup-permissions'
+  
   if (!code) {
-    return NextResponse.redirect(`${requestUrl.origin}/auth/error?error=No code provided`)
+    redirect('/auth/error?error=No code provided')
   }
 
   try {
-    // Exchange code for tokens
-    const tokens = await exchangeCodeForTokens(
-      code,
-      `${process.env.NEXT_PUBLIC_SITE_URL}${CALLBACK_ROUTES.GOOGLE_CALLBACK}`
-    )
-
     const supabase = createRouteHandlerClient({ cookies })
+    
+    // Handle the OAuth callback
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
 
-    // Check if user exists and email verification status
+    if (error) {
+      throw error
+    }
+
+    // Get user data
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     
-    if (userError) {
-      throw userError
+    if (userError || !user) {
+      throw userError || new Error('No user found')
     }
 
-    if (!user) {
-      return NextResponse.redirect(
-        `${requestUrl.origin}/auth/error?error=${encodeURIComponent(
-          'Please verify your email before setting up Google permissions'
-        )}`
-      )
-    }
-
-    // Check if email is verified
-    if (!user.email_confirmed_at) {
-      return NextResponse.redirect(
-        `${requestUrl.origin}/auth/verify-email?message=${encodeURIComponent(
-          'Please check your email and verify your account before setting up Google permissions'
-        )}`
-      )
-    }
-
-    // If we get here, user is verified - proceed with token storage
-    const storeResponse = await fetch(
-      `${process.env.NEXT_PUBLIC_PYTHON_BACKEND_URL}/auth/store-google-tokens`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: user.id,
-          tokens,
-        }),
-      }
-    )
-
-    if (!storeResponse.ok) {
-      throw new Error('Failed to store tokens')
-    }
-
-    // Update user profile
-    const { error: updateError } = await supabase
+    // Check if user profile exists and create if it doesn't
+    const { data: profile, error: profileError } = await supabase
       .from('user_profile')
-      .update({ google_permissions_set: true })
+      .select()
       .eq('id', user.id)
+      .single()
 
-    if (updateError) {
-      throw updateError
+    if (!profile && !profileError) {
+      await supabase.from('user_profile').insert([
+        {
+          id: user.id,
+          email: user.email,
+          google_permissions_set: false
+        }
+      ])
     }
 
-    return NextResponse.redirect(`${requestUrl.origin}/dashboard`)
+    // Redirect to setup permissions
+    redirect(next)
   } catch (error) {
     console.error('Error in Google callback:', error)
-    return NextResponse.redirect(
-      `${requestUrl.origin}/auth/error?error=${encodeURIComponent(
-        error instanceof Error ? error.message : 'Failed to setup Google permissions'
-      )}`
-    )
+    redirect(`/auth/error?error=${encodeURIComponent(
+      error instanceof Error ? error.message : 'Authentication failed'
+    )}`)
   }
 }
