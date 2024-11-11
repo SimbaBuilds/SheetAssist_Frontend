@@ -14,8 +14,8 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 const MAX_QUERY_LENGTH = 500
 
 const EXAMPLE_QUERIES = [
-  "Add this receipt as a row in the sheet provided,",
-  "Match the student number to populate the grades sheet with phone numbers from the household contacts sheet",
+  "Add this receipt to the sheet provided",
+  "Populate the grades sheet with phone numbers from the household contacts sheet",
   "Convert this pdf to a sheet with headers 'teacher' 'course load'",
   "Combine these pdfs into one large pdf and sort the pages alphabetically by last name",
   "Extract all unpaid invoices from the finance sheet",

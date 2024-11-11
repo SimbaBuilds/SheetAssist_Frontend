@@ -67,17 +67,20 @@ export function useAuth() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+          redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
-            scope: 'openid email profile'
-          }
+          },
         }
       })
-
+      
       if (error) throw error
-      if (data.url) window.location.href = data.url
+      
+      if (data?.url) {
+        window.location.href = data.url
+      }
+      
     } catch (error) {
       console.error('Google sign in error:', error)
       throw error

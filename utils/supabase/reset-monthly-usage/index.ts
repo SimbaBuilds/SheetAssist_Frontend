@@ -10,8 +10,8 @@ declare const Deno: {
 
 // Create a single supabase client for interacting with your database
 const supabase = createClient(
-  Deno.env.get('SUPABASE_URL') ?? '',
-  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  Deno.env.get('NEXT_PUBLIC_SUPABASE_URL') ?? '',
+  Deno.env.get('NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
 
 // Define the request type
