@@ -1,7 +1,6 @@
 // Callback after integrating with Google or Microsoft
 
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
@@ -40,7 +39,6 @@ async function exchangeCodeForTokens(code: string, provider: string, redirectUri
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
-  const cookieStore = cookies()
   
   try {
     const code = requestUrl.searchParams.get('code')
@@ -53,14 +51,14 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
+    const supabase = await createClient()
     
-    // Get current user session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    // Get current user instead of session
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
     
-    if (sessionError || !session?.user) {
+    if (userError || !user) {
       return NextResponse.redirect(
-        `${requestUrl.origin}/dashboard?error=no_session`
+        `${requestUrl.origin}/dashboard?error=no_user`
       )
     }
 
@@ -71,7 +69,7 @@ export async function GET(request: NextRequest) {
     const { error: tokenError } = await supabase
       .from('user_documents_access')
       .upsert({
-        user_id: session.user.id,
+        user_id: user.id,
         provider,
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
@@ -94,7 +92,7 @@ export async function GET(request: NextRequest) {
         [`${provider}_permissions_set`]: true,
         permissions_setup_completed: true,
       })
-      .eq('id', session.user.id)
+      .eq('id', user.id)
 
     if (updateError) {
       console.error('Profile update error:', updateError)
@@ -107,18 +105,7 @@ export async function GET(request: NextRequest) {
       `${requestUrl.origin}/dashboard?setup=success`
     )
 
-    // Get the current cookies from Supabase client
-    const supabaseCookies = await supabase.auth.getSession()
-    const currentCookies = cookieStore.getAll()
 
-    // Merge cookies, prioritizing Supabase session cookies
-    currentCookies.forEach(cookie => {
-      response.cookies.set(cookie.name, cookie.value, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        path: '/',
-      })
-    })
 
     return response
   } catch (error) {

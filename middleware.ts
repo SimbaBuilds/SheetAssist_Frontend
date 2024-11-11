@@ -12,6 +12,7 @@ const PUBLIC_PATHS = [
   '/auth/error',
   '/auth/forgot-password',
   '/auth/reset-password',
+  '/auth/setup-permissions', 
   '/demos',
 ] as const
 

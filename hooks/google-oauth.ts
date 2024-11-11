@@ -2,7 +2,7 @@ import { CALLBACK_ROUTES } from "@/utils/constants"
 import axios from 'axios';
 
 const GOOGLE_OAUTH_CONFIG = {
-  client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
+  client_id: process.env.GOOGLE_CLIENT_ID!,
   redirect_uri: `${process.env.NEXT_PUBLIC_SITE_URL}${CALLBACK_ROUTES.GOOGLE_CALLBACK}`,
   scopes: [
     'https://www.googleapis.com/auth/spreadsheets',
