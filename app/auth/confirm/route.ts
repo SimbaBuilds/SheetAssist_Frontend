@@ -1,3 +1,5 @@
+// Confirm email after Sign Up using Email and Email Verification
+
 import { type EmailOtpType } from '@supabase/supabase-js'
 import { type NextRequest } from 'next/server'
 

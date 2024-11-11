@@ -311,7 +311,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="online" id="online" />
-              <Label htmlFor="online">Add to Online Sheet Workbook or Document</Label>
+              <Label htmlFor="online">Add to Online Spreadsheet or Document</Label>
             </div>
           </RadioGroup>
 

@@ -7,6 +7,7 @@ export interface UserProfile {
   last_name: string | null
   google_permissions_set: boolean
   microsoft_permissions_set: boolean
+  permissions_setup_completed: boolean
   plan: PlanType
 }
 

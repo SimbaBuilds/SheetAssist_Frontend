@@ -1,4 +1,4 @@
-// For SUPABASE auth callback after email verification
+// Currently not used
 
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'

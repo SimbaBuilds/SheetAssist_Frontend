@@ -105,16 +105,6 @@ export function useSetupPermissions() {
 
   const handleSkip = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user) throw new Error('No session')
-
-      const { error } = await supabase
-        .from('user_profile')
-        .update({ 
-          permissions_setup_completed: true,
-        })
-        .eq('id', session.user.id)
-
       if (error) throw error
       router.push('/dashboard')
     } catch (error) {

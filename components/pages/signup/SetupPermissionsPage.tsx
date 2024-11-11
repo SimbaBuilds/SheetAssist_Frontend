@@ -48,7 +48,7 @@ export function SetupPermissionsPage() {
         <div className="space-y-2 text-center">
           <h1 className="text-2xl font-bold">Set Up Permissions</h1>
           <p className="text-muted-foreground">
-            Choose how you'd like to connect your documents
+            To get the most out of this application, allow us access to your spreadsheets and documents.
           </p>
         </div>
 

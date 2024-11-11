@@ -1,3 +1,5 @@
+// Callback after Sign Up with Google
+
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 
@@ -37,7 +39,8 @@ export async function GET(request: Request) {
       await supabase.from('user_profile').insert([
         {
           id: user.id,
-          email: user.email,
+          first_name: user.user_metadata.first_name,
+          last_name: user.user_metadata.last_name,
           google_permissions_set: false,
           microsoft_permissions_set: false,
           permissions_setup_completed: false,
