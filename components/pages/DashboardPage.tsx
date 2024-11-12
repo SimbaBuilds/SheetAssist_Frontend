@@ -307,7 +307,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
           <RadioGroup value={outputType} onValueChange={(value: 'download' | 'online') => setOutputType(value)}>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="download" id="download" />
-              <Label htmlFor="download">Download File</Label>
+              <Label htmlFor="download">Downloadable File</Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="online" id="online" />

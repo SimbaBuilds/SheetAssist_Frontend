@@ -9,6 +9,8 @@ import { useUserAccount } from '@/hooks/useUserAccount'
 import { useState } from 'react'
 import type { UserProfile, UserUsage     } from '@/types/supabase_tables'
 import type { User } from '@supabase/supabase-js'
+import { PLAN_REQUEST_LIMITS } from '@/types/supabase_tables'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 
 interface UserAccountPageProps {
   profile: UserProfile
@@ -25,6 +27,8 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
     updateUserName,
     handleGooglePermissions,
     handleMicrosoftPermissions,
+    isDeletingAccount,
+    deleteAccount,
   } = useUserAccount({ 
     initialProfile: profile,
     initialUsage: usage,
@@ -128,15 +132,15 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <h3 className="font-medium">Requests This Week</h3>
-                <p className="text-2xl font-bold">
-                  {usage?.requests_this_week ?? 0}
-                </p>
-              </div>
-              <div>
-                <h3 className="font-medium">Requests This Month</h3>
+                <h3 className="font-medium">Monthly Requests</h3>
                 <p className="text-2xl font-bold">
                   {usage?.requests_this_month ?? 0}
+                  <span className="text-muted-foreground text-lg">
+                    /{PLAN_REQUEST_LIMITS[currentProfile.plan]}
+                  </span>
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Requests available this month
                 </p>
               </div>
             </div>
@@ -158,6 +162,51 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
               <Button variant="outline">
                 Upgrade Plan
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Delete Account */}
+        <Card className="border-destructive">
+          <CardHeader>
+            <CardTitle className="text-destructive">Danger Zone</CardTitle>
+            <CardDescription>Permanent account deletion</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium">Delete Account</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Permanently delete your account and all associated data
+                  </p>
+                </div>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" disabled={isDeletingAccount}>
+                      {isDeletingAccount ? "Deleting..." : "Delete Account"}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete your
+                        account and remove all of your data from our servers.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive hover:bg-destructive/90"
+                        onClick={deleteAccount}
+                      >
+                        Delete Account
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </div>
           </CardContent>
         </Card>

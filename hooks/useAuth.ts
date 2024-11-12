@@ -7,23 +7,38 @@ export function useAuth() {
   const router = useRouter()
   const supabase = createClient()
   const [user, setUser] = useState<User | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     // Get initial user
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user)
-    })
+    const initAuth = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        setUser(user)
+      } catch (error) {
+        console.error('Auth initialization error:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    initAuth()
 
     // Listen for auth state changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
+      if (!session?.user) {
+        // Only redirect if we're not already on an auth page
+        if (!window.location.pathname.startsWith('/auth/')) {
+          router.push('/auth/login')
+        }
+      }
     })
 
     return () => subscription.unsubscribe()
-  }, [])
-
+  }, []) // Remove router from dependencies
 
   const logout = async () => {
     try {
@@ -77,6 +92,7 @@ export function useAuth() {
 
   return {
     user,
+    isLoading,
     logout,
     signInWithGoogle,
     requestPasswordReset,

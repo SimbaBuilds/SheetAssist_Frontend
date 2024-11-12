@@ -1,5 +1,12 @@
 export type PlanType = 'free' | 'base' | 'pro'
 
+// Add plan limits constant
+export const PLAN_REQUEST_LIMITS = {
+  free: 10,
+  base: 200,
+  pro: 1000
+} as const
+
 // user_profile table
 export interface UserProfile {
   id: string // UUID
