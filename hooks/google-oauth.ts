@@ -3,7 +3,7 @@ import axios from 'axios';
 
 const GOOGLE_OAUTH_CONFIG = {
   client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
-  redirect_uri: `${process.env.NEXT_PUBLIC_SITE_URL}${CALLBACK_ROUTES.PERMISSIONS_CALLBACK}`,
+  redirect_uri: `${process.env.NEXT_PUBLIC_SITE_URL}${CALLBACK_ROUTES.GOOGLE_PERMISSIONS_CALLBACK}`,
   scopes: [
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/documents',

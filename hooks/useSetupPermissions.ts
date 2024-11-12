@@ -80,21 +80,40 @@ export function useSetupPermissions() {
 
   const setupPermissions = async ({ provider, onError }: PermissionSetupOptions) => {
     try {
-      const params = new URLSearchParams({
+      const baseParams = {
         client_id: provider === 'google' 
           ? process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!
           : process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID!,
-        redirect_uri: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/permissions-callback`,
         response_type: 'code',
         scope: DOCUMENT_SCOPES[provider],
+        state: provider,
+      }
+
+      // Microsoft-specific params
+      const microsoftParams = {
+        ...baseParams,
+        response_mode: 'query',
+        redirect_uri: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/microsoft-permissions-callback`,
+        // Microsoft requires specific tenant info - 'common' allows both personal and work accounts
+        tenant: 'common'
+      }
+
+      // Google-specific params 
+      const googleParams = {
+        ...baseParams,
         access_type: 'offline',
-        prompt: 'consent',
-        state: provider
-      })
+        redirect_uri: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/google-permissions-callback`,
+
+        prompt: 'consent'
+      }
+
+      const params = new URLSearchParams(
+        provider === 'google' ? googleParams : microsoftParams
+      )
 
       const authUrl = provider === 'google'
         ? `https://accounts.google.com/o/oauth2/v2/auth?${params}`
-        : `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params}`
+        : `https://login.live.com/oauth20_authorize.srf?${params}`
 
       window.location.href = authUrl
     } catch (error) {
@@ -103,6 +122,9 @@ export function useSetupPermissions() {
     }
   }
 
+
+
+  
   const handleSkip = async () => {
     try {
       if (error) throw error

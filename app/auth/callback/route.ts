@@ -1,3 +1,5 @@
+// Only used for sign in with Google via Supabase Auth (not sign up with Google)
+
 import { createClient } from '@/utils/supabase/server'
 import { NextResponse, type NextRequest } from 'next/server'
 

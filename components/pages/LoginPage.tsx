@@ -44,6 +44,8 @@ export default function LoginPage() {
     }
   }
 
+
+  
   const handleGoogleLogin = async () => {
     try {
       await signInWithGoogle()

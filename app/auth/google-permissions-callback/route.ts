@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
   try {
     const code = requestUrl.searchParams.get('code')
     const provider = requestUrl.searchParams.get('state')
-    const redirectUri = `${requestUrl.origin}/auth/permissions-callback`
+    const redirectUri = `${requestUrl.origin}/auth/google-permissions-callback`
 
     if (!code || !provider) {
       return NextResponse.redirect(

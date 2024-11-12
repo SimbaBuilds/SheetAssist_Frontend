@@ -24,18 +24,6 @@ export function useAuth() {
     return () => subscription.unsubscribe()
   }, [])
 
-  const login = async (email: string, password: string) => {
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-      if (error) throw error
-      router.push('/dashboard')
-    } catch (error) {
-      throw error
-    }
-  }
 
   const logout = async () => {
     try {
@@ -89,7 +77,6 @@ export function useAuth() {
 
   return {
     user,
-    login,
     logout,
     signInWithGoogle,
     requestPasswordReset,

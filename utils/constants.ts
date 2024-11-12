@@ -2,7 +2,8 @@ export const CALLBACK_ROUTES = {
     GOOGLE_CALLBACK: '/auth/google/callback',
     MICROSOFT_CALLBACK: '/auth/microsoft/callback',
     SUPABASE_CALLBACK: '/auth/callback',
-    PERMISSIONS_CALLBACK: '/auth/permissions-callback'
+    GOOGLE_PERMISSIONS_CALLBACK: '/auth/google-permissions-callback',
+    MICROSOFT_PERMISSIONS_CALLBACK: '/auth/microsoft-permissions-callback'
   } as const
   
   export const API_ROUTES = {
