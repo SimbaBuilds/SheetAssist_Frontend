@@ -33,15 +33,16 @@ export default function Header() {
         </Link>
         <div className="flex items-center space-x-4">
           {/* <Link href="/about" className="text-foreground hover:text-primary">About</Link> */}
-          <Link href="/demos" className="text-foreground hover:text-primary">Demos</Link>
           {/* <Link href="/faq" className="text-foreground hover:text-primary">FAQ</Link> */}
           {user ? (
             <>
               <Link href="/dashboard" className="text-foreground hover:text-primary">Dashboard</Link>
+              <Link href="/user-account" className="text-foreground hover:text-primary">Account Settings</Link>
               <Button onClick={handleLogout}>Logout</Button>
             </>
           ) : (
             <>
+              <Link href="/demos" className="text-foreground hover:text-primary">Demos</Link>
               <Link href="/auth/login">
                 <Button variant="outline">Login</Button>
               </Link>
