@@ -39,8 +39,8 @@ export async function GET(request: Request) {
       await supabase.from('user_profile').insert([
         {
           id: user.id,
-          first_name: user.user_metadata.first_name,
-          last_name: user.user_metadata.last_name,
+          first_name: '',
+          last_name: '',
           google_permissions_set: false,
           microsoft_permissions_set: false,
           permissions_setup_completed: false,

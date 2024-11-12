@@ -6,6 +6,7 @@ import Footer from "@/components/pages/Footer";
 import { RouteLoadingIndicator } from '@/components/pages/signup/RouteLoadingIndicator'
 import { Suspense } from 'react';
 import { ErrorBoundary } from '@/components/pages/ErrorBoundary';
+import { Toaster } from "@/components/ui/use-toast"
 
 const inter = Inter({
   subsets: ['latin'],
@@ -41,6 +42,7 @@ export default function RootLayout({
               <Footer />
           </Suspense>
         </ErrorBoundary>
+        <Toaster />
       </body>
     </html>
   );
