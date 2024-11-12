@@ -10,8 +10,9 @@ export const DOCUMENT_SCOPES = {
       'https://www.googleapis.com/auth/drive',
     ].join(' '),
     microsoft: [
-      'Files.ReadWrite.All',
-      'Sites.ReadWrite.All'
+      'Files.ReadWrite',
+      'Sites.Selected',
+      'offline_access'
     ].join(' ')
   } as const
 
@@ -94,8 +95,9 @@ export function useSetupPermissions() {
         ...baseParams,
         response_mode: 'query',
         redirect_uri: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/microsoft-permissions-callback`,
-        // Microsoft requires specific tenant info - 'common' allows both personal and work accounts
-        tenant: 'common'
+        tenant: 'common',
+        prompt: 'consent',
+        access_type: 'offline'
       }
 
       // Google-specific params 
@@ -113,7 +115,8 @@ export function useSetupPermissions() {
 
       const authUrl = provider === 'google'
         ? `https://accounts.google.com/o/oauth2/v2/auth?${params}`
-        : `https://login.live.com/oauth20_authorize.srf?${params}`
+        // : `https://login.live.com/oauth20_authorize.srf?${params}`
+        : `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params}`
 
       window.location.href = authUrl
     } catch (error) {

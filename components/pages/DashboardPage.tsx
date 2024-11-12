@@ -258,7 +258,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
         {/* Query Input */}
         <div>
           <div className="flex justify-between items-center">
-            <Label htmlFor="query">What would you like to do?</Label>
+            <Label htmlFor="query">What can I do for you?</Label>
             <Dialog>
               <DialogTrigger asChild>
                 <Button variant="link" size="sm">
