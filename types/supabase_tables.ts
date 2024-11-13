@@ -49,3 +49,17 @@ export interface QueryHistory {
   status: string
   tokens_used: number | null
 }
+
+
+// user_documents_access table
+export interface UserDocumentsAccess {
+  user_id: string // UUID
+  provider: string
+  access_token: string
+  refresh_token: string
+  expires_at: string // ISO timestamp
+  token_type: string
+  scope: string
+  created_at: string // ISO timestamp
+  updated_at: string // ISO timestamp
+}
