@@ -94,30 +94,30 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
               <div>
                 <h3 className="font-medium">Google Integration</h3>
                 <p className="text-sm text-muted-foreground">
-                  {profile.google_permissions_set ? 'Connected' : 'Not connected'}
+                  {profile?.google_permissions_set ?? false ? 'Connected' : 'Not connected'}
                 </p>
               </div>
               <Button
-                variant={profile.google_permissions_set ? "outline" : "default"}
+                variant={profile?.google_permissions_set ?? false ? "outline" : "default"}
                 onClick={handleGooglePermissions}
-                disabled={profile.google_permissions_set}
+                disabled={profile?.google_permissions_set ?? false}
               >
-                {profile.google_permissions_set ? 'Connected' : 'Connect'}
+                {profile?.google_permissions_set ?? false ? 'Connected' : 'Connect'}
               </Button>
             </div>
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-medium">Microsoft Integration</h3>
                 <p className="text-sm text-muted-foreground">
-                  {profile.microsoft_permissions_set ? 'Connected' : 'Not connected'}
+                  {profile?.microsoft_permissions_set ?? false ? 'Connected' : 'Not connected'}
                 </p>
               </div>
               <Button
-                variant={profile.microsoft_permissions_set ? "outline" : "default"}
+                variant={profile?.microsoft_permissions_set ?? false ? "outline" : "default"}
                 onClick={handleMicrosoftPermissions}
-                disabled={profile.microsoft_permissions_set}
+                disabled={profile?.microsoft_permissions_set ?? false}
               >
-                {profile.microsoft_permissions_set ? 'Connected' : 'Connect'}
+                {profile?.microsoft_permissions_set ?? false ? 'Connected' : 'Connect'}
               </Button>
             </div>
           </CardContent>
@@ -136,7 +136,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
                 <p className="text-2xl font-bold">
                   {usage?.requests_this_month ?? 0}
                   <span className="text-muted-foreground text-lg">
-                    /{PLAN_REQUEST_LIMITS[currentProfile.plan]}
+                    /{PLAN_REQUEST_LIMITS[currentProfile?.plan ?? 'free']}
                   </span>
                 </p>
                 <p className="text-sm text-muted-foreground">
@@ -157,7 +157,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-medium">Current Plan</h3>
-                <p className="text-2xl font-bold capitalize">{profile.plan || 'Free'}</p>
+                <p className="text-2xl font-bold capitalize">{profile?.plan ?? 'Free'}</p>
               </div>
               <Button variant="outline">
                 Upgrade Plan

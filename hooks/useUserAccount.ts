@@ -131,86 +131,19 @@ export function useUserAccount({
     try {
       setIsDeletingAccount(true)
       
-      // Check existence in all tables
-      const checks = await Promise.all([
-        // Check user_profile
-        supabase
-          .from('user_profile')
-          .select('id')
-          .eq('id', user.id)
-          .single(),
-        
-        // Check user_usage
-        supabase
-          .from('user_usage')
-          .select('id')
-          .eq('id', user.id)
-          .single(),
-          
-        // Check error_messages
-        supabase
-          .from('error_messages')
-          .select('id')
-          .eq('user_id', user.id),
-          
-        // Check query_history
-        supabase
-          .from('query_history')
-          .select('id')
-          .eq('user_id', user.id),
-
-        // Check user_documents_access
-        supabase
-          .from('user_documents_access')
-          .select('user_id')
-          .eq('user_id', user.id)
-      ])
-
-      // Delete data where it exists
-      const deletions = await Promise.all([
-        // Delete user_profile if exists
-        (checks[0]?.data ?? null) && supabase
-          .from('user_profile')
-          .delete()
-          .eq('id', user.id),
-          
-        // Delete user_usage if exists
-        (checks[1]?.data ?? null) && supabase
-          .from('user_usage')
-          .delete()
-          .eq('id', user.id),
-          
-        // Delete error_messages if exists
-        (checks[2]?.data?.length ?? 0) > 0 && supabase
-          .from('error_messages')
-          .delete()
-          .eq('user_id', user.id),
-          
-        // Delete query_history if exists
-        (checks[3]?.data?.length ?? 0) > 0 && supabase
-          .from('query_history')
-          .delete()
-          .eq('user_id', user.id),
-
-        // Delete user_documents_access if exists
-        (checks[4]?.data?.length ?? 0) > 0 && supabase
-          .from('user_documents_access')
-          .delete()
-          .eq('user_id', user.id)
-      ])
-
-      // Check for errors in deletions
-      deletions.forEach((result, index) => {
-        if (result && result.error) {
-          throw new Error(`Failed to delete from table ${index}: ${result.error.message}`)
-        }
+      const response = await fetch('/api/user/delete', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       })
 
-      // Finally delete the user authentication record
-      const { error: authError } = await supabase.auth.admin.deleteUser(user.id)
-      if (authError) throw authError
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || 'Failed to delete account')
+      }
 
-      // Sign out the user
+      // Sign out the user client-side
       await supabase.auth.signOut()
       
       toast({
@@ -220,9 +153,15 @@ export function useUserAccount({
       
       router.push('/auth/login')
     } catch (error) {
+      console.error('Account deletion failed:', error)
+      
+      const errorMessage = error instanceof Error 
+        ? error.message
+        : "Failed to delete your account. Please try again."
+      
       toast({
         title: "Error",
-        description: "Failed to delete your account. Please try again.",
+        description: errorMessage,
         className: "destructive",
       })
     } finally {
