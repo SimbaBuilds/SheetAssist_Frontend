@@ -15,8 +15,8 @@ const MAX_QUERY_LENGTH = 500
 
 const EXAMPLE_QUERIES = [
   "Add this receipt to the sheet provided",
-  "Populate the grades sheet with phone numbers from the household contacts sheet",
-  "Convert this pdf to a sheet with headers 'teacher' 'course load'",
+  "Populate the student sheet with phone numbers from the household contacts sheet",
+  "Convert this pdf to a sheet with headers product, units sold, and revenue.",
   "Combine these pdfs into one large pdf and sort the pages alphabetically by last name",
   "Extract all unpaid invoices from the finance sheet",
   "Match client ID from the contract sheet to populate missing addresses in the billing sheet",
