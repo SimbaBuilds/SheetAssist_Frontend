@@ -13,7 +13,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 const MAX_QUERY_LENGTH = 500
 
 const EXAMPLE_QUERIES = [
-  "Add this receipt to the sheet provided",
+  "Add this receipt to the sheet",
   "Populate the student sheet with phone numbers from the household contacts sheet",
   "Convert this pdf to a sheet with headers product, units sold, and revenue.",
   "Combine these pdfs into one large pdf and sort the pages alphabetically by last name",
@@ -58,6 +58,8 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
     downloadFileType,
     setDownloadFileType,
     fileErrors,
+    outputTypeError,
+    setOutputTypeError,
   } = useDashboard(initialData)
 
   const {
@@ -340,10 +342,32 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
 
         {/* Output Type Selection */}
         <div className="space-y-4">
-          <Label>Output Preference</Label>
+          <div className="flex justify-between items-center">
+            <Label>Output Preference</Label>
+            {outputTypeError && (
+              <span className="text-sm text-red-500 flex items-center gap-1">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  className="w-4 h-4"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                {outputTypeError}
+              </span>
+            )}
+          </div>
           <RadioGroup 
             value={outputType ?? undefined}
-            onValueChange={(value) => setOutputType(value as 'download' | 'online')}
+            onValueChange={(value) => {
+              setOutputType(value as 'download' | 'online')
+              setOutputTypeError(null)
+            }}
             className="space-y-2"
           >
             <div className="flex items-center space-x-2">
@@ -361,7 +385,10 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
               <Label className="mb-2">Select File Type</Label>
               <RadioGroup 
                 value={downloadFileType} 
-                onValueChange={(value: DownloadFileType) => setDownloadFileType(value)}
+                onValueChange={(value: DownloadFileType) => {
+                  setDownloadFileType(value)
+                  setOutputTypeError(null)
+                }}
                 className="space-y-2"
               >
                 {DOWNLOAD_FILE_TYPES.map((type) => (
@@ -375,14 +402,19 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
           )}
 
           {outputType === 'online' && (
-            <Input
-              type="url"
-              value={outputUrl}
-              onChange={(e) => setOutputUrl(e.target.value)}
-              placeholder="Enter destination URL"
-              className="mt-2"
-              required
-            />
+            <div className="space-y-2">
+              <Input
+                type="url"
+                value={outputUrl}
+                onChange={(e) => {
+                  setOutputUrl(e.target.value)
+                  setOutputTypeError(null)
+                }}
+                placeholder="Enter destination URL"
+                className={`mt-2 ${outputTypeError && !outputUrl ? 'border-red-500' : ''}`}
+                required
+              />
+            </div>
           )}
         </div>
 

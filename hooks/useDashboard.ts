@@ -35,6 +35,7 @@ export function useDashboard(initialData?: UserPreferences) {
   const [recentUrls, setRecentUrls] = useState<string[]>([])
   const [downloadFileType, setDownloadFileType] = useState<DownloadFileType>('xlsx')
   const [fileErrors, setFileErrors] = useState<FileError[]>([])
+  const [outputTypeError, setOutputTypeError] = useState<string | null>(null)
 
   const supabase = createClient()
 
@@ -185,8 +186,26 @@ export function useDashboard(initialData?: UserPreferences) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsProcessing(true)
     setError('')
+    setOutputTypeError(null)
+
+    // Validate output preferences
+    if (!outputType) {
+      setOutputTypeError('Please select an output preference')
+      return
+    }
+
+    if (outputType === 'download' && !downloadFileType) {
+      setOutputTypeError('Please select a file type')
+      return
+    }
+
+    if (outputType === 'online' && !outputUrl.trim()) {
+      setOutputTypeError('Please enter a destination URL')
+      return
+    }
+
+    setIsProcessing(true)
 
     try {
       // Update user usage stats
@@ -396,6 +415,8 @@ export function useDashboard(initialData?: UserPreferences) {
     setDownloadFileType,
     fileErrors,
     validateFile,
+    outputTypeError,
+    setOutputTypeError,
   }
 } 
 
