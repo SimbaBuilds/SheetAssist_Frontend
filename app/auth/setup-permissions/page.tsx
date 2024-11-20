@@ -1,4 +1,4 @@
-import { SetupPermissionsPage } from '@/components/pages/signup/SetupPermissionsPage'
+import { SetupPermissionsPage } from '@/components/public/signup/SetupPermissionsPage'
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 

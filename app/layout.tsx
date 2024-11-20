@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import "./globals.css";
-import Header from "@/components/pages/Header";
-import Footer from "@/components/pages/Footer";
-import { RouteLoadingIndicator } from '@/components/pages/signup/RouteLoadingIndicator'
+import Header from "@/components/public/Header";
+import Footer from "@/components/public/Footer";
+import { RouteLoadingIndicator } from '@/components/public/signup/RouteLoadingIndicator'
 import { Suspense } from 'react';
-import { ErrorBoundary } from '@/components/pages/ErrorBoundary';
+import { ErrorBoundary } from '@/components/public/ErrorBoundary';
 import { Toaster } from "@/components/ui/use-toast"
 
 const inter = Inter({

@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import SignUpPage from '@/components/pages/signup/SignUpPage'
+import SignUpPage from '@/components/public/signup/SignUpPage'
 
 export const metadata: Metadata = {
   title: 'Sign Up - AI File',

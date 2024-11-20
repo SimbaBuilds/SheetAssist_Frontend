@@ -8,6 +8,7 @@ import { useSetupPermissions } from '@/hooks/useSetupPermissions';
 import { PlusIcon, ArrowTopRightOnSquareIcon as ExternalLinkIcon } from '@heroicons/react/24/outline'
 import type { DownloadFileType } from '@/types/dashboard'
 import { DOWNLOAD_FILE_TYPES, ACCEPTED_FILE_EXTENSIONS } from '@/constants/file-types'
+import { ProcessingResultDialog } from '@/components/authorized/ProcessingResultDialog'
 const MAX_FILES = 10
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 const MAX_QUERY_LENGTH = 500
@@ -60,6 +61,9 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
     fileErrors,
     outputTypeError,
     setOutputTypeError,
+    processedResult,
+    showResultDialog,
+    setShowResultDialog,
   } = useDashboard(initialData)
 
   const {
@@ -426,6 +430,13 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
           {isProcessing ? 'Processing...' : 'Process Files'}
         </Button>
       </form>
+
+      <ProcessingResultDialog
+        result={processedResult}
+        isOpen={showResultDialog}
+        onClose={() => setShowResultDialog(false)}
+        outputType={outputType}
+      />
     </div>
   )
 }

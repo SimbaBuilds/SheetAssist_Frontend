@@ -4,6 +4,7 @@ import { processQuery } from '@/services/python_backend'
 import axios from 'axios'
 import { createClient } from '@/utils/supabase/client'
 import type { DownloadFileType, DashboardInitialData, OutputPreferences } from '@/types/dashboard'
+import type { ProcessedQueryResult } from '@/services/python_backend'
 import { ACCEPTED_FILE_TYPES } from '@/constants/file-types'
 
 
@@ -36,6 +37,8 @@ export function useDashboard(initialData?: UserPreferences) {
   const [downloadFileType, setDownloadFileType] = useState<DownloadFileType>('xlsx')
   const [fileErrors, setFileErrors] = useState<FileError[]>([])
   const [outputTypeError, setOutputTypeError] = useState<string | null>(null)
+  const [processedResult, setProcessedResult] = useState<ProcessedQueryResult | null>(null)
+  const [showResultDialog, setShowResultDialog] = useState(false)
 
   const supabase = createClient()
 
@@ -242,6 +245,10 @@ export function useDashboard(initialData?: UserPreferences) {
         outputPreferences
       )
 
+      // Store the result and show dialog
+      setProcessedResult(result)
+      setShowResultDialog(true)
+
       if (result.result.error) {
         setError(result.result.error)
         // Log error
@@ -417,6 +424,9 @@ export function useDashboard(initialData?: UserPreferences) {
     validateFile,
     outputTypeError,
     setOutputTypeError,
+    processedResult,
+    showResultDialog,
+    setShowResultDialog,
   }
 } 
 

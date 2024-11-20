@@ -1,4 +1,4 @@
-import { UserAccountPage } from '@/components/pages/UserAccountPage'
+import { UserAccountPage } from '@/components/authorized/UserAccountPage'
 import { createClient } from '@/utils/supabase/server'
 import type { UserProfile, UserUsage } from '@/types/supabase_tables'
 import type { User } from '@supabase/supabase-js'
