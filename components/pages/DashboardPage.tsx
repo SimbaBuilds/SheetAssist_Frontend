@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -7,8 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useDashboard } from '@/hooks/useDashboard';
 import { useSetupPermissions } from '@/hooks/useSetupPermissions';
 import { PlusIcon, ArrowTopRightOnSquareIcon as ExternalLinkIcon } from '@heroicons/react/24/outline'
-
-const ACCEPTED_FILE_TYPES = '.xlsx,.csv,.json,.docx,.txt,.pdf,.jpeg,.png'
+import type { DownloadFileType } from '@/types/dashboard'
+import { DOWNLOAD_FILE_TYPES, ACCEPTED_FILE_EXTENSIONS } from '@/constants/file-types'
 const MAX_FILES = 10
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 const MAX_QUERY_LENGTH = 500
@@ -33,6 +32,8 @@ type DashboardPageProps = {
   initialData?: any // Type this according to your data structure
 }
 
+type OutputType = 'download' | 'online' | null
+
 export function DashboardPage({ initialData }: DashboardPageProps) {
   const {
     showPermissionsPrompt,
@@ -54,6 +55,9 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
     handleUrlChange,
     handleSubmit,
     recentUrls,
+    downloadFileType,
+    setDownloadFileType,
+    fileErrors,
   } = useDashboard(initialData)
 
   const {
@@ -130,34 +134,67 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* File Input */}
         <div>
-          <Label htmlFor="files">Upload Files (Max {MAX_FILES} files, {MAX_FILE_SIZE / 1024 / 1024}MB each)</Label>
-          <Input
-            id="files"
-            type="file"
-            multiple
-            accept={ACCEPTED_FILE_TYPES}
-            onChange={handleFileChange}
-            className="mt-1"
-          />
-          {files.length > 0 && (
-            <div className="mt-2">
-              <p className="text-sm font-medium">Selected files:</p>
-              <ul className="text-sm text-gray-600">
-                {files.map((file, index) => (
-                  <li key={index} className="flex items-center gap-2">
-                    {file.name}
-                    <button
-                      type="button"
-                      onClick={() => setFiles(files.filter((_, i) => i !== index))}
-                      className="text-red-500 hover:text-red-700"
+          <Label htmlFor="files">
+            Upload Files (Max {MAX_FILES} files, Max {MAX_FILE_SIZE / 1024 / 1024}MB each)
+          </Label>
+          <div className="mt-1 space-y-2">
+            <Input
+              id="files"
+              type="file"
+              multiple
+              accept={ACCEPTED_FILE_EXTENSIONS}
+              onChange={handleFileChange}
+              className={`${fileErrors.length > 0 ? 'border-red-500' : ''}`}
+            />
+            
+            {fileErrors.length > 0 && (
+              <div className="text-sm text-red-500 space-y-1">
+                {fileErrors.map((error, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <svg
+                      className="h-4 w-4 flex-shrink-0"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
                     >
-                      ×
-                    </button>
-                  </li>
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <span>{error.error}</span>
+                  </div>
                 ))}
-              </ul>
+              </div>
+            )}
+
+            <div className="text-sm text-gray-500">
+              Accepted file types: .txt, .docx, .json, .pdf, .csv, .xlsx, .png, .jpeg, .jpg
             </div>
-          )}
+
+            {files.length > 0 && (
+              <div className="mt-2">
+                <p className="text-sm font-medium">Selected files:</p>
+                <ul className="text-sm text-gray-600">
+                  {files.map((file, index) => (
+                    <li key={index} className="flex items-center gap-2">
+                      <span className="truncate">{file.name}</span>
+                      <span className="text-gray-400">
+                        ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setFiles(files.filter((_, i) => i !== index))}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        ×
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Recent URLs */}
@@ -302,9 +339,13 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
         </div>
 
         {/* Output Type Selection */}
-        <div>
+        <div className="space-y-4">
           <Label>Output Preference</Label>
-          <RadioGroup value={outputType} onValueChange={(value: 'download' | 'online') => setOutputType(value)}>
+          <RadioGroup 
+            value={outputType ?? undefined}
+            onValueChange={(value) => setOutputType(value as 'download' | 'online')}
+            className="space-y-2"
+          >
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="download" id="download" />
               <Label htmlFor="download">Downloadable File</Label>
@@ -314,6 +355,24 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
               <Label htmlFor="online">Add to Online Spreadsheet or Document</Label>
             </div>
           </RadioGroup>
+
+          {outputType === 'download' && (
+            <div className="pl-6">
+              <Label className="mb-2">Select File Type</Label>
+              <RadioGroup 
+                value={downloadFileType} 
+                onValueChange={(value: DownloadFileType) => setDownloadFileType(value)}
+                className="space-y-2"
+              >
+                {DOWNLOAD_FILE_TYPES.map((type) => (
+                  <div key={type.value} className="flex items-center space-x-2">
+                    <RadioGroupItem value={type.value} id={`file-type-${type.value}`} />
+                    <Label htmlFor={`file-type-${type.value}`}>{type.label}</Label>
+                  </div>
+                ))}
+              </RadioGroup>
+            </div>
+          )}
 
           {outputType === 'online' && (
             <Input

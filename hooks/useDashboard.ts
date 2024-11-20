@@ -3,16 +3,18 @@ import { useAuth } from '@/hooks/useAuth'
 import { processQuery } from '@/services/python_backend'
 import axios from 'axios'
 import { createClient } from '@/utils/supabase/client'
+import type { DownloadFileType, DashboardInitialData, OutputPreferences } from '@/types/dashboard'
+import { ACCEPTED_FILE_TYPES } from '@/constants/file-types'
 
 
 const MAX_FILES = 10
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
-type UserPreferences = {
-  output_type?: 'download' | 'online'
-  last_query?: string
-  recent_urls?: string[]
-  // Add other preference fields as needed
+type UserPreferences = DashboardInitialData
+
+interface FileError {
+  file: File;
+  error: string;
 }
 
 export function useDashboard(initialData?: UserPreferences) {
@@ -21,7 +23,7 @@ export function useDashboard(initialData?: UserPreferences) {
   const [files, setFiles] = useState<File[]>([])
   const [urls, setUrls] = useState<string[]>([''])
   const [query, setQuery] = useState('')
-  const [outputType, setOutputType] = useState<'download' | 'online'>('download')
+  const [outputType, setOutputType] = useState<'download' | 'online' | null>(null)
   const [outputUrl, setOutputUrl] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState('')
@@ -31,6 +33,8 @@ export function useDashboard(initialData?: UserPreferences) {
   })
   const [urlPermissionError, setUrlPermissionError] = useState<string | null>(null)
   const [recentUrls, setRecentUrls] = useState<string[]>([])
+  const [downloadFileType, setDownloadFileType] = useState<DownloadFileType>('xlsx')
+  const [fileErrors, setFileErrors] = useState<FileError[]>([])
 
   const supabase = createClient()
 
@@ -79,23 +83,53 @@ export function useDashboard(initialData?: UserPreferences) {
     }
   }, [user])
 
+  const validateFile = (file: File): string | null => {
+    // Check file size
+    if (file.size > MAX_FILE_SIZE) {
+      return `File ${file.name} exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit`
+    }
 
+    // Check file type
+    const fileExtension = `.${file.name.split('.').pop()?.toLowerCase()}`
+    const fileMimeType = file.type.toLowerCase()
+
+    const isValidType = [...ACCEPTED_FILE_TYPES.documents, ...ACCEPTED_FILE_TYPES.images].some(
+      type => type.extension === fileExtension || type.mimeType === fileMimeType
+    )
+
+    if (!isValidType) {
+      return `File type ${fileExtension} is not supported`
+    }
+
+    return null
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || [])
+    const newErrors: FileError[] = []
+    const validFiles: File[] = []
+
+    // Check total files limit
     if (selectedFiles.length + files.length > MAX_FILES) {
       setError(`Maximum ${MAX_FILES} files allowed`)
       return
     }
 
-    const invalidFiles = selectedFiles.filter(file => file.size > MAX_FILE_SIZE)
-    if (invalidFiles.length > 0) {
-      setError(`Some files exceed the ${MAX_FILE_SIZE / 1024 / 1024}MB limit`)
-      return
-    }
+    // Validate each file
+    selectedFiles.forEach(file => {
+      const error = validateFile(file)
+      if (error) {
+        newErrors.push({ file, error })
+      } else {
+        validFiles.push(file)
+      }
+    })
 
-    setFiles(prev => [...prev, ...selectedFiles])
-    setError('')
+    setFileErrors(newErrors)
+    if (validFiles.length > 0) {
+      setFiles(prev => [...prev, ...validFiles])
+      setError('')
+    }
   }
 
   const handleUrlChange = async (index: number, value: string) => {
@@ -103,6 +137,11 @@ export function useDashboard(initialData?: UserPreferences) {
     newUrls[index] = value
     setUrls(newUrls)
     setUrlPermissionError(null)
+
+    if (index === 0 && value && !outputUrl) {
+      setOutputType('online')
+      setOutputUrl(value)
+    }
 
     if (value) {
       const isGoogleUrl = value.includes('google.com') || value.includes('docs.google.com') || value.includes('sheets.google.com')
@@ -170,13 +209,13 @@ export function useDashboard(initialData?: UserPreferences) {
 
       const validUrls = urls.filter(url => url)
       
-      // Create output preferences object
-      const outputPreferences = {
-        type: outputType,
-        destination_url: outputType === 'online' ? outputUrl : undefined
+      // Create output preferences object with file type
+      const outputPreferences: OutputPreferences = {
+        type: outputType ?? 'download',
+        ...(outputType === 'online' && { destination_url: outputUrl }),
+        ...(outputType === 'download' && { file_type: downloadFileType })
       }
 
-      // Remove the output type from the query string since it's now in the preferences
       const result = await processQuery(
         query,
         validUrls,
@@ -325,6 +364,14 @@ export function useDashboard(initialData?: UserPreferences) {
     }
   }, [recentUrls])
 
+  const handleOutputTypeChange = (value: 'download' | 'online' | null) => {
+    setOutputType(value)
+    // Clear output URL when switching to download
+    if (value === 'download') {
+      setOutputUrl('')
+    }
+  }
+
   return {
     showPermissionsPrompt,
     setShowPermissionsPrompt,
@@ -334,7 +381,7 @@ export function useDashboard(initialData?: UserPreferences) {
     query,
     setQuery,
     outputType,
-    setOutputType,
+    setOutputType: handleOutputTypeChange,
     outputUrl,
     setOutputUrl,
     isProcessing,
@@ -345,6 +392,10 @@ export function useDashboard(initialData?: UserPreferences) {
     handleUrlChange,
     handleSubmit,
     recentUrls,
+    downloadFileType,
+    setDownloadFileType,
+    fileErrors,
+    validateFile,
   }
 } 
 
