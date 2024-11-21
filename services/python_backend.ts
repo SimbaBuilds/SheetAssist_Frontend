@@ -1,38 +1,9 @@
 import { AxiosResponse } from 'axios';
 import api from './api';
-import { OutputPreferences } from '@/types/dashboard';
+import { OutputPreferences, FileMetadata, QueryRequest, ProcessedQueryResult, FileInfo } from '@/types/dashboard';
+import { AcceptedMimeType } from '@/constants/file-types';
 
-// Types matching the Python models
-export interface QueryRequest {
-  web_urls?: string[];
-  files?: File[];
-  query: string;
-  output_preferences?: OutputPreferences;
-}
 
-export interface SandboxResult {
-  original_query: string;
-  print_output: string;
-  code: string;
-  error: string;
-  return_value: any;
-  timed_out: boolean;
-  return_value_snapshot?: string;
-}
-
-export interface ProcessedQueryResult {
-  result: SandboxResult;
-  message: string;
-  files?: FileInfo[];
-}
-
-// Add new types for download functionality
-export interface FileInfo {
-  file_path: string;
-  media_type: string;
-  filename: string;
-  download_url?: string;
-}
 
 // Function to process the query
 export const processQuery = async (
@@ -43,20 +14,30 @@ export const processQuery = async (
 ): Promise<ProcessedQueryResult> => {
   const formData = new FormData();
   
-  // Add the JSON data with properly typed output_preferences
+  // Create files metadata array with index
+  const filesMetadata: FileMetadata[] = files.map((file, index) => ({
+    name: file.name,
+    type: file.type as AcceptedMimeType,
+    extension: `.${file.name.split('.').pop()?.toLowerCase() || ''}`,
+    size: file.size,
+    index
+  }));
+
+  // Part 1: JSON payload with metadata
   const jsonData: QueryRequest = {
     query,
     web_urls: webUrls,
+    files_metadata: filesMetadata,
     output_preferences: outputPreferences
   };
-  
   formData.append('json', new Blob([JSON.stringify(jsonData)], {
     type: 'application/json'
   }));
 
-  // Add files if any
-  files.forEach(file => {
-    formData.append('files', file);
+  // Part 2: Actual files
+  files.forEach((file, index) => {
+    // file_${index} corresponds to filesMetadata[index]
+    formData.append(`file_${index}`, file);
   });
 
   try {

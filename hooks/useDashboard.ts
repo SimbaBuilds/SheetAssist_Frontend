@@ -3,8 +3,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { processQuery } from '@/services/python_backend'
 import axios from 'axios'
 import { createClient } from '@/utils/supabase/client'
-import type { DownloadFileType, DashboardInitialData, OutputPreferences } from '@/types/dashboard'
-import type { ProcessedQueryResult } from '@/services/python_backend'
+import type { DownloadFileType, DashboardInitialData, OutputPreferences, ProcessedQueryResult } from '@/types/dashboard'
 import { ACCEPTED_FILE_TYPES } from '@/constants/file-types'
 
 
@@ -97,12 +96,17 @@ export function useDashboard(initialData?: UserPreferences) {
     const fileExtension = `.${file.name.split('.').pop()?.toLowerCase()}`
     const fileMimeType = file.type.toLowerCase()
 
-    const isValidType = [...ACCEPTED_FILE_TYPES.documents, ...ACCEPTED_FILE_TYPES.images].some(
-      type => type.extension === fileExtension || type.mimeType === fileMimeType
-    )
+    // Find matching file type definition
+    const matchingType = [...ACCEPTED_FILE_TYPES.documents, ...ACCEPTED_FILE_TYPES.images]
+      .find(type => type.extension === fileExtension || type.mimeType === fileMimeType)
 
-    if (!isValidType) {
-      return `File type ${fileExtension} is not supported`
+    if (!matchingType) {
+      return `File type ${fileExtension} (${fileMimeType}) is not supported`
+    }
+
+    // Ensure we're using the correct MIME type from our definitions
+    if (file.type !== matchingType.mimeType) {
+      console.warn(`File ${file.name} has type ${file.type} but expected ${matchingType.mimeType}`)
     }
 
     return null

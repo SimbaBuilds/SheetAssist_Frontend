@@ -427,7 +427,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
         )}
 
         <Button type="submit" disabled={isProcessing} className="w-full">
-          {isProcessing ? 'Processing...' : 'Process Files'}
+          {isProcessing ? 'Processing...' : 'Submit'}
         </Button>
       </form>
 
