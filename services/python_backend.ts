@@ -9,19 +9,19 @@ import { AcceptedMimeType } from '@/constants/file-types';
 export const processQuery = async (
   query: string,
   webUrls: string[] = [],
-  files: File[] = [],
+  files?: File[],
   outputPreferences?: OutputPreferences
 ): Promise<ProcessedQueryResult> => {
   const formData = new FormData();
   
-  // Create files metadata array with index
-  const filesMetadata: FileMetadata[] = files.map((file, index) => ({
+  // Create files metadata array with index only if files exist
+  const filesMetadata: FileMetadata[] = files?.map((file, index) => ({
     name: file.name,
     type: file.type as AcceptedMimeType,
     extension: `.${file.name.split('.').pop()?.toLowerCase() || ''}`,
     size: file.size,
     index
-  }));
+  })) ?? [];
 
   // Part 1: JSON payload with metadata
   const jsonData: QueryRequest = {
@@ -30,15 +30,14 @@ export const processQuery = async (
     files_metadata: filesMetadata,
     output_preferences: outputPreferences
   };
-  formData.append('json', new Blob([JSON.stringify(jsonData)], {
-    type: 'application/json'
-  }));
+  formData.append('json_data', JSON.stringify(jsonData));
 
-  // Part 2: Actual files
-  files.forEach((file, index) => {
-    // file_${index} corresponds to filesMetadata[index]
-    formData.append(`file_${index}`, file);
-  });
+  // Part 2: Append files only if they exist
+  if (files?.length) {
+    files.forEach((file, index) => {
+      formData.append('files', file); // Changed to match FastAPI's expected format
+    });
+  }
 
   try {
     const response: AxiosResponse<ProcessedQueryResult> = await api.post(
