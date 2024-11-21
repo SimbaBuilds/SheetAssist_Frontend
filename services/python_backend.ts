@@ -57,7 +57,9 @@ export const processQuery = async (
   }
 };
 
-// Add download function
+
+
+// Download function
 export const downloadFile = async (fileInfo: FileInfo): Promise<void> => {
   try {
     const response = await api.get(`/download`, {
