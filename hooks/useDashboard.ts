@@ -33,7 +33,7 @@ export function useDashboard(initialData?: UserPreferences) {
   })
   const [urlPermissionError, setUrlPermissionError] = useState<string | null>(null)
   const [recentUrls, setRecentUrls] = useState<string[]>([])
-  const [downloadFileType, setDownloadFileType] = useState<DownloadFileType>('xlsx')
+  const [downloadFileType, setDownloadFileType] = useState<DownloadFileType>('csv')
   const [fileErrors, setFileErrors] = useState<FileError[]>([])
   const [outputTypeError, setOutputTypeError] = useState<string | null>(null)
   const [processedResult, setProcessedResult] = useState<ProcessedQueryResult | null>(null)
