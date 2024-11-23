@@ -14,18 +14,17 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 const MAX_QUERY_LENGTH = 500
 
 const EXAMPLE_QUERIES = [
-  "Add this receipt to the sheet",
+  "Add this to the sheet",
   "Populate the student sheet with phone numbers from the household contacts sheet",
   "Convert this pdf to a sheet with headers product, units sold, and revenue.",
   "Combine these pdfs into one large pdf and sort the pages alphabetically by last name",
   "Extract all unpaid invoices from the finance sheet",
+  "Combine these",
   "Match client ID from the contract sheet to populate missing addresses in the billing sheet",
   "Convert this directory of legal case PDFs into a single document and create a table of contents by case name",
-  "Pull employee contact info from the HR sheet and create a phone directory sorted by department",
   "Add new clients from this CSV to the existing CRM sheet, avoiding duplicates by matching email addresses",
   "Extract contact information for all vendors and group by service type from the procurement sheet",
   "Create a performance summary by combining employee evaluation scores from each department sheet",
-  "Generate a summary of outstanding balances by client from the accounts receivable sheet and sort by due date",
   "Filter and count items sold per category in the product sales sheet, summarizing by month"
 ]
 
