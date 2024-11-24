@@ -37,12 +37,10 @@ export interface CompleteQueryRequest {
   }
 }
 
-export interface SandboxResult {
+export interface TruncatedSandboxResult {
   original_query: string;
   print_output: string;
-  code: string;
   error: string;
-  return_value: any;
   timed_out: boolean;
   return_value_snapshot?: string;
 }
@@ -56,7 +54,7 @@ export interface FileInfo {
 }
 
 export interface ProcessedQueryResult {
-  result: SandboxResult;
+  result: TruncatedSandboxResult;
   status: 'success' | 'error';
   message: string;
   files?: FileInfo[];
