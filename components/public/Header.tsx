@@ -37,7 +37,7 @@ export default function Header() {
           {user ? (
             <>
               <Link href="/dashboard" className="text-foreground hover:text-primary">Dashboard</Link>
-              <Link href="/user-account" className="text-foreground hover:text-primary">Account Settings</Link>
+              <Link href="/user-account" className="text-foreground hover:text-primary">Account</Link>
               <Button onClick={handleLogout}>Logout</Button>
             </>
           ) : (

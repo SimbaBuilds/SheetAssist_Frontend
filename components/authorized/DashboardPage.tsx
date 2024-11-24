@@ -252,7 +252,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
 
         {/* URL Inputs */}
         <div>
-          <Label>URLs (Google Sheets, Excel Online, Google Docs, etc. -- max 10 URLs)</Label>
+          <Label>URLs (Google Sheet, Excel Online, Google Doc, or Microsoft Word Online -- max 10 URLs)</Label>
           {urls.map((url, index) => (
             <Input
               key={index}
@@ -379,7 +379,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="online" id="online" />
-              <Label htmlFor="online">Add to Online Spreadsheet or Document</Label>
+              <Label htmlFor="online">Online Spreadsheet or Document</Label>
             </div>
           </RadioGroup>
 

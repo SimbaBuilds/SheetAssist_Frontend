@@ -52,11 +52,19 @@ export interface FileInfo {
   file_path: string;
   media_type: string;
   filename: string;
-  download_url?: string;
+  download_url: string;
 }
 
 export interface ProcessedQueryResult {
   result: SandboxResult;
+  status: 'success' | 'error';
   message: string;
   files?: FileInfo[];
+}
+
+// Add FastAPI file response type
+export interface FileResponse {
+  url: string;
+  filename: string;
+  content_type: string;
 }

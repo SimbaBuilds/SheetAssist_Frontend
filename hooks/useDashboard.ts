@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import { processQuery } from '@/services/python_backend'
-import axios from 'axios'
+import { processQuery, downloadFile } from '@/services/python_backend'
 import { createClient } from '@/utils/supabase/client'
 import type { DownloadFileType, DashboardInitialData, OutputPreferences, ProcessedQueryResult } from '@/types/dashboard'
 import { ACCEPTED_FILE_TYPES } from '@/constants/file-types'
@@ -235,13 +234,14 @@ export function useDashboard(initialData?: UserPreferences) {
 
       const validUrls = urls.filter(url => url)
       
-      // Create output preferences object with file type
+      // Create output preferences object
       const outputPreferences: OutputPreferences = {
         type: outputType ?? 'download',
         ...(outputType === 'online' && { destination_url: outputUrl }),
         ...(outputType === 'download' && { file_type: downloadFileType })
       }
 
+      // First, process the query
       const result = await processQuery(
         query,
         validUrls,
@@ -267,105 +267,37 @@ export function useDashboard(initialData?: UserPreferences) {
         return
       }
 
-      if (outputType === 'download') {
-        if (typeof result.result.return_value === 'string' && result.result.return_value.startsWith('http')) {
-          window.location.href = result.result.return_value
-        } else {
-          const blob = new Blob([result.result.return_value], { type: 'application/octet-stream' });
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = 'processed_result.xlsx';
-          document.body.appendChild(a);
-          a.click();
-          window.URL.revokeObjectURL(url);
-          document.body.removeChild(a);
-        }
-      } else if (outputType === 'online') {
-        const isGoogleUrl = outputUrl.includes('google.com') || outputUrl.includes('docs.google.com') || outputUrl.includes('sheets.google.com')
-        const isMicrosoftUrl = outputUrl.includes('office.com') || outputUrl.includes('live.com') || outputUrl.includes('sharepoint.com')
-        
+      // If download type, make separate call to download endpoint
+      if (outputType === 'download' && result.files?.[0]) {
         try {
-            if (isGoogleUrl) {
-                if (outputUrl.includes('docs.google.com')) {
-                    // Handle Google Docs text append
-                    await axios.post('/api/google/docs/append', {
-                        documentId: extractGoogleDocId(outputUrl),
-                        content: result.result.return_value
-                    });
-                } else if (outputUrl.includes('sheets.google.com')) {
-                    // Handle Google Sheets DataFrame append
-                    await axios.post('/api/google/sheets/append', {
-                        spreadsheetId: extractGoogleSheetId(outputUrl),
-                        data: result.result.return_value
-                    });
-                }
-            } else if (isMicrosoftUrl) {
-                if (outputUrl.includes('word')) {
-                    // Handle Microsoft Word text append
-                    await axios.post('/api/microsoft/word/append', {
-                        documentId: extractMicrosoftDocId(outputUrl),
-                        content: result.result.return_value
-                    });
-                } else if (outputUrl.includes('excel')) {
-                    // Handle Microsoft Excel DataFrame append
-                    await axios.post('/api/microsoft/excel/append', {
-                        workbookId: extractMicrosoftWorkbookId(outputUrl),
-                        data: result.result.return_value
-                    });
-                }
-            } else {
-                throw new Error('Unsupported document URL');
-            }
-            
-            alert('Document updated successfully!');
-        } catch (error) {
-            console.error('Error updating document:', error);
-            setError('Failed to update the document. Please check the URL and try again.');
-            
-            // Log error to Supabase
-            await supabase
-                .from('error_messages')
-                .insert({
-                    user_id: user?.id,
-                    message: error instanceof Error ? error.message : 'Document update failed',
-                    error_code: 'DOCUMENT_UPDATE_ERROR',
-                    resolved: false
-                });
+          await downloadFile(result.files[0]); // Pass the FileInfo object
+        } catch (downloadError) {
+          console.error('Error downloading file:', downloadError);
+          setError('Failed to download the result file');
+          
+          // Log download error
+          await supabase
+            .from('error_messages')
+            .insert({
+              user_id: user?.id,
+              message: downloadError instanceof Error ? downloadError.message : 'Download failed',
+              error_code: 'DOWNLOAD_ERROR',
+              resolved: false
+            });
         }
       }
 
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        if (error.response?.status === 413) {
-          setError('Files are too large. Please reduce file sizes and try again.')
-        } else if (error.response?.status === 401) {
-          setError('Authentication error. Please log in again.')
-        } else if (error.response?.data?.message) {
-          setError(error.response.data.message)
-        } else {
-          setError('An error occurred while processing your request')
-        }
-      } else {
-        setError('An unexpected error occurred')
-      }
-      console.error(error)
-      // Log error
+      console.error('Error processing query:', error)
+      setError('An error occurred while processing your request')
+      
+      // Log error to Supabase
       if (error instanceof Error) {
         await supabase
           .from('error_messages')
           .insert({
             user_id: user?.id,
             message: error.message,
-            error_code: 'UNKNOWN_ERROR',
-            resolved: false
-          })
-      } else {
-        await supabase
-          .from('error_messages')
-          .insert({
-            user_id: user?.id,
-            message: 'An unknown error occurred',
             error_code: 'UNKNOWN_ERROR',
             resolved: false
           })
@@ -433,26 +365,3 @@ export function useDashboard(initialData?: UserPreferences) {
     setShowResultDialog,
   }
 } 
-
-// Helper functions to extract document IDs
-function extractGoogleDocId(url: string): string {
-    const match = url.match(/\/d\/([-\w]+)/);
-    return match ? match[1] : '';
-}
-
-function extractGoogleSheetId(url: string): string {
-    const match = url.match(/\/d\/([-\w]+)/);
-    return match ? match[1] : '';
-}
-
-function extractMicrosoftDocId(url: string): string {
-    // Extract document ID from Microsoft URL format
-    const match = url.match(/[\w\-]+\?.*$/);
-    return match ? match[0].split('?')[0] : '';
-}
-
-function extractMicrosoftWorkbookId(url: string): string {
-    // Extract workbook ID from Microsoft URL format
-    const match = url.match(/[\w\-]+\?.*$/);
-    return match ? match[0].split('?')[0] : '';
-}
