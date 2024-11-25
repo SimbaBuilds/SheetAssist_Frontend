@@ -12,7 +12,7 @@ export interface DashboardInitialData {
 export interface OutputPreferences {
   type: 'download' | 'online'
   destination_url?: string
-  file_type?: DownloadFileType
+  format?: DownloadFileType
 }
 
 export interface FileMetadata {

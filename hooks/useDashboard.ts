@@ -238,7 +238,7 @@ export function useDashboard(initialData?: UserPreferences) {
       const outputPreferences: OutputPreferences = {
         type: outputType ?? 'download',
         ...(outputType === 'online' && { destination_url: outputUrl }),
-        ...(outputType === 'download' && { file_type: downloadFileType })
+        ...(outputType === 'download' && { format: downloadFileType })
       }
 
       // First, process the query
