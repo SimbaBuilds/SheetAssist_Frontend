@@ -267,13 +267,13 @@ export function useDashboard(initialData?: UserPreferences) {
         return
       }
 
-      // If download type, make separate call to download endpoint
-      if (outputType === 'download' && result.files?.[0]) {
+      // If download type and successful, trigger download
+      if (outputType === 'download' && result.status === 'success' && result.files?.[0]) {
         try {
-          await downloadFile(result.files[0]); // Pass the FileInfo object
+          await downloadFile(result.files[0])
         } catch (downloadError) {
-          console.error('Error downloading file:', downloadError);
-          setError('Failed to download the result file');
+          console.error('Error downloading file:', downloadError)
+          setError('Failed to download the result file')
           
           // Log download error
           await supabase
@@ -283,7 +283,7 @@ export function useDashboard(initialData?: UserPreferences) {
               message: downloadError instanceof Error ? downloadError.message : 'Download failed',
               error_code: 'DOWNLOAD_ERROR',
               resolved: false
-            });
+            })
         }
       }
 

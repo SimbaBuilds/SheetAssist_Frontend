@@ -19,15 +19,6 @@ export function ProcessingResultDialog({
 }: ProcessingResultDialogProps) {
   if (!result) return null
 
-  const handleDownload = async (fileInfo: FileInfo) => {
-    try {
-      await downloadFile(fileInfo)
-    } catch (error) {
-      console.error('Error downloading file:', error)
-      // Optionally add error handling UI feedback
-    }
-  }
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
@@ -53,16 +44,10 @@ export function ProcessingResultDialog({
                 </pre>
               )}
 
-              {/* Show download button if files are available */}
+              {/* For download type, just show a success message instead of download button */}
               {outputType === 'download' && result.files?.[0] && (
-                <div className="flex justify-center">
-                  <Button
-                    onClick={() => handleDownload(result.files![0])}
-                    className="flex items-center gap-2"
-                  >
-                    <ArrowDownTrayIcon className="h-4 w-4" />
-                    Download Result
-                  </Button>
+                <div className="text-center text-sm text-gray-600">
+                  Your file should download automatically
                 </div>
               )}
             </>
