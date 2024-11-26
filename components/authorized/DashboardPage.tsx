@@ -21,7 +21,7 @@ const EXAMPLE_QUERIES = [
   "Extract all unpaid invoices from the finance sheet",
   "Combine these",
   "Match client ID from the contract sheet to populate missing addresses in the billing sheet",
-  "Convert this directory of legal case PDFs into a single document and create a table of contents by case name",
+  "Convert this directory of legal case PDFs into a single document with descriptive headers",
   "Add new clients from this CSV to the existing CRM sheet, avoiding duplicates by matching email addresses",
   "Extract contact information for all vendors and group by service type from the procurement sheet",
   "Create a performance summary by combining employee evaluation scores from each department sheet",
