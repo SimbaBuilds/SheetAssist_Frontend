@@ -417,9 +417,9 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
               <Label htmlFor="online">
                 {allowSheetModification ? (
                   <div className="flex items-center gap-2">
-                    <span>Modify Existing Sheet</span>
+                    <span>Online Document or Sheet Workbook</span>
                     <Badge variant="secondary" className="text-xs">
-                      Direct Modification
+                      Direct Modification Enabled
                     </Badge>
                   </div>
                 ) : (
@@ -450,14 +450,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
             </div>
           )}
 
-          {outputType === 'online' && allowSheetModification && (
-            <Alert variant="destructive" className="mt-2">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Changes will be made directly to the existing sheet. Make sure you have a backup.
-              </AlertDescription>
-            </Alert>
-          )}
+          {outputType === 'online' && allowSheetModification}
 
           {outputType === 'online' && (
             <div className="space-y-2">
@@ -496,7 +489,10 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
         <AlertDialog 
           open={showModificationWarning} 
           onOpenChange={(open) => {
-            console.log('Dialog open state changed:', open)
+            console.log('[DashboardPage] Modification warning dialog state changed:', {
+              previousState: showModificationWarning,
+              newState: open
+            })
             setShowModificationWarning(open)
           }}
         >
@@ -505,8 +501,8 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
               <AlertDialogTitle>Warning: Direct Sheet Modification</AlertDialogTitle>
               <AlertDialogDescription className="space-y-4">
                 <p>
-                  You have sheet modification enabled. Changes will be made directly to the existing sheet
-                  rather than creating a new one. Make sure you have a backup of your data before proceeding.
+                  You have sheet modification enabled.  This application will modify existing sheets instead of creating new ones. <br />
+                  For text documents, text will be appended to the existing document regardless of this setting.
                 </p>
                 <div className="flex items-center space-x-2">
                   <Checkbox

@@ -57,7 +57,6 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
         <Card>
           <CardHeader>
             <CardTitle>Profile Information</CardTitle>
-            <CardDescription>Update your personal information</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -91,7 +90,6 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
         <Card>
           <CardHeader>
             <CardTitle>Connected Services</CardTitle>
-            <CardDescription>Manage your service connections</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
@@ -131,7 +129,6 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
         <Card>
           <CardHeader>
             <CardTitle>Usage Statistics</CardTitle>
-            <CardDescription>Your current usage metrics</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -155,7 +152,6 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
         <Card>
           <CardHeader>
             <CardTitle>Subscription Plan</CardTitle>
-            <CardDescription>Your current plan and usage limits</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
@@ -187,7 +183,13 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
                 </div>
                 <Switch
                   checked={userProfile.allow_sheet_modification}
-                  onCheckedChange={updateSheetModificationPreference}
+                  onCheckedChange={(checked) => {
+                    console.log('[UserAccountPage] Sheet modification toggle changed:', {
+                      previousValue: userProfile.allow_sheet_modification,
+                      newValue: checked
+                    })
+                    updateSheetModificationPreference(checked)
+                  }}
                   disabled={isUpdating}
                 />
               </div>
@@ -199,7 +201,6 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
         <Card className="border-destructive">
           <CardHeader>
             <CardTitle className="text-destructive">Danger Zone</CardTitle>
-            <CardDescription>Permanent account deletion</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">

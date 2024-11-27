@@ -38,15 +38,44 @@ export function useDashboard(initialData?: UserPreferences) {
   const [outputTypeError, setOutputTypeError] = useState<string | null>(null)
   const [processedResult, setProcessedResult] = useState<ProcessedQueryResult | null>(null)
   const [showResultDialog, setShowResultDialog] = useState(false)
-  const [allowSheetModification, setAllowSheetModification] = useState(
-    initialData?.allow_sheet_modification ?? false
-  )
+  const [allowSheetModification, setAllowSheetModification] = useState(false)
   const [showModificationWarning, setShowModificationWarning] = useState(false)
+  const [showSheetModificationWarningPreference, setShowSheetModificationWarningPreference] = useState(true)
 
   const supabase = createClient()
 
   useEffect(() => {
+    const fetchUserPreferences = async () => {
+      if (!user?.id) return
+
+      try {
+        const { data: profile, error } = await supabase
+          .from('user_profile')
+          .select('allow_sheet_modification, show_sheet_modification_warning')
+          .eq('id', user.id)
+          .single()
+
+        if (error) throw error
+
+        console.log('[useDashboard] Fetched user preferences:', profile)
+        
+        setAllowSheetModification(profile.allow_sheet_modification ?? false)
+        setShowSheetModificationWarningPreference(profile.show_sheet_modification_warning ?? true)
+      } catch (error) {
+        console.error('[useDashboard] Error fetching user preferences:', error)
+      }
+    }
+
+    fetchUserPreferences()
+  }, [user?.id])
+
+  useEffect(() => {
     if (initialData) {
+      console.log('[useDashboard] Initializing with data:', {
+        allowSheetModification: initialData.allow_sheet_modification,
+        showWarningPreference: initialData.show_sheet_modification_warning
+      })
+      
       // Set any saved preferences from the database
       if (initialData.output_type) {
         setOutputType(initialData.output_type)
@@ -57,12 +86,6 @@ export function useDashboard(initialData?: UserPreferences) {
       if (initialData.recent_urls) {
         setRecentUrls(initialData.recent_urls)
       }
-      // Set the warning state based on the user's preferences
-      if (initialData.show_sheet_modification_warning !== false && 
-          initialData.allow_sheet_modification) {
-        setShowModificationWarning(true)
-      }
-      // Add any other state initialization based on your needs
     }
   }, [initialData])
 
@@ -160,7 +183,11 @@ export function useDashboard(initialData?: UserPreferences) {
       setOutputUrl(value)
     }
 
-    if (value && allowSheetModification && !initialData?.show_sheet_modification_warning) {
+    if (value && allowSheetModification && showSheetModificationWarningPreference) {
+      console.log('[useDashboard] Setting modification warning based on preferences:', {
+        allowSheetModification,
+        showSheetModificationWarningPreference
+      })
       setShowModificationWarning(true)
     }
 
@@ -204,52 +231,8 @@ export function useDashboard(initialData?: UserPreferences) {
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setOutputTypeError(null)
-
-    // Debug logs
-    console.log('Submit conditions:', {
-      outputType,
-      allowSheetModification,
-      showWarningPreference: initialData?.show_sheet_modification_warning,
-      showModificationWarning
-    })
-
-    // Validate output preferences
-    if (!outputType) {
-      setOutputTypeError('Please select an output preference')
-      return
-    }
-
-    if (outputType === 'download' && !downloadFileType) {
-      setOutputTypeError('Please select a file type')
-      return
-    }
-
-    if (outputType === 'online' && !outputUrl.trim()) {
-      setOutputTypeError('Please enter a destination URL')
-      return
-    }
-
-    // Modified warning check
-    if (outputType === 'online' && allowSheetModification) {
-      console.log('Checking warning condition:', {
-        shouldShow: initialData?.show_sheet_modification_warning !== false
-      })
-      
-      if (initialData?.show_sheet_modification_warning !== false) {
-        console.log('Setting warning to show')
-        setShowModificationWarning(true)
-        return // Stop here and wait for user acknowledgment
-      }
-    }
-
-    // If we get here, either no warning needed or warning was acknowledged
-    console.log('Proceeding with submission')
+  const processSubmission = async () => {
     setIsProcessing(true)
-
     try {
       // Update user usage stats
       const { data: usageData, error: usageError } = await supabase
@@ -271,7 +254,6 @@ export function useDashboard(initialData?: UserPreferences) {
 
       const validUrls = urls.filter(url => url)
       
-      // Create output preferences object
       const outputPreferences: OutputPreferences = {
         type: outputType ?? 'download',
         ...(outputType === 'online' && { 
@@ -281,7 +263,7 @@ export function useDashboard(initialData?: UserPreferences) {
         ...(outputType === 'download' && { format: downloadFileType })
       }
 
-      // First, process the query
+      // Process the query
       const result = await processQuery(
         query,
         validUrls,
@@ -289,25 +271,23 @@ export function useDashboard(initialData?: UserPreferences) {
         outputPreferences
       )
 
-      // Store the result and show dialog
       setProcessedResult(result)
       setShowResultDialog(true)
 
       if (result.result.error) {
         setError(result.result.error)
-        // Log error
         await supabase
           .from('error_messages')
           .insert({
             user_id: user?.id,
             message: result.result.error,
             error_code: 'QUERY_PROCESSING_ERROR',
-            resolved: false
+            resolved: false,
+            original_query: result.result.original_query
           })
         return
       }
 
-      // If download type and successful, trigger download
       if (outputType === 'download' && result.status === 'success' && result.files?.[0]) {
         try {
           await downloadFile(result.files[0])
@@ -315,23 +295,21 @@ export function useDashboard(initialData?: UserPreferences) {
           console.error('Error downloading file:', downloadError)
           setError('Failed to download the result file')
           
-          // Log download error
           await supabase
             .from('error_messages')
             .insert({
               user_id: user?.id,
               message: downloadError instanceof Error ? downloadError.message : 'Download failed',
               error_code: 'DOWNLOAD_ERROR',
-              resolved: false
+              resolved: false,
+              original_query: result.result.original_query
             })
         }
       }
-
     } catch (error) {
       console.error('Error processing query:', error)
       setError('An error occurred while processing your request')
       
-      // Log error to Supabase
       if (error instanceof Error) {
         await supabase
           .from('error_messages')
@@ -339,12 +317,40 @@ export function useDashboard(initialData?: UserPreferences) {
             user_id: user?.id,
             message: error.message,
             error_code: 'UNKNOWN_ERROR',
-            resolved: false
+            resolved: false,
           })
       }
     } finally {
       setIsProcessing(false)
     }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setOutputTypeError(null)
+
+    if (!outputType) {
+      setOutputTypeError('Please select an output preference')
+      return
+    }
+
+    if (outputType === 'download' && !downloadFileType) {
+      setOutputTypeError('Please select a file type')
+      return
+    }
+
+    if (outputType === 'online' && !outputUrl.trim()) {
+      setOutputTypeError('Please enter a destination URL')
+      return
+    }
+
+    if (outputType === 'online' && allowSheetModification && showSheetModificationWarningPreference) {
+      setShowModificationWarning(true)
+      return
+    }
+
+    await processSubmission()
   }
 
   const saveRecentUrls = async (urls: string[]) => {
@@ -383,24 +389,14 @@ export function useDashboard(initialData?: UserPreferences) {
         .update({ show_sheet_modification_warning: false })
         .eq('id', user?.id)
 
-      if (error) {
-        console.error('Error updating warning preference:', error)
+      if (!error) {
+        setShowSheetModificationWarningPreference(false)
       }
     }
   }
 
   const continueSubmitAfterWarning = async () => {
-    setShowModificationWarning(false)
-    setIsProcessing(true)
-
-    try {
-      // Copy the processing logic from handleSubmit here
-      // ... processing logic ...
-    } catch (error) {
-      // ... error handling ...
-    } finally {
-      setIsProcessing(false)
-    }
+    await processSubmission()
   }
 
   return {

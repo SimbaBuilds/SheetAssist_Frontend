@@ -38,6 +38,7 @@ export interface ErrorMessage {
   created_at: string // ISO timestamp
   error_code: string | null
   resolved: boolean
+  original_query: string | null
 }
 
 // query_history table

@@ -172,6 +172,11 @@ export function useUserAccount({
 
   const updateSheetModificationPreference = async (allow: boolean) => {
     try {
+      console.log('[useUserAccount] Updating sheet modification preference:', {
+        currentValue: userProfile.allow_sheet_modification,
+        newValue: allow
+      })
+      
       setIsUpdating(true)
       const { error } = await supabase
         .from('user_profile')
@@ -183,6 +188,8 @@ export function useUserAccount({
 
       if (error) throw error
 
+      console.log('[useUserAccount] Successfully updated sheet modification preference')
+      
       setUserProfile(prev => ({ 
         ...prev, 
         allow_sheet_modification: allow,
@@ -191,9 +198,10 @@ export function useUserAccount({
       
       toast({
         title: "Success",
-        description: `Sheet modification preference ${allow ? 'enabled' : 'disabled'}.`,
+        description: `Direct sheet modification ${allow ? 'enabled' : 'disabled'}.`,
       })
     } catch (error) {
+      console.error('[useUserAccount] Failed to update sheet modification preference:', error)
       toast({
         title: "Error",
         description: "Failed to update sheet modification preference.",
