@@ -4,10 +4,11 @@ export type DownloadFileType = typeof DOWNLOAD_FILE_TYPES[number]['value']
 
 
 export interface DashboardInitialData {
-  output_type?: 'download' | 'online'
-  last_query?: string
-  recent_urls?: string[]
-  allow_sheet_modification?: boolean
+  output_type?: 'download' | 'online' | null;
+  last_query?: string;
+  recent_urls?: string[];
+  allow_sheet_modification?: boolean;
+  show_sheet_modification_warning?: boolean;
 }
 
 export interface OutputPreferences {

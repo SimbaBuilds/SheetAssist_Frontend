@@ -41,6 +41,7 @@ export function useDashboard(initialData?: UserPreferences) {
   const [allowSheetModification, setAllowSheetModification] = useState(
     initialData?.allow_sheet_modification ?? false
   )
+  const [showModificationWarning, setShowModificationWarning] = useState(false)
 
   const supabase = createClient()
 
@@ -152,6 +153,10 @@ export function useDashboard(initialData?: UserPreferences) {
     if (index === 0 && value && !outputUrl) {
       setOutputType('online')
       setOutputUrl(value)
+    }
+
+    if (value && allowSheetModification && !initialData?.show_sheet_modification_warning) {
+      setShowModificationWarning(true)
     }
 
     if (value) {
@@ -341,6 +346,21 @@ export function useDashboard(initialData?: UserPreferences) {
     }
   }
 
+  const handleWarningAcknowledgment = async (dontShowAgain: boolean) => {
+    setShowModificationWarning(false)
+    
+    if (dontShowAgain) {
+      const { error } = await supabase
+        .from('user_profile')
+        .update({ show_sheet_modification_warning: true })
+        .eq('id', user?.id)
+
+      if (error) {
+        console.error('Error updating warning preference:', error)
+      }
+    }
+  }
+
   return {
     showPermissionsPrompt,
     setShowPermissionsPrompt,
@@ -372,5 +392,8 @@ export function useDashboard(initialData?: UserPreferences) {
     setShowResultDialog,
     allowSheetModification,
     setAllowSheetModification,
+    showModificationWarning,
+    setShowModificationWarning,
+    handleWarningAcknowledgment,
   }
 } 

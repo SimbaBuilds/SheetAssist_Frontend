@@ -179,9 +179,10 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-medium">Allow Direct Sheet Modification</h3>
+                  <h3 className="font-medium">Direct Sheet Modification</h3>
                   <p className="text-sm text-muted-foreground">
-                    When enabled, allows modification of existing sheets instead of creating new ones
+                    When enabled, this application will modify existing sheets instead of creating new ones. <br />
+                    For text documents, text will be appended to the existing document regardless of this setting.
                   </p>
                 </div>
                 <Switch
@@ -190,16 +191,6 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
                   disabled={isUpdating}
                 />
               </div>
-              
-              {userProfile.allow_sheet_modification && (
-                <Alert className="bg-yellow-50 border-yellow-400 text-yellow-900">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Important</AlertTitle>
-                  <AlertDescription>
-                    It is recommended to keep backups/copies of your document when this option is enabled.
-                  </AlertDescription>
-                </Alert>
-              )}
             </div>
           </CardContent>
         </Card>

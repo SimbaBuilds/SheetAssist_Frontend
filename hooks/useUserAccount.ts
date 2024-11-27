@@ -177,7 +177,7 @@ export function useUserAccount({
         .from('user_profile')
         .update({ 
           allow_sheet_modification: allow,
-          sheet_modification_warning_shown: true
+          show_sheet_modification_warning: true
         })
         .eq('id', user.id)
 
@@ -186,7 +186,7 @@ export function useUserAccount({
       setUserProfile(prev => ({ 
         ...prev, 
         allow_sheet_modification: allow,
-        sheet_modification_warning_shown: true
+        show_sheet_modification_warning: true
       }))
       
       toast({

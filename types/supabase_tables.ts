@@ -17,7 +17,7 @@ export interface UserProfile {
   permissions_setup_completed: boolean
   plan: PlanType
   allow_sheet_modification: boolean
-  sheet_modification_warning_shown: boolean
+  show_sheet_modification_warning: boolean
 }
 
 // user_usage table

@@ -12,6 +12,18 @@ import { ProcessingResultDialog } from '@/components/authorized/ProcessingResult
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Checkbox } from "@/components/ui/checkbox"
+import { useState } from 'react'
 const MAX_FILES = 10
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 const MAX_QUERY_LENGTH = 500
@@ -68,12 +80,17 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
     setShowResultDialog,
     allowSheetModification,
     setAllowSheetModification,
+    showModificationWarning,
+    setShowModificationWarning,
+    handleWarningAcknowledgment,
   } = useDashboard(initialData)
 
   const {
     handleGoogleSetup,
     handleMicrosoftSetup,
   } = useSetupPermissions()
+
+  const [dontShowAgain, setDontShowAgain] = useState(false)
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -141,7 +158,18 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
 
       {/* <h1 className="text-2xl font-bold mb-8">AI File Processing</h1> */}
       
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={(e) => {
+        e.preventDefault();
+        const hasFiles = files.length > 0;
+        const hasUrls = urls.some(url => url && url.trim() !== '');
+        
+        if (!hasFiles && !hasUrls) {
+          setOutputTypeError('Please attach a file or enter a URL');
+          return;
+        }
+        
+        handleSubmit(e);
+      }} className="space-y-6">
         {/* File Input */}
         <div>
           <Label htmlFor="files">
@@ -393,7 +421,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
                     </Badge>
                   </div>
                 ) : (
-                  "Add as New Sheet"
+                  "Online Document or Sheet Workbook"
                 )}
               </Label>
             </div>
@@ -461,6 +489,43 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
         onClose={() => setShowResultDialog(false)}
         outputType={outputType}
       />
+
+      {showModificationWarning && (
+        <AlertDialog open={showModificationWarning} onOpenChange={setShowModificationWarning}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Warning: Direct Sheet Modification</AlertDialogTitle>
+              <AlertDialogDescription className="space-y-4">
+                <p>
+                  You have sheet modification enabled. Changes will be made directly to the existing sheet
+                  rather than creating a new one. Make sure you have a backup of your data before proceeding.
+                </p>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="dontShowAgain"
+                    checked={dontShowAgain}
+                    onCheckedChange={(checked: boolean | 'indeterminate') => setDontShowAgain(checked as boolean)}
+                  />
+                  <label
+                    htmlFor="dontShowAgain"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Don't show this warning again
+                  </label>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => handleWarningAcknowledgment(dontShowAgain)}
+              >
+                Continue
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   )
 }
