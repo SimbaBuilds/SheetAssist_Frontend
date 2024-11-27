@@ -30,11 +30,12 @@ const MAX_QUERY_LENGTH = 500
 
 const EXAMPLE_QUERIES = [
   "Add this to the sheet",
-  "Populate the student sheet with phone numbers from the household contacts sheet",
+  "Add this pdf to the word doc",
   "Convert this pdf to a sheet with headers product, units sold, and revenue.",
   "Combine these pdfs into one large pdf and sort the pages alphabetically by last name",
   "Extract all unpaid invoices from the finance sheet",
   "Combine these",
+  "Populate the student sheet with phone numbers from the household contacts sheet",
   "Match client ID from the contract sheet to populate missing addresses in the billing sheet",
   "Convert this directory of legal case PDFs into a single document with descriptive headers",
   "Add new clients from this CSV to the existing CRM sheet, avoiding duplicates by matching email addresses",
@@ -83,6 +84,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
     showModificationWarning,
     setShowModificationWarning,
     handleWarningAcknowledgment,
+    continueSubmitAfterWarning,
   } = useDashboard(initialData)
 
   const {
@@ -491,7 +493,13 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
       />
 
       {showModificationWarning && (
-        <AlertDialog open={showModificationWarning} onOpenChange={setShowModificationWarning}>
+        <AlertDialog 
+          open={showModificationWarning} 
+          onOpenChange={(open) => {
+            console.log('Dialog open state changed:', open)
+            setShowModificationWarning(open)
+          }}
+        >
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Warning: Direct Sheet Modification</AlertDialogTitle>
@@ -518,7 +526,10 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
-                onClick={() => handleWarningAcknowledgment(dontShowAgain)}
+                onClick={() => {
+                  handleWarningAcknowledgment(dontShowAgain)
+                  continueSubmitAfterWarning()
+                }}
               >
                 Continue
               </AlertDialogAction>

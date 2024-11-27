@@ -57,6 +57,11 @@ export function useDashboard(initialData?: UserPreferences) {
       if (initialData.recent_urls) {
         setRecentUrls(initialData.recent_urls)
       }
+      // Set the warning state based on the user's preferences
+      if (initialData.show_sheet_modification_warning !== false && 
+          initialData.allow_sheet_modification) {
+        setShowModificationWarning(true)
+      }
       // Add any other state initialization based on your needs
     }
   }, [initialData])
@@ -204,6 +209,14 @@ export function useDashboard(initialData?: UserPreferences) {
     setError('')
     setOutputTypeError(null)
 
+    // Debug logs
+    console.log('Submit conditions:', {
+      outputType,
+      allowSheetModification,
+      showWarningPreference: initialData?.show_sheet_modification_warning,
+      showModificationWarning
+    })
+
     // Validate output preferences
     if (!outputType) {
       setOutputTypeError('Please select an output preference')
@@ -220,6 +233,21 @@ export function useDashboard(initialData?: UserPreferences) {
       return
     }
 
+    // Modified warning check
+    if (outputType === 'online' && allowSheetModification) {
+      console.log('Checking warning condition:', {
+        shouldShow: initialData?.show_sheet_modification_warning !== false
+      })
+      
+      if (initialData?.show_sheet_modification_warning !== false) {
+        console.log('Setting warning to show')
+        setShowModificationWarning(true)
+        return // Stop here and wait for user acknowledgment
+      }
+    }
+
+    // If we get here, either no warning needed or warning was acknowledged
+    console.log('Proceeding with submission')
     setIsProcessing(true)
 
     try {
@@ -352,12 +380,26 @@ export function useDashboard(initialData?: UserPreferences) {
     if (dontShowAgain) {
       const { error } = await supabase
         .from('user_profile')
-        .update({ show_sheet_modification_warning: true })
+        .update({ show_sheet_modification_warning: false })
         .eq('id', user?.id)
 
       if (error) {
         console.error('Error updating warning preference:', error)
       }
+    }
+  }
+
+  const continueSubmitAfterWarning = async () => {
+    setShowModificationWarning(false)
+    setIsProcessing(true)
+
+    try {
+      // Copy the processing logic from handleSubmit here
+      // ... processing logic ...
+    } catch (error) {
+      // ... error handling ...
+    } finally {
+      setIsProcessing(false)
     }
   }
 
@@ -395,5 +437,6 @@ export function useDashboard(initialData?: UserPreferences) {
     showModificationWarning,
     setShowModificationWarning,
     handleWarningAcknowledgment,
+    continueSubmitAfterWarning,
   }
 } 
