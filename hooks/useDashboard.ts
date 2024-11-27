@@ -184,14 +184,6 @@ export function useDashboard(initialData?: UserPreferences) {
       setOutputUrl(value)
     }
 
-    if (value && allowSheetModification && showSheetModificationWarningPreference) {
-      console.log('[useDashboard] Setting modification warning based on preferences:', {
-        allowSheetModification,
-        showSheetModificationWarningPreference
-      })
-      setShowModificationWarning(true)
-    }
-
     if (value) {
       // Validate URL format for documents/spreadsheets
       const isValidDocumentUrl = ['document', 'spreadsheets', 'xlsx', 'docx'].some(
@@ -215,10 +207,6 @@ export function useDashboard(initialData?: UserPreferences) {
       }
     }
 
-    if (index === urls.length - 1 && value && urls.length < MAX_FILES) {
-      setUrls([...newUrls, ''])
-    }
-
     if (value && /^https?:\/\/.+/.test(value)) {
       const newRecentUrls = [value, ...recentUrls.filter(url => url !== value)].slice(0, 5)
       setRecentUrls(newRecentUrls)
@@ -240,6 +228,17 @@ export function useDashboard(initialData?: UserPreferences) {
           })
       }
     }
+  }
+
+  const addUrlField = () => {
+    if (urls.length < MAX_FILES) {
+      setUrls([...urls, ''])
+    }
+  }
+
+  const removeUrlField = (index: number) => {
+    const newUrls = urls.filter((_, i) => i !== index)
+    setUrls(newUrls.length ? newUrls : ['']) // Keep at least one URL field
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -478,6 +477,8 @@ export function useDashboard(initialData?: UserPreferences) {
     setShowModificationWarning,
     handleWarningAcknowledgment,
     continueSubmitAfterWarning,
-    urlValidationError
+    urlValidationError,
+    addUrlField,
+    removeUrlField,
   } as const
 } 

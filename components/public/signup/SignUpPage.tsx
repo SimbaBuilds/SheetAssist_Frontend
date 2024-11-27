@@ -12,8 +12,8 @@ import {
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
 import { useSignUp } from '@/hooks/useSignUp'
-import { ErrorBoundary } from '@/components/pages/ErrorBoundary'
-import { LoadingSpinner } from '@/components/pages/signup/LoadingSpinner'
+import { ErrorBoundary } from '@/components/public/ErrorBoundary'
+import { LoadingSpinner } from '@/components/public/signup/LoadingSpinner'
 
 export default function SignUpPage() {
   const {

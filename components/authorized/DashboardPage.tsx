@@ -86,6 +86,8 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
     handleWarningAcknowledgment,
     continueSubmitAfterWarning,
     urlValidationError,
+    addUrlField,
+    removeUrlField,
   } = useDashboard(initialData)
 
   const {
@@ -287,32 +289,55 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
         )}
 
         {/* URL Inputs */}
-        <div>
+        <div className="space-y-4">
           <Label>URLs (Google Sheet, Excel Online, Google Doc, or Microsoft Word Online -- max 10 URLs)</Label>
+          
           {urls.map((url, index) => (
-            <Input
-              key={index}
-              type="url"
-              value={url}
-              onChange={(e) => handleUrlChange(index, e.target.value)}
-              placeholder="Enter URL(s)"
-              className={`mt-1 ${(urlPermissionError || urlValidationError) && url ? 'border-red-500' : ''}`}
-            />
+            <div key={index} className="flex gap-2">
+              <Input
+                type="url"
+                value={url}
+                onChange={(e) => handleUrlChange(index, e.target.value)}
+                placeholder="Enter URL"
+                className={`flex-1 ${(urlPermissionError || urlValidationError) && url ? 'border-red-500' : ''}`}
+              />
+              {urls.length > 1 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeUrlField(index)}
+                  className="h-10 w-10"
+                >
+                  <span className="sr-only">Remove URL</span>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    className="w-5 h-5"
+                  >
+                    <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                  </svg>
+                </Button>
+              )}
+            </div>
           ))}
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={addUrlField}
+            disabled={urls.length >= MAX_FILES}
+            className="flex items-center gap-2"
+          >
+            <PlusIcon className="h-4 w-4" />
+            Add URL
+          </Button>
+
           {urlPermissionError && (
             <div className="mt-2 text-sm text-red-600 flex items-center gap-2">
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                className="h-4 w-4" 
-                viewBox="0 0 20 20" 
-                fill="currentColor"
-              >
-                <path 
-                  fillRule="evenodd" 
-                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" 
-                  clipRule="evenodd" 
-                />
-              </svg>
+              <AlertCircle className="h-4 w-4" />
               {urlPermissionError}
               <Button
                 type="button"
@@ -333,18 +358,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
           )}
           {urlValidationError && (
             <div className="mt-2 text-sm text-red-600 flex items-center gap-2">
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                className="h-4 w-4" 
-                viewBox="0 0 20 20" 
-                fill="currentColor"
-              >
-                <path 
-                  fillRule="evenodd" 
-                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" 
-                  clipRule="evenodd" 
-                />
-              </svg>
+              <AlertCircle className="h-4 w-4" />
               {urlValidationError}
             </div>
           )}
