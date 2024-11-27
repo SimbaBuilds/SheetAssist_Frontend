@@ -9,6 +9,9 @@ import { PlusIcon, ArrowTopRightOnSquareIcon as ExternalLinkIcon } from '@heroic
 import type { DownloadFileType } from '@/types/dashboard'
 import { DOWNLOAD_FILE_TYPES, ACCEPTED_FILE_EXTENSIONS } from '@/constants/file-types'
 import { ProcessingResultDialog } from '@/components/authorized/ProcessingResultDialog'
+import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { AlertCircle } from 'lucide-react'
 const MAX_FILES = 10
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 const MAX_QUERY_LENGTH = 500
@@ -63,6 +66,8 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
     processedResult,
     showResultDialog,
     setShowResultDialog,
+    allowSheetModification,
+    setAllowSheetModification,
   } = useDashboard(initialData)
 
   const {
@@ -379,7 +384,18 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="online" id="online" />
-              <Label htmlFor="online">Online Spreadsheet or Text Document</Label>
+              <Label htmlFor="online">
+                {allowSheetModification ? (
+                  <div className="flex items-center gap-2">
+                    <span>Modify Existing Sheet</span>
+                    <Badge variant="secondary" className="text-xs">
+                      Direct Modification
+                    </Badge>
+                  </div>
+                ) : (
+                  "Add as New Sheet"
+                )}
+              </Label>
             </div>
           </RadioGroup>
 
@@ -402,6 +418,15 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
                 ))}
               </RadioGroup>
             </div>
+          )}
+
+          {outputType === 'online' && allowSheetModification && (
+            <Alert variant="destructive" className="mt-2">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Changes will be made directly to the existing sheet. Make sure you have a backup.
+              </AlertDescription>
+            </Alert>
           )}
 
           {outputType === 'online' && (

@@ -16,6 +16,7 @@ interface FileError {
   error: string;
 }
 
+
 export function useDashboard(initialData?: UserPreferences) {
   const { user } = useAuth()
   const [showPermissionsPrompt, setShowPermissionsPrompt] = useState(false)
@@ -37,6 +38,9 @@ export function useDashboard(initialData?: UserPreferences) {
   const [outputTypeError, setOutputTypeError] = useState<string | null>(null)
   const [processedResult, setProcessedResult] = useState<ProcessedQueryResult | null>(null)
   const [showResultDialog, setShowResultDialog] = useState(false)
+  const [allowSheetModification, setAllowSheetModification] = useState(
+    initialData?.allow_sheet_modification ?? false
+  )
 
   const supabase = createClient()
 
@@ -237,7 +241,10 @@ export function useDashboard(initialData?: UserPreferences) {
       // Create output preferences object
       const outputPreferences: OutputPreferences = {
         type: outputType ?? 'download',
-        ...(outputType === 'online' && { destination_url: outputUrl }),
+        ...(outputType === 'online' && { 
+          destination_url: outputUrl,
+          modify_existing: allowSheetModification 
+        }),
         ...(outputType === 'download' && { format: downloadFileType })
       }
 
@@ -363,5 +370,7 @@ export function useDashboard(initialData?: UserPreferences) {
     processedResult,
     showResultDialog,
     setShowResultDialog,
+    allowSheetModification,
+    setAllowSheetModification,
   }
 } 

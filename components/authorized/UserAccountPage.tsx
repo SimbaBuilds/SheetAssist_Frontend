@@ -11,6 +11,9 @@ import type { UserProfile, UserUsage     } from '@/types/supabase_tables'
 import type { User } from '@supabase/supabase-js'
 import { PLAN_REQUEST_LIMITS } from '@/types/supabase_tables'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+import { Switch } from "@/components/ui/switch"
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
+import { AlertCircle } from 'lucide-react'
 
 interface UserAccountPageProps {
   profile: UserProfile
@@ -29,6 +32,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
     handleMicrosoftPermissions,
     isDeletingAccount,
     deleteAccount,
+    updateSheetModificationPreference,
   } = useUserAccount({ 
     initialProfile: profile,
     initialUsage: usage,
@@ -162,6 +166,40 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
               <Button variant="outline">
                 Upgrade Plan
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Sheet Modification Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Application Settings</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium">Allow Direct Sheet Modification</h3>
+                  <p className="text-sm text-muted-foreground">
+                    When enabled, allows modification of existing sheets instead of creating new ones
+                  </p>
+                </div>
+                <Switch
+                  checked={userProfile.allow_sheet_modification}
+                  onCheckedChange={updateSheetModificationPreference}
+                  disabled={isUpdating}
+                />
+              </div>
+              
+              {userProfile.allow_sheet_modification && (
+                <Alert className="bg-yellow-50 border-yellow-400 text-yellow-900">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Important</AlertTitle>
+                  <AlertDescription>
+                    It is recommended to keep backups/copies of your document when this option is enabled.
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
           </CardContent>
         </Card>

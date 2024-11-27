@@ -22,6 +22,7 @@ interface UseUserAccountReturn {
   handleMicrosoftPermissions: () => Promise<void>
   isDeletingAccount: boolean
   deleteAccount: () => Promise<void>
+  updateSheetModificationPreference: (allow: boolean) => Promise<void>
 }
 
 export function useUserAccount({ 
@@ -169,6 +170,40 @@ export function useUserAccount({
     }
   }
 
+  const updateSheetModificationPreference = async (allow: boolean) => {
+    try {
+      setIsUpdating(true)
+      const { error } = await supabase
+        .from('user_profile')
+        .update({ 
+          allow_sheet_modification: allow,
+          sheet_modification_warning_shown: true
+        })
+        .eq('id', user.id)
+
+      if (error) throw error
+
+      setUserProfile(prev => ({ 
+        ...prev, 
+        allow_sheet_modification: allow,
+        sheet_modification_warning_shown: true
+      }))
+      
+      toast({
+        title: "Success",
+        description: `Sheet modification preference ${allow ? 'enabled' : 'disabled'}.`,
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update sheet modification preference.",
+        className: "destructive"
+      })
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
   return {
     isLoading,
     userProfile,
@@ -179,5 +214,6 @@ export function useUserAccount({
     handleMicrosoftPermissions,
     isDeletingAccount,
     deleteAccount,
+    updateSheetModificationPreference,
   }
 }

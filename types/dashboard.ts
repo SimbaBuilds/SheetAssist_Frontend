@@ -7,12 +7,15 @@ export interface DashboardInitialData {
   output_type?: 'download' | 'online'
   last_query?: string
   recent_urls?: string[]
+  allow_sheet_modification?: boolean
 }
 
 export interface OutputPreferences {
   type: 'download' | 'online'
   destination_url?: string
   format?: DownloadFileType
+  modify_existing?: boolean
+
 }
 
 export interface FileMetadata {

@@ -16,6 +16,8 @@ export interface UserProfile {
   microsoft_permissions_set: boolean
   permissions_setup_completed: boolean
   plan: PlanType
+  allow_sheet_modification: boolean
+  sheet_modification_warning_shown: boolean
 }
 
 // user_usage table
