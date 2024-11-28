@@ -175,10 +175,13 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-medium">Direct Sheet Modification</h3>
+                  <h3 className="font-medium">Edit Existing Sheet</h3>
                   <p className="text-sm text-muted-foreground">
-                    When enabled, this application will modify existing sheets instead of creating new ones. <br />
-                    For text documents, text will be appended to the existing document regardless of this setting.
+    
+                    When enabled, if working with an online spreadsheet workbook, this application will <br />
+                    edit the existing sheet at the destination URL provided instead of adding a new sheet. <br />
+                    It is recommended to have a back up or copy of the original sheet before proceeding. <br />
+                    For text documents, text will be appended to the existing online document regardless of this setting.
                   </p>
                 </div>
                 <Switch

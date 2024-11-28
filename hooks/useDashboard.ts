@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import { processQuery, downloadFile } from '@/services/python_backend'
+import { processQuery, downloadFile, getDocumentTitles } from '@/services/python_backend'
 import { createClient } from '@/utils/supabase/client'
 import type { DownloadFileType, DashboardInitialData, OutputPreferences, ProcessedQueryResult } from '@/types/dashboard'
 import { ACCEPTED_FILE_TYPES } from '@/constants/file-types'
@@ -14,6 +14,10 @@ type UserPreferences = DashboardInitialData
 interface FileError {
   file: File;
   error: string;
+}
+
+interface DocumentTitleMap {
+  [url: string]: string;
 }
 
 export function useDashboard(initialData?: UserPreferences) {
@@ -41,6 +45,7 @@ export function useDashboard(initialData?: UserPreferences) {
   const [allowSheetModification, setAllowSheetModification] = useState(false)
   const [showModificationWarning, setShowModificationWarning] = useState(false)
   const [showSheetModificationWarningPreference, setShowSheetModificationWarningPreference] = useState(true)
+  const [documentTitles, setDocumentTitles] = useState<DocumentTitleMap>({})
 
   const supabase = createClient()
 
@@ -172,6 +177,19 @@ export function useDashboard(initialData?: UserPreferences) {
     }
   }
 
+  const fetchDocumentTitles = async (urlsToFetch: string[]) => {
+    try {
+      const titles = await getDocumentTitles(urlsToFetch);
+      const newTitleMap = titles.reduce((acc, { url, title }) => ({
+        ...acc,
+        [url]: title
+      }), {});
+      setDocumentTitles(prev => ({ ...prev, ...newTitleMap }));
+    } catch (error) {
+      console.error('Error fetching document titles:', error);
+    }
+  };
+
   const handleUrlChange = async (index: number, value: string) => {
     const newUrls = [...urls]
     newUrls[index] = value
@@ -193,6 +211,11 @@ export function useDashboard(initialData?: UserPreferences) {
       if (!isValidDocumentUrl) {
         setUrlValidationError('Please enter a valid Microsoft or Google text document or spreadsheet URL')
         return
+      }
+
+      // Fetch document title for the new URL
+      if (/^https?:\/\/.+/.test(value)) {
+        await fetchDocumentTitles([value]);
       }
 
       const isGoogleUrl = value.includes('google.com') || value.includes('docs.google.com') || value.includes('sheets.google.com')
@@ -443,6 +466,15 @@ export function useDashboard(initialData?: UserPreferences) {
     }
   }
 
+  useEffect(() => {
+    if (recentUrls.length > 0) {
+      const urlsWithoutTitles = recentUrls.filter(url => !documentTitles[url]);
+      if (urlsWithoutTitles.length > 0) {
+        fetchDocumentTitles(urlsWithoutTitles);
+      }
+    }
+  }, [recentUrls]);
+
   return {
     showPermissionsPrompt,
     setShowPermissionsPrompt,
@@ -480,5 +512,6 @@ export function useDashboard(initialData?: UserPreferences) {
     urlValidationError,
     addUrlField,
     removeUrlField,
+    documentTitles,
   } as const
 } 

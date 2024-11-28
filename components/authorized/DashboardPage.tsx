@@ -24,6 +24,9 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useState } from 'react'
+import { Switch } from "@/components/ui/switch"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { InfoIcon } from 'lucide-react'
 const MAX_FILES = 10
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 const MAX_QUERY_LENGTH = 500
@@ -88,6 +91,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
     urlValidationError,
     addUrlField,
     removeUrlField,
+    documentTitles,
   } = useDashboard(initialData)
 
   const {
@@ -243,16 +247,17 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
         {/* Recent URLs */}
         {recentUrls.length > 0 && (
           <div className="mb-4">
-            <Label>Recent URLs</Label>
+            <Label>Recent Documents</Label>
             <div className="mt-2 space-y-2">
               {recentUrls.map((url, index) => (
                 <div 
                   key={index}
                   className="flex items-center gap-2 p-2 bg-gray-50 rounded-md hover:bg-gray-100 group"
                 >
-                  <span className="text-sm text-gray-600 truncate flex-1">
-                    {url}
-                  </span>
+                  <div className="text-sm text-gray-600 truncate flex-1">
+                    <div className="font-medium">{documentTitles[url] || 'Loading...'}</div>
+                    <div className="text-xs text-gray-500 truncate">{url}</div>
+                  </div>
                   <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button
                       type="button"
@@ -288,38 +293,45 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
           </div>
         )}
 
-        {/* URL Inputs */}
+        {/* URL Input Fields */}
         <div className="space-y-4">
-          <Label>URLs (Google Sheet, Excel Online, Google Doc, or Microsoft Word Online -- max 10 URLs)</Label>
-          
           {urls.map((url, index) => (
-            <div key={index} className="flex gap-2">
-              <Input
-                type="url"
-                value={url}
-                onChange={(e) => handleUrlChange(index, e.target.value)}
-                placeholder="Enter URL"
-                className={`flex-1 ${(urlPermissionError || urlValidationError) && url ? 'border-red-500' : ''}`}
-              />
-              {urls.length > 1 && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeUrlField(index)}
-                  className="h-10 w-10"
-                >
-                  <span className="sr-only">Remove URL</span>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                    className="w-5 h-5"
+            <div key={index} className="space-y-2">
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Input
+                    type="url"
+                    value={url}
+                    onChange={(e) => handleUrlChange(index, e.target.value)}
+                    placeholder="Enter document or spreadsheet URL"
+                    className={`${(urlPermissionError || urlValidationError) && url ? 'border-red-500' : ''}`}
+                  />
+                  {url && documentTitles[url] && (
+                    <p className="mt-1 text-sm text-gray-600">
+                      Document: {documentTitles[url]}
+                    </p>
+                  )}
+                </div>
+                {urls.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeUrlField(index)}
+                    className="h-10 w-10"
                   >
-                    <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                  </svg>
-                </Button>
-              )}
+                    <span className="sr-only">Remove URL</span>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      className="w-5 h-5"
+                    >
+                      <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                    </svg>
+                  </Button>
+                )}
+              </div>
             </div>
           ))}
 
@@ -482,10 +494,8 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
             </div>
           )}
 
-          {outputType === 'online' && allowSheetModification}
-
           {outputType === 'online' && (
-            <div className="space-y-2">
+            <div className="space-y-4">
               <Input
                 type="url"
                 value={outputUrl}
@@ -494,9 +504,39 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
                   setOutputTypeError(null)
                 }}
                 placeholder="Enter destination URL"
-                className={`mt-2 ${outputTypeError && !outputUrl ? 'border-red-500' : ''}`}
+                className={`${outputTypeError && !outputUrl ? 'border-red-500' : ''}`}
                 required
               />
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-medium">Edit Existing Sheet</h3>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <InfoIcon className="h-4 w-4 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p>
+                          When enabled, if working with an online spreadsheet workbook, this application will edit the existing sheet at the destination URL provided instead of adding a new sheet.
+                          It is recommended to have a back up or copy of the original sheet before proceeding.
+                          For text documents, text will be appended to the existing online document regardless of this setting.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <Switch
+                  checked={allowSheetModification}
+                  onCheckedChange={(checked) => {
+                    console.log('[DashboardPage] Sheet modification toggle changed:', {
+                      previousValue: allowSheetModification,
+                      newValue: checked
+                    })
+                    setAllowSheetModification(checked)
+                  }}
+                  disabled={isProcessing}
+                />
+              </div>
             </div>
           )}
         </div>

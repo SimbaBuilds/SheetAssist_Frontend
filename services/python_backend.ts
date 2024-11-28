@@ -2,8 +2,14 @@ import { AxiosResponse } from 'axios';
 import api from './api';
 import { OutputPreferences, FileMetadata, QueryRequest, ProcessedQueryResult, FileInfo } from '@/types/dashboard';
 import { AcceptedMimeType } from '@/constants/file-types';
+import { createClient } from '@/utils/supabase/client';
 
+const supabase = createClient();
 
+interface DocumentTitle {
+  url: string;
+  title: string;
+}
 
 // Function to process the query
 export const processQuery = async (
@@ -56,8 +62,6 @@ export const processQuery = async (
   }
 };
 
-
-
 // Download function
 export const downloadFile = async (fileInfo: FileInfo): Promise<void> => {
   try {
@@ -82,6 +86,17 @@ export const downloadFile = async (fileInfo: FileInfo): Promise<void> => {
     document.body.removeChild(a);
   } catch (error) {
     console.error('Error downloading file:', error);
+    throw error;
+  }
+};
+
+// Function to get document titles from URLs
+export const getDocumentTitles = async (urls: string[]): Promise<DocumentTitle[]> => {
+  try {
+    const response: AxiosResponse<DocumentTitle[]> = await api.post('/get_document_titles', { urls });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching document titles:', error);
     throw error;
   }
 };
