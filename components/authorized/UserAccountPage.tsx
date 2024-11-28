@@ -179,7 +179,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
                   <p className="text-sm text-muted-foreground">
     
                     When enabled, if working with an online spreadsheet workbook, this application will <br />
-                    edit the existing sheet at the destination URL provided instead of adding a new sheet. <br />
+                    edit the existing sheet at the destination URL provided instead of adding a new shee to the workbook. <br />
                     It is recommended to have a back up or copy of the original sheet before proceeding. <br />
                     For text documents, text will be appended to the existing online document regardless of this setting.
                   </p>

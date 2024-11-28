@@ -517,7 +517,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
                         <p>
-                          When enabled, if working with an online spreadsheet workbook, this application will edit the existing sheet at the destination URL provided instead of adding a new sheet.
+                          When enabled, if working with an online spreadsheet workbook, this application will edit the existing sheet at the destination URL provided instead of adding a new sheet to the workbook.
                           It is recommended to have a back up or copy of the original sheet before proceeding.
                           For text documents, text will be appended to the existing online document regardless of this setting.
                         </p>

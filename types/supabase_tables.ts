@@ -57,7 +57,7 @@ export interface QueryHistory {
 // user_documents_access table
 export interface UserDocumentsAccess {
   user_id: string // UUID
-  provider: string
+  provider: string //Google or Microsoft
   access_token: string
   refresh_token: string
   expires_at: string // ISO timestamp
