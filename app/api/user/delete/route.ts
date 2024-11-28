@@ -21,8 +21,8 @@ export async function DELETE(request: Request) {
     const tableNames = [
       'user_profile',
       'user_usage',
-      'error_messages',
-      'query_history',
+      'error_log',
+      'request_log',
       'user_documents_access'
     ]
 

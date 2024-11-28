@@ -213,11 +213,7 @@ export function useDashboard(initialData?: UserPreferences) {
         return
       }
 
-      // Fetch document title for the new URL
-      if (/^https?:\/\/.+/.test(value)) {
-        await fetchDocumentTitles([value]);
-      }
-
+      // Check permissions based on URL type
       const isGoogleUrl = value.includes('google.com') || value.includes('docs.google.com') || value.includes('sheets.google.com')
       const isMicrosoftUrl = value.includes('office.com') || value.includes('live.com') || value.includes('sharepoint.com')
 
@@ -228,27 +224,30 @@ export function useDashboard(initialData?: UserPreferences) {
         setUrlPermissionError('You need to connect your Microsoft account to use Microsoft URLs')
         setShowPermissionsPrompt(true)
       }
+
+      // If URL is valid and permissions are correct, fetch the document title
+      if (!urlPermissionError && !urlValidationError && /^https?:\/\/.+/.test(value)) {
+        await fetchDocumentTitles([value])
+      }
     }
+  }
 
-    if (value && /^https?:\/\/.+/.test(value)) {
-      const newRecentUrls = [value, ...recentUrls.filter(url => url !== value)].slice(0, 5)
-      setRecentUrls(newRecentUrls)
-      
-      // Update in database
-      const { error } = await supabase
-        .from('user_usage')
-        .update({ recent_urls: newRecentUrls })
-        .eq('id', user?.id)
+  const handleUrlFocus = async () => {
+    if (user?.id) {
+      // Fetch recent URLs from the database
+      const { data: profile } = await supabase
+        .from('user_profile')
+        .select('recent_urls')
+        .eq('id', user.id)
+        .single()
 
-      if (error) {
-        await supabase
-          .from('error_messages')
-          .insert({
-            user_id: user?.id,
-            message: 'Failed to update recent URLs',
-            error_code: error.code,
-            resolved: false
-          })
+      if (profile?.recent_urls) {
+        setRecentUrls(profile.recent_urls)
+        // Fetch titles for URLs that don't have them yet
+        const urlsWithoutTitles = profile.recent_urls.filter((url: string) => !documentTitles[url])
+        if (urlsWithoutTitles.length > 0) {
+          await fetchDocumentTitles(urlsWithoutTitles)
+        }
       }
     }
   }
@@ -349,7 +348,7 @@ export function useDashboard(initialData?: UserPreferences) {
         setError(result.result.error)
         // Log error
         await supabase
-          .from('error_messages')
+          .from('error_log')
           .insert({
             user_id: user?.id,
             message: result.result.error,
@@ -370,7 +369,7 @@ export function useDashboard(initialData?: UserPreferences) {
           
           // Log download error
           await supabase
-            .from('error_messages')
+            .from('error_log')
             .insert({
               user_id: user?.id,
               message: downloadError instanceof Error ? downloadError.message : 'Download failed',
@@ -388,7 +387,7 @@ export function useDashboard(initialData?: UserPreferences) {
       // Log error to Supabase
       if (error instanceof Error) {
         await supabase
-          .from('error_messages')
+          .from('error_log')
           .insert({
             user_id: user?.id,
             message: error.message,
@@ -404,9 +403,9 @@ export function useDashboard(initialData?: UserPreferences) {
   const saveRecentUrls = async (urls: string[]) => {
     try {
       await supabase
-        .from('user_usage')
+        .from('user_profile')
         .upsert({ 
-          user_id: user?.id,
+          id: user?.id,
           recent_urls: urls
         })
     } catch (error) {
@@ -466,15 +465,6 @@ export function useDashboard(initialData?: UserPreferences) {
     }
   }
 
-  useEffect(() => {
-    if (recentUrls.length > 0) {
-      const urlsWithoutTitles = recentUrls.filter(url => !documentTitles[url]);
-      if (urlsWithoutTitles.length > 0) {
-        fetchDocumentTitles(urlsWithoutTitles);
-      }
-    }
-  }, [recentUrls]);
-
   return {
     showPermissionsPrompt,
     setShowPermissionsPrompt,
@@ -494,6 +484,7 @@ export function useDashboard(initialData?: UserPreferences) {
     recentUrls,
     handleFileChange,
     handleUrlChange,
+    handleUrlFocus,
     handleSubmit,
     downloadFileType,
     setDownloadFileType,

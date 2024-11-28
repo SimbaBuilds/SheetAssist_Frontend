@@ -72,6 +72,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
     urlPermissionError,
     handleFileChange,
     handleUrlChange,
+    handleUrlFocus,
     handleSubmit,
     recentUrls,
     downloadFileType,
@@ -244,57 +245,9 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
           </div>
         </div>
 
-        {/* Recent URLs */}
-        {recentUrls.length > 0 && (
-          <div className="mb-4">
-            <Label>Recent Documents</Label>
-            <div className="mt-2 space-y-2">
-              {recentUrls.map((url, index) => (
-                <div 
-                  key={index}
-                  className="flex items-center gap-2 p-2 bg-gray-50 rounded-md hover:bg-gray-100 group"
-                >
-                  <div className="text-sm text-gray-600 truncate flex-1">
-                    <div className="font-medium">{documentTitles[url] || 'Loading...'}</div>
-                    <div className="text-xs text-gray-500 truncate">{url}</div>
-                  </div>
-                  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        // Find an empty URL input or add to the end
-                        const emptyIndex = urls.findIndex(u => !u)
-                        const targetIndex = emptyIndex >= 0 ? emptyIndex : urls.length - 1
-                        handleUrlChange(targetIndex, url)
-                      }}
-                      className="h-7 px-2"
-                    >
-                      <span className="sr-only">Use URL</span>
-                      <PlusIcon className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        window.open(url, '_blank')
-                      }}
-                      className="h-7 px-2"
-                    >
-                      <span className="sr-only">Open URL</span>
-                      <ExternalLinkIcon className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* URL Input Fields */}
+        {/* URL Inputs */}
         <div className="space-y-4">
+          <Label>Document URLs</Label>
           {urls.map((url, index) => (
             <div key={index} className="space-y-2">
               <div className="flex gap-2">
@@ -303,6 +256,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
                     type="url"
                     value={url}
                     onChange={(e) => handleUrlChange(index, e.target.value)}
+                    onFocus={handleUrlFocus}
                     placeholder="Enter document or spreadsheet URL"
                     className={`${(urlPermissionError || urlValidationError) && url ? 'border-red-500' : ''}`}
                   />
@@ -312,40 +266,29 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
                     </p>
                   )}
                 </div>
-                {urls.length > 1 && (
+                {index === urls.length - 1 ? (
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="outline"
+                    size="icon"
+                    onClick={addUrlField}
+                    disabled={urls.length >= MAX_FILES}
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
                     size="icon"
                     onClick={() => removeUrlField(index)}
-                    className="h-10 w-10"
                   >
-                    <span className="sr-only">Remove URL</span>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                      className="w-5 h-5"
-                    >
-                      <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                    </svg>
+                    ×
                   </Button>
                 )}
               </div>
             </div>
           ))}
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={addUrlField}
-            disabled={urls.length >= MAX_FILES}
-            className="flex items-center gap-2"
-          >
-            <PlusIcon className="h-4 w-4" />
-            Add URL
-          </Button>
 
           {urlPermissionError && (
             <div className="mt-2 text-sm text-red-600 flex items-center gap-2">
@@ -368,6 +311,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
               </Button>
             </div>
           )}
+          
           {urlValidationError && (
             <div className="mt-2 text-sm text-red-600 flex items-center gap-2">
               <AlertCircle className="h-4 w-4" />
@@ -375,6 +319,30 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
             </div>
           )}
         </div>
+
+        {/* Recent URLs Display */}
+        {recentUrls.length > 0 && (
+          <div className="mt-4">
+            <Label className="text-sm text-gray-600">Recent Documents</Label>
+            <div className="mt-2 space-y-2">
+              {recentUrls.map((url, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-2 bg-gray-50 rounded-md hover:bg-gray-100 cursor-pointer"
+                  onClick={() => handleUrlChange(0, url)}
+                >
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm font-medium">
+                      {documentTitles[url] || 'Loading...'}
+                    </span>
+                    <span className="text-xs text-gray-500 truncate">{url}</span>
+                  </div>
+                  <ExternalLinkIcon className="h-4 w-4 text-gray-400" />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Query Input */}
         <div>

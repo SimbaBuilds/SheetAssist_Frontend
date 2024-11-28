@@ -18,39 +18,40 @@ export interface UserProfile {
   plan: PlanType
   allow_sheet_modification: boolean
   show_sheet_modification_warning: boolean
+  recent_urls: string[] // max length: 3
 }
 
 // user_usage table
 export interface UserUsage {
   id: string // UUID
-  recent_urls: string[]
-  recent_queries: string[]
   requests_this_week: number
   requests_this_month: number
   requests_previous_3_months: number
 }
 
-// error_messages table
-export interface ErrorMessage {
+// error_log table
+export interface ErrorLog {
   id: string // UUID
   user_id: string // UUID
+  original_query: string | null
+  file_names: string[]
+  doc_names: string[]
   message: string
   created_at: string // ISO timestamp
   error_code: string | null
-  resolved: boolean
-  original_query: string | null
 }
 
-// query_history table
-export interface QueryHistory {
+// request_log table
+export interface RequestLog {
   id: string // UUID
   user_id: string // UUID
-  query_text: string
+  query: string
+  file_names: string[]
+  doc_names: string[]
   created_at: string // ISO timestamp
-  response_text: string | null
   processing_time_ms: number | null
   status: string
-  tokens_used: number | null
+  success: boolean
 }
 
 

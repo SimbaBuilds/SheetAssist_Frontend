@@ -73,7 +73,6 @@ export function useSignUp() {
           .from('user_usage')
           .insert({
             user_id: authData.user.id,
-            recent_urls: [],
             recent_queries: [],
             requests_this_week: 0,
             requests_this_month: 0,
