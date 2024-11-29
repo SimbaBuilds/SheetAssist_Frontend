@@ -35,9 +35,8 @@ const EXAMPLE_QUERIES = [
   "Add this to the sheet",
   "Add this pdf to the word doc",
   "Convert this pdf to a sheet with headers product, units sold, and revenue.",
-  "Combine these pdfs into one large pdf and sort the pages alphabetically by last name",
   "Extract all unpaid invoices from the finance sheet",
-  "Combine these",
+  "Combine these into one document",
   "Populate the student sheet with phone numbers from the household contacts sheet",
   "Match client ID from the contract sheet to populate missing addresses in the billing sheet",
   "Convert this directory of legal case PDFs into a single document with descriptive headers",
@@ -262,7 +261,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
                   />
                   {url && documentTitles[url] && (
                     <p className="mt-1 text-sm text-gray-600">
-                      Document: {documentTitles[url]}
+                      Document Name: {documentTitles[url]}
                     </p>
                   )}
                 </div>
@@ -475,6 +474,11 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
                 className={`${outputTypeError && !outputUrl ? 'border-red-500' : ''}`}
                 required
               />
+              {outputUrl && documentTitles[outputUrl] && (
+                <p className="mt-1 text-sm text-gray-600">
+                  Document Name: {documentTitles[outputUrl]}
+                </p>
+              )}
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <h3 className="font-medium">Edit Existing Sheet</h3>

@@ -23,6 +23,8 @@ interface UseUserAccountReturn {
   isDeletingAccount: boolean
   deleteAccount: () => Promise<void>
   updateSheetModificationPreference: (allow: boolean) => Promise<void>
+  handleGoogleReconnect: () => Promise<void>
+  handleMicrosoftReconnect: () => Promise<void>
 }
 
 export function useUserAccount({ 
@@ -212,6 +214,46 @@ export function useUserAccount({
     }
   }
 
+  const handleGoogleReconnect = async () => {
+    try {
+      setIsUpdating(true)
+      await handleGoogleSetup()
+      
+      toast({
+        title: "Success",
+        description: "Google account reconnected successfully.",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to reconnect Google account. Please try again.",
+        className: "destructive",
+      })
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  const handleMicrosoftReconnect = async () => {
+    try {
+      setIsUpdating(true)
+      await handleMicrosoftSetup()
+      
+      toast({
+        title: "Success",
+        description: "Microsoft account reconnected successfully.",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to reconnect Microsoft account. Please try again.",
+        className: "destructive",
+      })
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
   return {
     isLoading,
     userProfile,
@@ -223,5 +265,7 @@ export function useUserAccount({
     isDeletingAccount,
     deleteAccount,
     updateSheetModificationPreference,
+    handleGoogleReconnect,
+    handleMicrosoftReconnect,
   }
 }

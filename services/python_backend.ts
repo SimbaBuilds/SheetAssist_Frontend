@@ -2,13 +2,12 @@ import { AxiosResponse } from 'axios';
 import api from './api';
 import { OutputPreferences, FileMetadata, QueryRequest, ProcessedQueryResult, FileInfo } from '@/types/dashboard';
 import { AcceptedMimeType } from '@/constants/file-types';
-import { createClient } from '@/utils/supabase/client';
-
-const supabase = createClient();
 
 interface DocumentTitle {
   url: string;
-  title: string;
+  title?: string;
+  error?: string;
+  success: boolean;
 }
 
 // Function to process the query

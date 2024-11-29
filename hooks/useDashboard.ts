@@ -4,6 +4,7 @@ import { processQuery, downloadFile, getDocumentTitles } from '@/services/python
 import { createClient } from '@/utils/supabase/client'
 import type { DownloadFileType, DashboardInitialData, OutputPreferences, ProcessedQueryResult } from '@/types/dashboard'
 import { ACCEPTED_FILE_TYPES } from '@/constants/file-types'
+import { useRouter } from 'next/navigation'
 
 
 const MAX_FILES = 10
@@ -22,6 +23,7 @@ interface DocumentTitleMap {
 
 export function useDashboard(initialData?: UserPreferences) {
   const { user } = useAuth()
+  const router = useRouter()
   const [showPermissionsPrompt, setShowPermissionsPrompt] = useState(false)
   const [files, setFiles] = useState<File[]>([])
   const [urls, setUrls] = useState<string[]>([''])
@@ -177,9 +179,36 @@ export function useDashboard(initialData?: UserPreferences) {
     }
   }
 
+  const handleAuthError = (error: any) => {
+    const errorDetail = error?.response?.data?.detail;
+    if (errorDetail?.includes('Google authentication expired')) {
+      router.push('/auth/setup-permissions?provider=google&reauth=true');
+      return true;
+    } else if (errorDetail?.includes('Microsoft authentication expired')) {
+      router.push('/auth/setup-permissions?provider=microsoft&reauth=true');
+      return true;
+    }
+    return false;
+  };
+
   const fetchDocumentTitles = async (urlsToFetch: string[]) => {
     try {
       const titles = await getDocumentTitles(urlsToFetch);
+      
+      // Check for auth errors in the response
+      for (const title of titles) {
+        if (title.error) {
+          if (title.error === "Error accessing Google document. Please reconnect your Google account.") {
+            router.push('/auth/setup-permissions?provider=google&reauth=true');
+            return;
+          } else if (title.error === "Error accessing Microsoft document. Please reconnect your Microsoft account.") {
+            router.push('/auth/setup-permissions?provider=microsoft&reauth=true');
+            return;
+          }
+        }
+      }
+
+      // If no auth errors, proceed with updating titles
       const newTitleMap = titles.reduce((acc, { url, title }) => ({
         ...acc,
         [url]: title
@@ -187,6 +216,10 @@ export function useDashboard(initialData?: UserPreferences) {
       setDocumentTitles(prev => ({ ...prev, ...newTitleMap }));
     } catch (error) {
       console.error('Error fetching document titles:', error);
+      if (!handleAuthError(error)) {
+        // Only set general error if it's not an auth error
+        setError('Failed to fetch document titles');
+      }
     }
   };
 
@@ -209,13 +242,13 @@ export function useDashboard(initialData?: UserPreferences) {
       );
 
       if (!isValidDocumentUrl) {
-        setUrlValidationError('Please enter a valid Microsoft or Google text document or spreadsheet URL')
+        setUrlValidationError('Please enter a valid URL to a Microsoft or Google text document or spreadsheet')
         return
       }
 
       // Check permissions based on URL type
       const isGoogleUrl = value.includes('google.com') || value.includes('docs.google.com') || value.includes('sheets.google.com')
-      const isMicrosoftUrl = value.includes('office.com') || value.includes('live.com') || value.includes('sharepoint.com')
+      const isMicrosoftUrl = value.includes('onedrive.live.com') || value.includes('live.com') || value.includes('sharepoint.com')
 
       if (isGoogleUrl && !permissions.google) {
         setUrlPermissionError('You need to connect your Google account to use Google URLs')
@@ -332,54 +365,61 @@ export function useDashboard(initialData?: UserPreferences) {
         ...(outputType === 'download' && { format: downloadFileType })
       }
 
-      // First, process the query
-      const result = await processQuery(
-        query,
-        validUrls,
-        files,
-        outputPreferences
-      )
+      // Process the query
+      try {
+        const result = await processQuery(
+          query,
+          validUrls,
+          files,
+          outputPreferences
+        )
+        
+        // Store the result and show dialog
+        setProcessedResult(result)
+        setShowResultDialog(true)
 
-      // Store the result and show dialog
-      setProcessedResult(result)
-      setShowResultDialog(true)
-
-      if (result.result.error) {
-        setError(result.result.error)
-        // Log error
-        await supabase
-          .from('error_log')
-          .insert({
-            user_id: user?.id,
-            message: result.result.error,
-            error_code: 'QUERY_PROCESSING_ERROR',
-            resolved: false,
-            original_query: result.result.original_query
-          })
-        return
-      }
-
-      // If download type and successful, trigger download
-      if (outputType === 'download' && result.status === 'success' && result.files?.[0]) {
-        try {
-          await downloadFile(result.files[0])
-        } catch (downloadError) {
-          console.error('Error downloading file:', downloadError)
-          setError('Failed to download the result file')
-          
-          // Log download error
+        if (result.result.error) {
+          setError(result.result.error)
+          // Log error
           await supabase
             .from('error_log')
             .insert({
               user_id: user?.id,
-              message: downloadError instanceof Error ? downloadError.message : 'Download failed',
-              error_code: 'DOWNLOAD_ERROR',
+              message: result.result.error,
+              error_code: 'QUERY_PROCESSING_ERROR',
               resolved: false,
               original_query: result.result.original_query
             })
+          return
+        }
+
+        // Handle download if needed
+        if (outputType === 'download' && result.status === 'success' && result.files?.[0]) {
+          try {
+            await downloadFile(result.files[0])
+          } catch (downloadError) {
+            if (!handleAuthError(downloadError)) {
+              console.error('Error downloading file:', downloadError)
+              setError('Failed to download the result file')
+              
+              // Log download error
+              await supabase
+                .from('error_log')
+                .insert({
+                  user_id: user?.id,
+                  message: downloadError instanceof Error ? downloadError.message : 'Download failed',
+                  error_code: 'DOWNLOAD_ERROR',
+                  resolved: false,
+                  original_query: result.result.original_query
+                })
+            }
+          }
+        }
+      } catch (queryError) {
+        if (!handleAuthError(queryError)) {
+          throw queryError; // Re-throw if not an auth error
         }
       }
-
     } catch (error) {
       console.error('Error processing query:', error)
       setError('An error occurred while processing your request')

@@ -65,17 +65,31 @@ export async function GET(request: NextRequest) {
     // Exchange OAuth code for tokens
     const tokens = await exchangeCodeForTokens(code, provider, redirectUri)
 
-    // Store tokens in database
+    // Check if user already has access record
+    const { data: existingAccess, error: accessCheckError } = await supabase
+      .from('user_documents_access')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('provider', provider)
+      .single()
+
+    // Prepare token data
+    const tokenData = {
+      user_id: user.id,
+      provider,
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token,
+      expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
+      token_type: tokens.token_type,
+      scope: tokens.scope,
+    }
+
+    // If record exists, update it. If not, insert new record
     const { error: tokenError } = await supabase
       .from('user_documents_access')
-      .upsert({
-        user_id: user.id,
-        provider,
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
-        expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
-        token_type: tokens.token_type,
-        scope: tokens.scope,
+      .upsert(tokenData, {
+        onConflict: 'user_id,provider',
+        ignoreDuplicates: false
       })
 
     if (tokenError) {

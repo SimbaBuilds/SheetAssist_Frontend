@@ -33,6 +33,8 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
     isDeletingAccount,
     deleteAccount,
     updateSheetModificationPreference,
+    handleGoogleReconnect,
+    handleMicrosoftReconnect,
   } = useUserAccount({ 
     initialProfile: profile,
     initialUsage: usage,
@@ -90,8 +92,11 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
         <Card>
           <CardHeader>
             <CardTitle>Connected Services</CardTitle>
+            <CardDescription>
+              Manage your connected document services
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-medium">Google Integration</h3>
@@ -99,14 +104,26 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
                   {profile?.google_permissions_set ?? false ? 'Connected' : 'Not connected'}
                 </p>
               </div>
-              <Button
-                variant={profile?.google_permissions_set ?? false ? "outline" : "default"}
-                onClick={handleGooglePermissions}
-                disabled={profile?.google_permissions_set ?? false}
-              >
-                {profile?.google_permissions_set ?? false ? 'Connected' : 'Connect'}
-              </Button>
+              <div className="space-x-2">
+                {profile?.google_permissions_set ? (
+                  <Button
+                    variant="outline"
+                    onClick={handleGoogleReconnect}
+                    disabled={isUpdating}
+                  >
+                    Reconnect
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleGooglePermissions}
+                    disabled={isUpdating}
+                  >
+                    Connect
+                  </Button>
+                )}
+              </div>
             </div>
+
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-medium">Microsoft Integration</h3>
@@ -114,13 +131,24 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
                   {profile?.microsoft_permissions_set ?? false ? 'Connected' : 'Not connected'}
                 </p>
               </div>
-              <Button
-                variant={profile?.microsoft_permissions_set ?? false ? "outline" : "default"}
-                onClick={handleMicrosoftPermissions}
-                disabled={profile?.microsoft_permissions_set ?? false}
-              >
-                {profile?.microsoft_permissions_set ?? false ? 'Connected' : 'Connect'}
-              </Button>
+              <div className="space-x-2">
+                {profile?.microsoft_permissions_set ? (
+                  <Button
+                    variant="outline"
+                    onClick={handleMicrosoftReconnect}
+                    disabled={isUpdating}
+                  >
+                    Reconnect
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleMicrosoftPermissions}
+                    disabled={isUpdating}
+                  >
+                    Connect
+                  </Button>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>

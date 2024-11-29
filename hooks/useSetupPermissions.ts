@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import type { PermissionSetupOptions } from '@/types/auth'
 
@@ -18,13 +18,22 @@ export const DOCUMENT_SCOPES = {
 
 export function useSetupPermissions() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabase = createClient()
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isReauth, setIsReauth] = useState(false)
+  const [provider, setProvider] = useState<'google' | 'microsoft' | null>(null)
 
   useEffect(() => {
     const checkAccess = async () => {
       try {
+        const reauth = searchParams.get('reauth') === 'true'
+        const providerParam = searchParams.get('provider') as 'google' | 'microsoft' | null
+        
+        setIsReauth(reauth)
+        setProvider(providerParam)
+
         console.log('Checking session...')
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
         
@@ -45,6 +54,15 @@ export function useSetupPermissions() {
 
         console.log('User retrieved successfully:', user)
         setIsLoading(false)
+
+        // Auto-trigger reauth if provider is specified
+        if (reauth && providerParam) {
+          if (providerParam === 'google') {
+            handleGoogleSetup()
+          } else if (providerParam === 'microsoft') {
+            handleMicrosoftSetup()
+          }
+        }
       } catch (error) {
         console.error('Error in checkAccess:', error)
         setError('Unable to verify access. Please try again.')
@@ -53,7 +71,7 @@ export function useSetupPermissions() {
     }
 
     checkAccess()
-  }, [router])
+  }, [router, searchParams])
 
   const handleGoogleSetup = async () => {
     try {
@@ -105,7 +123,6 @@ export function useSetupPermissions() {
         ...baseParams,
         access_type: 'offline',
         redirect_uri: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/google-permissions-callback`,
-
         prompt: 'consent'
       }
 
@@ -125,9 +142,6 @@ export function useSetupPermissions() {
     }
   }
 
-
-
-  
   const handleSkip = async () => {
     try {
       if (error) throw error
@@ -141,6 +155,8 @@ export function useSetupPermissions() {
   return {
     isLoading,
     error,
+    isReauth,
+    provider,
     handleGoogleSetup,
     handleMicrosoftSetup,
     handleSkip,
