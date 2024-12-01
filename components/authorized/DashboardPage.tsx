@@ -35,14 +35,20 @@ const EXAMPLE_QUERIES = [
   "Add this to the sheet",
   "Add this pdf to the word doc",
   "Convert this pdf to a sheet with headers product, units sold, and revenue.",
+  "Remove all rows where the 'Status' column is marked as 'Inactive'.",
+  "Create a performance summary by combining employee evaluation scores from each department sheet",
+  "Filter rows where the 'Email' column contains '.edu' and export them to a new sheet",
   "Extract all unpaid invoices from the finance sheet",
+  "Remove duplicate entries based on the 'Employee ID' column", 
+  "Merge rows by ID",
   "Combine these into one document",
   "Populate the student sheet with phone numbers from the household contacts sheet",
   "Match client ID from the contract sheet to populate missing addresses in the billing sheet",
+  "Highlight rows where the 'Sales' column exceeds $10,000.", 
   "Convert this directory of legal case PDFs into a single document with descriptive headers",
+  "Sort the spreadsheet by the 'Date' column in descending order.", 
   "Add new clients from this CSV to the existing CRM sheet, avoiding duplicates by matching email addresses",
   "Extract contact information for all vendors and group by service type from the procurement sheet",
-  "Create a performance summary by combining employee evaluation scores from each department sheet",
   "Filter and count items sold per category in the product sales sheet, summarizing by month"
 ]
 
@@ -261,7 +267,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
                   />
                   {url && documentTitles[url] && (
                     <p className="mt-1 text-sm text-gray-600">
-                      Document Name: {documentTitles[url]}
+                      Document: {documentTitles[url]}
                     </p>
                   )}
                 </div>
@@ -476,7 +482,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
               />
               {outputUrl && documentTitles[outputUrl] && (
                 <p className="mt-1 text-sm text-gray-600">
-                  Document Name: {documentTitles[outputUrl]}
+                  Document: {documentTitles[outputUrl]}
                 </p>
               )}
               <div className="flex items-center gap-4">
