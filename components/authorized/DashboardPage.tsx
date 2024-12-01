@@ -98,6 +98,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
     addUrlField,
     removeUrlField,
     documentTitles,
+    handleOutputUrlChange,
   } = useDashboard(initialData)
 
   const {
@@ -252,7 +253,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
 
         {/* URL Inputs */}
         <div className="space-y-4">
-          <Label>Document URLs</Label>
+          <Label>Document Web Addresses</Label>
           {urls.map((url, index) => (
             <div key={index} className="space-y-2">
               <div className="flex gap-2">
@@ -353,33 +354,44 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
         <div>
           <div className="flex justify-between items-center">
             <Label htmlFor="query">What can we do for you?</Label>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="link" size="sm">
-                  See examples
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Example Queries</DialogTitle>
-                </DialogHeader>
-                <ul className="space-y-2 max-h-[60vh] overflow-y-auto">
-                  {EXAMPLE_QUERIES.map((query, index) => (
-                    <li
-                      key={index}
-                      className="p-2 hover:bg-gray-100 rounded cursor-pointer"
-                      onClick={() => {
-                        setQuery(query)
-                        const dialogClose = document.querySelector('[data-dialog-close]') as HTMLButtonElement
-                        dialogClose?.click()
-                      }}
-                    >
-                      {query}
-                    </li>
-                  ))}
-                </ul>
-              </DialogContent>
-            </Dialog>
+            <div className="flex gap-2 items-center">
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setQuery('')}
+                type="button"
+                disabled={!query}
+              >
+                Clear
+              </Button>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="link" size="sm">
+                    See examples
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Example Queries</DialogTitle>
+                  </DialogHeader>
+                  <ul className="space-y-2 max-h-[60vh] overflow-y-auto">
+                    {EXAMPLE_QUERIES.map((query, index) => (
+                      <li
+                        key={index}
+                        className="p-2 hover:bg-gray-100 rounded cursor-pointer"
+                        onClick={() => {
+                          setQuery(query)
+                          const dialogClose = document.querySelector('[data-dialog-close]') as HTMLButtonElement
+                          dialogClose?.click()
+                        }}
+                      >
+                        {query}
+                      </li>
+                    ))}
+                  </ul>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
           <textarea
             id="query"
@@ -473,7 +485,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
                 type="url"
                 value={outputUrl}
                 onChange={(e) => {
-                  setOutputUrl(e.target.value)
+                  handleOutputUrlChange(e.target.value)
                   setOutputTypeError(null)
                 }}
                 placeholder="Enter destination URL"

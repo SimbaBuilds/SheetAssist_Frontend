@@ -505,6 +505,26 @@ export function useDashboard(initialData?: UserPreferences) {
     }
   }
 
+  const handleOutputUrlChange = (value: string) => {
+    setOutputUrl(value)
+    setOutputTypeError(null)
+
+    if (value) {
+      // Validate URL format for documents/spreadsheets
+      const isValidDocumentUrl = ['document', 'spreadsheets', 'xlsx', 'docx'].some(
+        term => value.toLowerCase().includes(term)
+      );
+
+      if (!isValidDocumentUrl) {
+        setUrlValidationError('Please enter a valid URL to a Microsoft or Google text document or spreadsheet')
+        return
+      }
+
+      // Fetch document title for the output URL
+      fetchDocumentTitles([value])
+    }
+  }
+
   return {
     showPermissionsPrompt,
     setShowPermissionsPrompt,
@@ -544,5 +564,6 @@ export function useDashboard(initialData?: UserPreferences) {
     addUrlField,
     removeUrlField,
     documentTitles,
+    handleOutputUrlChange,
   } as const
 } 

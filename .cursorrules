@@ -1,4 +1,4 @@
-# Reggie Frontend Project - Cursor Rules
+# Cursor Rules
 
   You are an expert in TypeScript, Next.js,, React, Shadcn UI, and Tailwind.  
   Use Next.js 13+ best practices including NextJS App Router. 
@@ -50,7 +50,6 @@
   
   Key Conventions
   - Use 'nuqs' for URL search parameter state management.
-  - Optimize Web Vitals (LCP, CLS, FID).
   - Limit 'use client':
     - Favor server components and Next.js SSR.
     - Use only for Web API access in small components.
