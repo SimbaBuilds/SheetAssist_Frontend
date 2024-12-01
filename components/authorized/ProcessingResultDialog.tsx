@@ -1,41 +1,55 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { ArrowDownTrayIcon } from '@heroicons/react/24/outline'
-import type { FileInfo, ProcessedQueryResult } from '@/types/dashboard'
-import { downloadFile } from '@/services/python_backend'
+import type { ProcessedQueryResult } from '@/types/dashboard'
+import { Loader2 } from "lucide-react"
 
 interface ProcessingResultDialogProps {
   result: ProcessedQueryResult | null
   isOpen: boolean
   onClose: () => void
   outputType: 'download' | 'online' | null
+  isLoading?: boolean
+  destinationTitle?: string
 }
 
 export function ProcessingResultDialog({
   result,
   isOpen,
   onClose,
-  outputType
+  outputType,
+  isLoading = false,
+  destinationTitle
 }: ProcessingResultDialogProps) {
-  if (!result) return null
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Processing Result</DialogTitle>
+          <DialogTitle>
+            {isLoading ? 'Processing Request' : 'Processing Result'}
+          </DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
+          {/* Loading state */}
+          {isLoading && (
+            <div className="flex flex-col items-center justify-center py-8 space-y-4">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-center text-sm text-gray-600">Processing your request...</p>
+            </div>
+          )}
+
           {/* Show any error messages */}
-          {result.status === 'error' && (
+          {!isLoading && result?.status === 'error' && (
             <div className="text-red-500">{result.message}</div>
           )}
 
           {/* Show success message and output */}
-          {result.status === 'success' && (
+          {!isLoading && result?.status === 'success' && (
             <>
-              <div className="text-green-600">{result.message}</div>
+              <div className="text-green-600">
+                {outputType === 'download' 
+                  ? result.message 
+                  : `Data successfully uploaded to ${destinationTitle || 'destination'}`}
+              </div>
               
               {/* Show code output if any */}
               {result.result.print_output && (

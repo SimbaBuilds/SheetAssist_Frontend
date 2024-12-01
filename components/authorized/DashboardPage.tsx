@@ -529,9 +529,11 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
 
       <ProcessingResultDialog
         result={processedResult}
-        isOpen={showResultDialog}
+        isOpen={isProcessing || showResultDialog}
         onClose={() => setShowResultDialog(false)}
         outputType={outputType}
+        isLoading={isProcessing}
+        destinationTitle={outputUrl ? documentTitles[outputUrl] : undefined}
       />
 
       {showModificationWarning && (
