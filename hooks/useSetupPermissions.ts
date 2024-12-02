@@ -10,9 +10,10 @@ export const DOCUMENT_SCOPES = {
       'https://www.googleapis.com/auth/drive',
     ].join(' '),
     microsoft: [
-      'Files.ReadWrite',
-      'Sites.Selected',
-      'offline_access'
+      'Files.ReadWrite.All',
+      'Sites.ReadWrite.All', 
+      'offline_access',
+      'User.Read'
     ].join(' ')
   } as const
 

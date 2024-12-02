@@ -48,7 +48,7 @@ export function ProcessingResultDialog({
               <div className="text-green-600">
                 {outputType === 'download' 
                   ? result.message 
-                  : `Data successfully uploaded to ${destinationTitle || 'destination'}`}
+                  : `Data successfully uploaded to ${destinationTitle?.split('-')[0] || 'destination'}`}
               </div>
               
               {/* Show code output if any */}
