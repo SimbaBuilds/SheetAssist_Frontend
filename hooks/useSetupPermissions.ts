@@ -6,7 +6,6 @@ import type { PermissionSetupOptions } from '@/types/auth'
 export const DOCUMENT_SCOPES = {
     google: [
       'https://www.googleapis.com/auth/spreadsheets',
-      'https://www.googleapis.com/auth/documents',
       'https://www.googleapis.com/auth/drive',
     ].join(' '),
     microsoft: [

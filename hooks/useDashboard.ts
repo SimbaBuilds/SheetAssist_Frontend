@@ -198,10 +198,10 @@ export function useDashboard(initialData?: UserPreferences) {
       // Check for auth errors in the response
       for (const title of titles) {
         if (title.error) {
-          if (title.error === "Error accessing Google document. Please reconnect your Google account.") {
+          if (title.error === "Error accessing Google Sheets. Please reconnect your Google account.") {
             router.push('/auth/setup-permissions?provider=google&reauth=true');
             return;
-          } else if (title.error === "Error accessing Microsoft document. Please reconnect your Microsoft account.") {
+          } else if (title.error === "Error accessing Excel Online. Please reconnect your Microsoft account.") {
             router.push('/auth/setup-permissions?provider=microsoft&reauth=true');
             return;
           }
@@ -215,10 +215,9 @@ export function useDashboard(initialData?: UserPreferences) {
       }), {});
       setDocumentTitles(prev => ({ ...prev, ...newTitleMap }));
     } catch (error) {
-      console.error('Error fetching document titles:', error);
+      console.error('Error fetching spreadsheet title:', error);
       if (!handleAuthError(error)) {
-        // Only set general error if it's not an auth error
-        setError('Failed to fetch document titles');
+        setError('Failed to fetch spreadsheet title');
       }
     }
   };
@@ -236,13 +235,13 @@ export function useDashboard(initialData?: UserPreferences) {
     }
 
     if (value) {
-      // Validate URL format for documents/spreadsheets
-      const isValidDocumentUrl = ['document', 'spreadsheets', 'xlsx', 'docx'].some(
+      // Validate URL format for spreadsheets only
+      const isValidSpreadsheetUrl = ['spreadsheets', 'xlsx'].some(
         term => value.toLowerCase().includes(term)
       );
 
-      if (!isValidDocumentUrl) {
-        setUrlValidationError('Please enter a valid URL to a Microsoft or Google text document or spreadsheet')
+      if (!isValidSpreadsheetUrl) {
+        setUrlValidationError('Please enter a valid URL to a Microsoft Excel or Google Sheets spreadsheet workbook')
         return
       }
 
@@ -251,10 +250,10 @@ export function useDashboard(initialData?: UserPreferences) {
       const isMicrosoftUrl = value.includes('onedrive.live.com') || value.includes('live.com') || value.includes('sharepoint.com')
 
       if (isGoogleUrl && !permissions.google) {
-        setUrlPermissionError('You need to connect your Google account to use Google URLs')
+        setUrlPermissionError('You need to connect your Google account to interact with Google Sheets')
         setShowPermissionsPrompt(true)
       } else if (isMicrosoftUrl && !permissions.microsoft) {
-        setUrlPermissionError('You need to connect your Microsoft account to use Microsoft URLs')
+        setUrlPermissionError('You need to connect your Microsoft account to interact with Excel Online')
         setShowPermissionsPrompt(true)
       }
 
@@ -510,13 +509,13 @@ export function useDashboard(initialData?: UserPreferences) {
     setOutputTypeError(null)
 
     if (value) {
-      // Validate URL format for documents/spreadsheets
-      const isValidDocumentUrl = ['document', 'spreadsheets', 'xlsx', 'docx'].some(
+      // Validate URL format for spreadsheets only
+      const isValidSpreadsheetUrl = ['spreadsheets', 'xlsx'].some(
         term => value.toLowerCase().includes(term)
       );
 
-      if (!isValidDocumentUrl) {
-        setUrlValidationError('Please enter a valid URL to a Microsoft or Google text document or spreadsheet')
+      if (!isValidSpreadsheetUrl) {
+        setUrlValidationError('Please enter a valid URL to a Microsoft Excel Online or Google Sheets spreadsheet workbook')
         return
       }
 

@@ -205,9 +205,8 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
                 <div>
                   <h3 className="font-medium">Append to Existing Sheet</h3>
                   <p className="text-sm text-muted-foreground">
-                    When enabled, when working with online spreadsheet workbooks, this application will <br />
-                     append to the sheet at the destination URL provided instead of adding a new sheet to the workbook. <br />
-                    For text documents, text will be appended to the existing online document regardless of this setting.
+                    When enabled, this application will append to the existing sheet at the destination URL <br />
+                    provided instead of adding a new sheet to the workbook.
                   </p>
                 </div>
                 <Switch

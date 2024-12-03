@@ -117,7 +117,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
               <div>
                 <h3 className="font-semibold">Set Up Integrations</h3>
                 <p className="text-sm text-gray-600">
-                  Connect your accounts to work with your documents and spreadsheets.
+                  Connect your accounts to work with your spreadsheets.
                 </p>
               </div>
               <Button
@@ -134,7 +134,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
                 <div className="flex items-center justify-between mb-2">
                   <div>
                     <h4 className="font-medium">Google Integration</h4>
-                    <p className="text-sm text-gray-500">Google Docs & Sheets</p>
+                    <p className="text-sm text-gray-500">Google Sheets</p>
                   </div>
                   {permissions.google ? (
                     <span className="text-green-600 text-sm">✓ Connected</span>
@@ -153,7 +153,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
                 <div className="flex items-center justify-between mb-2">
                   <div>
                     <h4 className="font-medium">Microsoft Integration</h4>
-                    <p className="text-sm text-gray-500">Excel & Word Online</p>
+                    <p className="text-sm text-gray-500">Excel Online</p>
                   </div>
                   {permissions.microsoft ? (
                     <span className="text-green-600 text-sm">✓ Connected</span>
@@ -253,7 +253,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
 
         {/* URL Inputs */}
         <div className="space-y-4">
-          <Label>Document Web Addresses</Label>
+          <Label>Spreadsheet Workbook Web Addresses</Label>
           {urls.map((url, index) => (
             <div key={index} className="space-y-2">
               <div className="flex gap-2">
@@ -263,12 +263,12 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
                     value={url}
                     onChange={(e) => handleUrlChange(index, e.target.value)}
                     onFocus={handleUrlFocus}
-                    placeholder="Enter document or spreadsheet URL"
+                    placeholder="Enter workbook sheet URL"
                     className={`${(urlPermissionError || urlValidationError) && url ? 'border-red-500' : ''}`}
                   />
                   {url && documentTitles[url] && (
                     <p className="mt-1 text-sm text-gray-600">
-                      Document: {documentTitles[url]}
+                      {documentTitles[url]}
                     </p>
                   )}
                 </div>
@@ -446,13 +446,13 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
               <Label htmlFor="online">
                 {allowSheetModification ? (
                   <div className="flex items-center gap-2">
-                    <span>Online Document or Sheet Workbook</span>
+                    <span>Online Spreadsheet</span>
                     <Badge variant="secondary" className="text-xs">
                       Direct Modification Enabled
                     </Badge>
                   </div>
                 ) : (
-                  "Online Document or Sheet Workbook"
+                  "Online Spreadsheet"
                 )}
               </Label>
             </div>
@@ -488,7 +488,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
                   handleOutputUrlChange(e.target.value)
                   setOutputTypeError(null)
                 }}
-                placeholder="Enter destination URL"
+                placeholder="Enter destination spreadsheet URL"
                 className={`${outputTypeError && !outputUrl ? 'border-red-500' : ''}`}
                 required
               />
@@ -507,8 +507,8 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
                         <p>
-                          When enabled, when working with online spreadsheet workbooks, this application will append to the sheet at the destination URL provided instead of adding a new sheet to the workbook.
-                          For text documents, text will be appended to the existing online document regardless of this setting.
+                          When enabled, this application will append to the existing sheet at the destination URL 
+                          provided instead of adding a new sheet to the workbook.
                         </p>
                       </TooltipContent>
                     </Tooltip>
@@ -564,8 +564,8 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
               <AlertDialogTitle>Warning: Direct Sheet Modification</AlertDialogTitle>
               <AlertDialogDescription className="space-y-4">
                 <p>
-                  You have sheet modification enabled.  This application will modify existing sheets instead of creating new ones. <br />
-                  For text documents, text will be appended to the existing document regardless of this setting.
+                  You have sheet modification enabled. This application will modify existing sheets 
+                  instead of creating new ones in the workbook.
                 </p>
                 <div className="flex items-center space-x-2">
                   <Checkbox
