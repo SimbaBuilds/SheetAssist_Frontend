@@ -23,9 +23,10 @@ export interface UserProfile {
 
 // user_usage table
 export interface UserUsage {
-  id: string // UUID
+  user_id: string // UUID
   requests_this_week: number
   requests_this_month: number
+  images_processed_this_month: number
   requests_previous_3_months: number
 }
 

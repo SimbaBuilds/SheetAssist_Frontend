@@ -62,6 +62,7 @@ export interface ProcessedQueryResult {
   status: 'success' | 'error';
   message: string;
   files?: FileInfo[];
+  num_images_processed: number;
 }
 
 // Add FastAPI file response type

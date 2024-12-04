@@ -377,6 +377,24 @@ export function useDashboard(initialData?: UserPreferences) {
         setProcessedResult(result)
         setShowResultDialog(true)
 
+        // Update images processed count if query was successful
+        if (result.status === 'success' && result.num_images_processed > 0) {
+          const { data: currentUsage, error: usageError } = await supabase
+            .from('user_usage')
+            .select('images_processed_this_month')
+            .eq('user_id', user?.id)
+            .single()
+
+          if (!usageError) {
+            await supabase
+              .from('user_usage')
+              .update({
+                images_processed_this_month: (currentUsage.images_processed_this_month || 0) + result.num_images_processed
+              })
+              .eq('user_id', user?.id)
+          }
+        }
+
         if (result.result.error) {
           setError(result.result.error)
           // Log error
