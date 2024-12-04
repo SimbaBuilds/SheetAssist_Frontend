@@ -48,6 +48,7 @@ export function useDashboard(initialData?: UserPreferences) {
   const [showModificationWarning, setShowModificationWarning] = useState(false)
   const [showSheetModificationWarningPreference, setShowSheetModificationWarningPreference] = useState(true)
   const [documentTitles, setDocumentTitles] = useState<DocumentTitleMap>({})
+  const [destinationUrlError, setDestinationUrlError] = useState<string | null>(null)
 
   const supabase = createClient()
 
@@ -322,6 +323,14 @@ export function useDashboard(initialData?: UserPreferences) {
       return
     }
 
+    // Validate destination URL if output type is 'online'
+    if (outputType === 'online') {
+      const isDestinationValid = await validateDestinationUrl(outputUrl);
+      if (!isDestinationValid) {
+        return;
+      }
+    }
+
     // Only show warning on submit if conditions are met
     if (outputType === 'online' && allowSheetModification && showSheetModificationWarningPreference) {
       console.log('[useDashboard] Setting warning to show on submit')
@@ -448,6 +457,53 @@ export function useDashboard(initialData?: UserPreferences) {
     }
   }
 
+  const validateDestinationUrl = async (value: string) => {
+    setDestinationUrlError(null)
+
+    if (!value) return true;
+
+    // Validate URL format for spreadsheets only
+    const isValidSpreadsheetUrl = ['spreadsheets', 'xlsx'].some(
+      term => value.toLowerCase().includes(term)
+    );
+
+    if (!isValidSpreadsheetUrl) {
+      setDestinationUrlError('Please enter a valid URL to a Microsoft Excel or Google Sheets spreadsheet workbook')
+      return false;
+    }
+
+    // Check permissions based on URL type
+    const isGoogleUrl = value.includes('google.com') || value.includes('docs.google.com') || value.includes('sheets.google.com')
+    const isMicrosoftUrl = value.includes('onedrive.live.com') || value.includes('live.com') || value.includes('sharepoint.com')
+
+    if (isGoogleUrl && !permissions.google) {
+      setDestinationUrlError('You need to connect your Google account to interact with Google Sheets')
+      setShowPermissionsPrompt(true)
+      return false;
+    } else if (isMicrosoftUrl && !permissions.microsoft) {
+      setDestinationUrlError('You need to connect your Microsoft account to interact with Excel Online')
+      setShowPermissionsPrompt(true)
+      return false;
+    }
+
+    // If URL is valid and permissions are correct, fetch the document title
+    if (!destinationUrlError && /^https?:\/\/.+/.test(value)) {
+      await fetchDocumentTitles([value])
+    }
+
+    return true;
+  }
+
+  const handleOutputUrlChange = async (value: string) => {
+    setOutputUrl(value);
+    setOutputTypeError(null);
+    if (value) {
+      await validateDestinationUrl(value);
+    } else {
+      setDestinationUrlError(null);
+    }
+  }
+
   const handleWarningAcknowledgment = async (dontShowAgain: boolean) => {
     console.log('[useDashboard] Handling warning acknowledgment:', {
       dontShowAgain,
@@ -477,32 +533,90 @@ export function useDashboard(initialData?: UserPreferences) {
     setIsProcessing(true)
 
     try {
-      // Copy the processing logic from handleSubmit here
-      // ... processing logic ...
-    } catch (error) {
-      // ... error handling ...
-    } finally {
-      setIsProcessing(false)
-    }
-  }
-
-  const handleOutputUrlChange = (value: string) => {
-    setOutputUrl(value)
-    setOutputTypeError(null)
-
-    if (value) {
-      // Validate URL format for spreadsheets only
-      const isValidSpreadsheetUrl = ['spreadsheets', 'xlsx'].some(
-        term => value.toLowerCase().includes(term)
-      );
-
-      if (!isValidSpreadsheetUrl) {
-        setUrlValidationError('Please enter a valid URL to a Microsoft Excel Online or Google Sheets spreadsheet workbook')
-        return
+      const validUrls = urls.filter(url => url)
+      
+      // Create output preferences object
+      const outputPreferences: OutputPreferences = {
+        type: outputType ?? 'download',
+        ...(outputType === 'online' && { 
+          destination_url: outputUrl,
+          modify_existing: allowSheetModification 
+        }),
+        ...(outputType === 'download' && { format: downloadFileType })
       }
 
-      // Fetch document title for the output URL
-      fetchDocumentTitles([value])
+      // Process the query
+      try {
+        const result = await processQuery(
+          query,
+          validUrls,
+          files,
+          outputPreferences
+        )
+        
+        // Store the result and show dialog
+        setProcessedResult(result)
+        setShowResultDialog(true)
+
+        if (result.result.error) {
+          setError(result.result.error)
+          // Log error
+          await supabase
+            .from('error_log')
+            .insert({
+              user_id: user?.id,
+              message: result.result.error,
+              error_code: 'QUERY_PROCESSING_ERROR',
+              resolved: false,
+              original_query: result.result.original_query
+            })
+          return
+        }
+
+        // Handle download if needed
+        if (outputType === 'download' && result.status === 'success' && result.files?.[0]) {
+          try {
+            await downloadFile(result.files[0])
+          } catch (downloadError) {
+            if (!handleAuthError(downloadError)) {
+              console.error('Error downloading file:', downloadError)
+              setError('Failed to download the result file')
+              
+              // Log download error
+              await supabase
+                .from('error_log')
+                .insert({
+                  user_id: user?.id,
+                  message: downloadError instanceof Error ? downloadError.message : 'Download failed',
+                  error_code: 'DOWNLOAD_ERROR',
+                  resolved: false,
+                  original_query: result.result.original_query
+                })
+            }
+          }
+        }
+      } catch (queryError) {
+        if (!handleAuthError(queryError)) {
+          throw queryError; // Re-throw if not an auth error
+        }
+      }
+    } catch (error) {
+      console.error('Error processing query:', error)
+      setError('An error occurred while processing your request')
+      
+      // Log error to Supabase
+      if (error instanceof Error) {
+        await supabase
+          .from('error_log')
+          .insert({
+            user_id: user?.id,
+            message: error.message,
+            error_code: 'UNKNOWN_ERROR',
+            resolved: false,
+          })
+      }
+    } finally {
+      setIsProcessing(false)
     }
   }
 
@@ -522,11 +636,11 @@ export function useDashboard(initialData?: UserPreferences) {
     error,
     permissions,
     urlPermissionError,
-    recentUrls,
     handleFileChange,
     handleUrlChange,
     handleUrlFocus,
     handleSubmit,
+    recentUrls,
     downloadFileType,
     setDownloadFileType,
     fileErrors,
@@ -546,5 +660,6 @@ export function useDashboard(initialData?: UserPreferences) {
     removeUrlField,
     documentTitles,
     handleOutputUrlChange,
+    destinationUrlError,
   } as const
 } 

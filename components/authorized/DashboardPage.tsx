@@ -99,6 +99,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
     removeUrlField,
     documentTitles,
     handleOutputUrlChange,
+    destinationUrlError,
   } = useDashboard(initialData)
 
   const {
@@ -492,7 +493,32 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
                 className={`${outputTypeError && !outputUrl ? 'border-red-500' : ''}`}
                 required
               />
-              {outputUrl && documentTitles[outputUrl] && (
+              {destinationUrlError && (
+                <div className="text-sm text-red-600 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
+                  <div className="flex items-center gap-2">
+                    {destinationUrlError}
+                    {destinationUrlError.includes('connect') && (
+                      <Button
+                        type="button"
+                        variant="link"
+                        size="sm"
+                        className="text-primary hover:text-primary/90 p-0 h-auto font-normal"
+                        onClick={() => {
+                          if (destinationUrlError.includes('Google')) {
+                            handleGoogleSetup()
+                          } else if (destinationUrlError.includes('Microsoft')) {
+                            handleMicrosoftSetup()
+                          }
+                        }}
+                      >
+                        Connect now
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+              {outputUrl && documentTitles[outputUrl] && !destinationUrlError && (
                 <p className="mt-1 text-sm text-gray-600">
                   Document: {documentTitles[outputUrl]}
                 </p>
@@ -564,8 +590,8 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
               <AlertDialogTitle>Warning: Direct Sheet Modification</AlertDialogTitle>
               <AlertDialogDescription className="space-y-4">
                 <p>
-                  You have sheet modification enabled. This application will modify existing sheets 
-                  instead of creating new ones in the workbook.
+                  You have sheet modification enabled. This application will append to the existing sheet at the URL provided 
+                  instead of creating a new sheet in the workbook.
                 </p>
                 <div className="flex items-center space-x-2">
                   <Checkbox

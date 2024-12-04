@@ -3,6 +3,7 @@ import api from './api';
 import { OutputPreferences, FileMetadata, QueryRequest, ProcessedQueryResult, FileInfo } from '@/types/dashboard';
 import { AcceptedMimeType } from '@/constants/file-types';
 import { createClient } from '@/utils/supabase/client';
+import { request } from 'http';
 
 interface DocumentTitle {
   url: string;
@@ -32,6 +33,7 @@ async function updateUserUsage(userId: string, success: boolean, numImagesProces
     requests_this_week: (usageData.requests_this_week || 0) + 1,
     requests_this_month: (usageData.requests_this_month || 0) + 1,
     images_processed_this_month: (usageData.images_processed_this_month || 0) + numImagesProcessed,
+    requests_previous_3_months: (usageData.requests_previous_3_months || 0) + 1,
     unsuccessful_requests: (usageData.unsuccessful_requests || 0) + (success ? 0 : 1)
   };
 
