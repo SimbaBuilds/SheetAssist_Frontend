@@ -7,6 +7,12 @@ export const PLAN_REQUEST_LIMITS = {
   pro: 1000
 } as const
 
+export const PLAN_IMAGE_LIMITS = {
+  free: 5,
+  base: 100,
+  pro: 500
+} as const
+
 // user_profile table
 export interface UserProfile {
   id: string // UUID

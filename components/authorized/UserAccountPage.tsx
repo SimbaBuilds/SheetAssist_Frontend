@@ -7,9 +7,9 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useUserAccount } from '@/hooks/useUserAccount'
 import { useState } from 'react'
-import type { UserProfile, UserUsage     } from '@/types/supabase_tables'
+import type { UserProfile, UserUsage } from '@/types/supabase_tables'
 import type { User } from '@supabase/supabase-js'
-import { PLAN_REQUEST_LIMITS } from '@/types/supabase_tables'
+import { PLAN_REQUEST_LIMITS, PLAN_IMAGE_LIMITS } from '@/types/supabase_tables'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Switch } from "@/components/ui/switch"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
@@ -44,7 +44,20 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
   const [firstName, setFirstName] = useState(profile?.first_name ?? '')
   const [lastName, setLastName] = useState(profile?.last_name ?? '')
 
-  const currentProfile = isLoading ? profile : userProfile
+  const currentProfile = isLoading ? profile : (userProfile ?? profile)
+  const currentUsage = isLoading ? usage : (userUsage ?? usage)
+
+  // Default to 'free' plan if profile is not available
+  const plan = currentProfile?.plan ?? 'free'
+  const requestLimit = PLAN_REQUEST_LIMITS[plan]
+  const imageLimit = PLAN_IMAGE_LIMITS[plan]
+  
+  // Default to 0 if usage data is not available
+  const requestsThisMonth = currentUsage?.requests_this_month ?? 0
+  const imagesThisMonth = currentUsage?.images_processed_this_month ?? 0
+  
+  const requestUsagePercentage = (requestsThisMonth / requestLimit) * 100
+  const imageUsagePercentage = (imagesThisMonth / imageLimit) * 100
 
   if (isLoading) {
     return <AccountPageSkeleton />
@@ -153,7 +166,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
           </CardContent>
         </Card>
 
-        {/* Usage Statistics */}
+        {/* Usage Statistics
         <Card>
           <CardHeader>
             <CardTitle>Usage Statistics</CardTitle>
@@ -163,14 +176,61 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
               <div>
                 <h3 className="font-medium">Monthly Requests</h3>
                 <p className="text-2xl font-bold">
-                  {usage?.requests_this_month ?? 0}
+                  {requestsThisMonth}
                   <span className="text-muted-foreground text-lg">
-                    /{PLAN_REQUEST_LIMITS[currentProfile?.plan ?? 'free']}
+                    /{requestLimit}
                   </span>
                 </p>
                 <p className="text-sm text-muted-foreground">
                   Requests available this month
                 </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card> */}
+
+        {/* Requests and Image Usage */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Usage</CardTitle>
+            <CardDescription>Your current usage and limits</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <Label>Total Requests This Month</Label>
+                <div className="mt-2 flex items-center justify-between">
+                  <div className="text-sm">
+                    {requestsThisMonth} / {requestLimit}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {plan.charAt(0).toUpperCase() + plan.slice(1)} Plan
+                  </div>
+                </div>
+                <div className="mt-2 h-2 w-full bg-secondary rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full ${requestUsagePercentage >= 90 ? 'bg-destructive' : 'bg-primary'}`}
+                    style={{ width: `${Math.min(requestUsagePercentage, 100)}%` }}
+                  />
+                </div>
+              </div>
+              
+              <div className="mt-4">
+                <Label>Images Processed This Month</Label>
+                <div className="mt-2 flex items-center justify-between">
+                  <div className="text-sm">
+                    {imagesThisMonth} / {imageLimit}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {plan.charAt(0).toUpperCase() + plan.slice(1)} Plan
+                  </div>
+                </div>
+                <div className="mt-2 h-2 w-full bg-secondary rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full ${imageUsagePercentage >= 90 ? 'bg-destructive' : 'bg-primary'}`}
+                    style={{ width: `${Math.min(imageUsagePercentage, 100)}%` }}
+                  />
+                </div>
               </div>
             </div>
           </CardContent>
@@ -185,7 +245,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-medium">Current Plan</h3>
-                <p className="text-2xl font-bold capitalize">{profile?.plan ?? 'Free'}</p>
+                <p className="text-2xl font-bold capitalize">{plan}</p>
               </div>
               <Button variant="outline">
                 Upgrade Plan
@@ -210,10 +270,10 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
                   </p>
                 </div>
                 <Switch
-                  checked={userProfile.allow_sheet_modification}
+                  checked={currentProfile?.allow_sheet_modification ?? false}
                   onCheckedChange={(checked) => {
                     console.log('[UserAccountPage] Sheet modification toggle changed:', {
-                      previousValue: userProfile.allow_sheet_modification,
+                      previousValue: currentProfile?.allow_sheet_modification,
                       newValue: checked
                     })
                     updateSheetModificationPreference(checked)
