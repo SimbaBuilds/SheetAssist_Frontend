@@ -34,6 +34,7 @@ export interface UserUsage {
   requests_this_month: number
   images_processed_this_month: number
   requests_previous_3_months: number
+  unsuccessful_requests: number
 }
 
 // error_log table

@@ -334,24 +334,6 @@ export function useDashboard(initialData?: UserPreferences) {
     setIsProcessing(true)
 
     try {
-      // Update user usage stats
-      const { data: usageData, error: usageError } = await supabase
-        .from('user_usage')
-        .select('*')
-        .eq('id', user?.id)
-        .single()
-
-      if (!usageError) {
-        await supabase
-          .from('user_usage')
-          .update({
-            recent_queries: [query, ...(usageData.recent_queries || [])].slice(0, 10),
-            requests_this_week: usageData.requests_this_week + 1,
-            requests_this_month: usageData.requests_this_month + 1
-          })
-          .eq('id', user?.id)
-      }
-
       const validUrls = urls.filter(url => url)
       
       // Create output preferences object
@@ -376,24 +358,6 @@ export function useDashboard(initialData?: UserPreferences) {
         // Store the result and show dialog
         setProcessedResult(result)
         setShowResultDialog(true)
-
-        // Update images processed count if query was successful
-        if (result.status === 'success' && result.num_images_processed > 0) {
-          const { data: currentUsage, error: usageError } = await supabase
-            .from('user_usage')
-            .select('images_processed_this_month')
-            .eq('user_id', user?.id)
-            .single()
-
-          if (!usageError) {
-            await supabase
-              .from('user_usage')
-              .update({
-                images_processed_this_month: (currentUsage.images_processed_this_month || 0) + result.num_images_processed
-              })
-              .eq('user_id', user?.id)
-          }
-        }
 
         if (result.result.error) {
           setError(result.result.error)

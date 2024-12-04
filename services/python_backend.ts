@@ -2,12 +2,44 @@ import { AxiosResponse } from 'axios';
 import api from './api';
 import { OutputPreferences, FileMetadata, QueryRequest, ProcessedQueryResult, FileInfo } from '@/types/dashboard';
 import { AcceptedMimeType } from '@/constants/file-types';
+import { createClient } from '@/utils/supabase/client';
 
 interface DocumentTitle {
   url: string;
   title?: string;
   error?: string;
   success: boolean;
+}
+
+// Helper function to update user usage statistics
+async function updateUserUsage(userId: string, success: boolean, numImagesProcessed: number = 0) {
+  const supabase = createClient();
+  
+  // Get current usage data
+  const { data: usageData, error: usageError } = await supabase
+    .from('user_usage')
+    .select('*')
+    .eq('user_id', userId)
+    .single();
+
+  if (usageError) {
+    console.error('Error fetching user usage:', usageError);
+    return;
+  }
+
+  // Prepare update data
+  const updateData = {
+    requests_this_week: (usageData.requests_this_week || 0) + 1,
+    requests_this_month: (usageData.requests_this_month || 0) + 1,
+    images_processed_this_month: (usageData.images_processed_this_month || 0) + numImagesProcessed,
+    unsuccessful_requests: (usageData.unsuccessful_requests || 0) + (success ? 0 : 1)
+  };
+
+  // Update usage statistics
+  await supabase
+    .from('user_usage')
+    .update(updateData)
+    .eq('user_id', userId);
 }
 
 // Function to process the query
@@ -17,6 +49,15 @@ export const processQuery = async (
   files?: File[],
   outputPreferences?: OutputPreferences
 ): Promise<ProcessedQueryResult> => {
+  const startTime = Date.now();
+  const supabase = createClient();
+  const user = await supabase.auth.getUser();
+  const userId = user.data.user?.id;
+
+  if (!userId) {
+    throw new Error('User not authenticated');
+  }
+
   const formData = new FormData();
   
   // Create files metadata array with index only if files exist
@@ -40,7 +81,7 @@ export const processQuery = async (
   // Part 2: Append files only if they exist
   if (files?.length) {
     files.forEach((file, index) => {
-      formData.append('files', file); // Changed to match FastAPI's expected format
+      formData.append('files', file);
     });
   }
 
@@ -54,9 +95,45 @@ export const processQuery = async (
         },
       }
     );
+
+    // Update user usage statistics
+    await updateUserUsage(
+      userId,
+      response.data.status === 'success',
+      response.data.num_images_processed || 0
+    );
+
+    // Log the request to Supabase
+    const processingTime = Date.now() - startTime;
+    await supabase.from('request_log').insert({
+      user_id: userId,
+      query,
+      file_names: files?.map(f => f.name) || [],
+      doc_names: webUrls,
+      processing_time_ms: processingTime,
+      status: response.data.status,
+      success: response.data.status === 'success'
+    });
+
     return response.data;
   } catch (error) {
     console.error('Error processing query:', error);
+    
+    // Update user usage statistics for failed request
+    await updateUserUsage(userId, false);
+    
+    // Log failed request
+    const processingTime = Date.now() - startTime;
+    await supabase.from('request_log').insert({
+      user_id: userId,
+      query,
+      file_names: files?.map(f => f.name) || [],
+      doc_names: webUrls,
+      processing_time_ms: processingTime,
+      status: 'error',
+      success: false
+    });
+
     throw error;
   }
 };
