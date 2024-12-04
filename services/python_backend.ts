@@ -30,10 +30,10 @@ async function updateUserUsage(userId: string, success: boolean, numImagesProces
 
   // Prepare update data
   const updateData = {
-    requests_this_week: (usageData.requests_this_week || 0) + 1,
-    requests_this_month: (usageData.requests_this_month || 0) + 1,
-    images_processed_this_month: (usageData.images_processed_this_month || 0) + numImagesProcessed,
-    requests_previous_3_months: (usageData.requests_previous_3_months || 0) + 1,
+    requests_this_week: (usageData.requests_this_week || 0) + (success ? 1 : 0),
+    requests_this_month: (usageData.requests_this_month || 0) + (success ? 1 : 0),
+    images_processed_this_month: (usageData.images_processed_this_month || 0) + (success ? numImagesProcessed : 0),
+    requests_previous_3_months: (usageData.requests_previous_3_months || 0) + (success ? 1 : 0),
     unsuccessful_requests: (usageData.unsuccessful_requests || 0) + (success ? 0 : 1)
   };
 
