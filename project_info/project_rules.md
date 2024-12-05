@@ -1,2 +1,2 @@
-1. When implementing new features or making edits, default to maintaining existing functionality unless instructed otherwsie.
+1. When implementing new features or making edits, maintain existing functionality unless instructed otherwsie.
 2. When you add a function to a hook, make sure you return the function in the hooks's return object.

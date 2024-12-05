@@ -226,7 +226,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
                     >
                       <path
                         fillRule="evenodd"
-                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.22z"
                         clipRule="evenodd"
                       />
                     </svg>
@@ -283,12 +283,15 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
                           placeholder="Enter spreadsheet URL"
                           className="w-full"
                         />
+                        {url && documentTitles[url] && (
+                          <p className="mt-1 text-sm text-gray-600">
+                            {documentTitles[url]}
+                          </p>
+                        )}
                       </div>
                     </PopoverTrigger>
                     <PopoverContent className="p-0" align="start">
                       <Command>
-                        <CommandInput placeholder="Search recent URLs..." />
-                        <CommandEmpty>No recent URLs found.</CommandEmpty>
                         <CommandGroup>
                           {isLoadingTitles ? (
                             <CommandItem disabled>Loading recent documents...</CommandItem>
@@ -408,7 +411,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
                 >
                   <path
                     fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.22z"
                     clipRule="evenodd"
                   />
                 </svg>
@@ -482,12 +485,15 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
                       placeholder="Enter destination spreadsheet URL"
                       className="w-full"
                     />
+                    {outputUrl && documentTitles[outputUrl] && (
+                      <p className="mt-1 text-sm text-gray-600">
+                        {documentTitles[outputUrl]}
+                      </p>
+                    )}
                   </div>
                 </PopoverTrigger>
                 <PopoverContent className="p-0" align="start">
                   <Command>
-                    <CommandInput placeholder="Search recent URLs..." />
-                    <CommandEmpty>No recent URLs found.</CommandEmpty>
                     <CommandGroup>
                       {isLoadingTitles ? (
                         <CommandItem disabled>Loading recent documents...</CommandItem>
@@ -509,11 +515,6 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
               {destinationUrlError && (
                 <div className="text-red-500 text-sm mt-2">{destinationUrlError}</div>
               )}
-              {outputUrl && documentTitles[outputUrl] && !destinationUrlError && (
-                <p className="mt-1 text-sm text-gray-600">
-                  Document: {documentTitles[outputUrl]}
-                </p>
-              )}
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
                   <h3 className="font-medium">Append to Existing Sheet</h3>
@@ -525,7 +526,8 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
                       <TooltipContent className="max-w-xs">
                         <p>
                           When enabled, this application will append to the existing sheet at the destination URL 
-                          provided instead of adding a new sheet to the workbook.
+                          provided instead of adding a new sheet to the workbook.  
+                          Note: Microsoft Excel URLs are sheet agnostic so data will only be appended to the first sheet in the workbook.
                         </p>
                       </TooltipContent>
                     </Tooltip>
@@ -581,7 +583,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
               <AlertDialogTitle>Warning: Direct Sheet Modification</AlertDialogTitle>
               <AlertDialogDescription className="space-y-4">
                 <p>
-                  You have sheet modification enabled. This application will append to the existing sheet at the URL provided 
+                  You have sheet modification enabled. This application will append to an existing sheet 
                   instead of creating a new sheet in the workbook.
                 </p>
                 <div className="flex items-center space-x-2">
