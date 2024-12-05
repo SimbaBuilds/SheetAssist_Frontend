@@ -24,7 +24,6 @@ export interface UserProfile {
   plan: PlanType
   allow_sheet_modification: boolean
   show_sheet_modification_warning: boolean
-  recent_urls: string[] // max length: 3
 }
 
 // user_usage table
@@ -35,6 +34,8 @@ export interface UserUsage {
   images_processed_this_month: number
   requests_previous_3_months: number
   unsuccessful_requests: number
+  recent_urls: string[] // max length: 6
+
 }
 
 // error_log table

@@ -27,6 +27,18 @@ import { useState } from 'react'
 import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { InfoIcon } from 'lucide-react'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 const MAX_FILES = 10
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 const MAX_QUERY_LENGTH = 500
@@ -100,6 +112,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
     documentTitles,
     handleOutputUrlChange,
     destinationUrlError,
+    isLoadingTitles,
   } = useDashboard(initialData)
 
   const {
@@ -254,38 +267,49 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
 
         {/* URL Inputs */}
         <div className="space-y-4">
-          <Label>Spreadsheet Workbook Web Addresses</Label>
-          {urls.map((url, index) => (
-            <div key={index} className="space-y-2">
-              <div className="flex gap-2">
+          <Label>Input URLs</Label>
+          <div className="space-y-2">
+            {urls.map((url, index) => (
+              <div key={index} className="flex gap-2">
                 <div className="flex-1">
-                  <Input
-                    type="url"
-                    value={url}
-                    onChange={(e) => handleUrlChange(index, e.target.value)}
-                    onFocus={handleUrlFocus}
-                    placeholder="Enter workbook sheet URL"
-                    className={`${(urlPermissionError || urlValidationError) && url ? 'border-red-500' : ''}`}
-                  />
-                  {url && documentTitles[url] && (
-                    <p className="mt-1 text-sm text-gray-600">
-                      {documentTitles[url]}
-                    </p>
-                  )}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <div className="relative w-full">
+                        <Input
+                          type="url"
+                          value={url}
+                          onChange={(e) => handleUrlChange(index, e.target.value)}
+                          onFocus={handleUrlFocus}
+                          placeholder="Enter spreadsheet URL"
+                          className="w-full"
+                        />
+                      </div>
+                    </PopoverTrigger>
+                    <PopoverContent className="p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Search recent URLs..." />
+                        <CommandEmpty>No recent URLs found.</CommandEmpty>
+                        <CommandGroup>
+                          {isLoadingTitles ? (
+                            <CommandItem disabled>Loading recent documents...</CommandItem>
+                          ) : (
+                            recentUrls.map((recentUrl) => (
+                              <CommandItem
+                                key={recentUrl}
+                                value={recentUrl}
+                                onSelect={() => handleUrlChange(index, recentUrl)}
+                              >
+                                {documentTitles[recentUrl] || recentUrl}
+                              </CommandItem>
+                            ))
+                          )}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
-                {index === urls.length - 1 ? (
+                {urls.length > 1 && (
                   <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={addUrlField}
-                    disabled={urls.length >= MAX_FILES}
-                  >
-                    <PlusIcon className="h-4 w-4" />
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
                     variant="outline"
                     size="icon"
                     onClick={() => removeUrlField(index)}
@@ -293,63 +317,25 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
                     ×
                   </Button>
                 )}
+                {index === urls.length - 1 && urls.length < MAX_FILES && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={addUrlField}
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
-            </div>
-          ))}
-
+            ))}
+          </div>
           {urlPermissionError && (
-            <div className="mt-2 text-sm text-red-600 flex items-center gap-2">
-              <AlertCircle className="h-4 w-4" />
-              {urlPermissionError}
-              <Button
-                type="button"
-                variant="link"
-                size="sm"
-                className="text-primary hover:text-primary/90 p-0 h-auto font-normal"
-                onClick={() => {
-                  if (urlPermissionError.includes('Google')) {
-                    handleGoogleSetup()
-                  } else if (urlPermissionError.includes('Microsoft')) {
-                    handleMicrosoftSetup()
-                  }
-                }}
-              >
-                Connect now
-              </Button>
-            </div>
+            <div className="text-red-500 text-sm">{urlPermissionError}</div>
           )}
-          
           {urlValidationError && (
-            <div className="mt-2 text-sm text-red-600 flex items-center gap-2">
-              <AlertCircle className="h-4 w-4" />
-              {urlValidationError}
-            </div>
+            <div className="text-red-500 text-sm">{urlValidationError}</div>
           )}
         </div>
-
-        {/* Recent URLs Display */}
-        {recentUrls.length > 0 && (
-          <div className="mt-4">
-            <Label className="text-sm text-gray-600">Recent Documents</Label>
-            <div className="mt-2 space-y-2">
-              {recentUrls.map((url, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-2 bg-gray-50 rounded-md hover:bg-gray-100 cursor-pointer"
-                  onClick={() => handleUrlChange(0, url)}
-                >
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm font-medium">
-                      {documentTitles[url] || 'Loading...'}
-                    </span>
-                    <span className="text-xs text-gray-500 truncate">{url}</span>
-                  </div>
-                  <ExternalLinkIcon className="h-4 w-4 text-gray-400" />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {/* Query Input */}
         <div>
@@ -411,7 +397,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
         {/* Output Type Selection */}
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <Label>Output Preference</Label>
+            <Label>Output Preferences</Label>
             {outputTypeError && (
               <span className="text-sm text-red-500 flex items-center gap-1">
                 <svg
@@ -482,41 +468,46 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
 
           {outputType === 'online' && (
             <div className="space-y-4">
-              <Input
-                type="url"
-                value={outputUrl}
-                onChange={(e) => {
-                  handleOutputUrlChange(e.target.value)
-                  setOutputTypeError(null)
-                }}
-                placeholder="Enter destination spreadsheet URL"
-                className={`${outputTypeError && !outputUrl ? 'border-red-500' : ''}`}
-                required
-              />
-              {destinationUrlError && (
-                <div className="text-sm text-red-600 flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  <div className="flex items-center gap-2">
-                    {destinationUrlError}
-                    {destinationUrlError.includes('connect') && (
-                      <Button
-                        type="button"
-                        variant="link"
-                        size="sm"
-                        className="text-primary hover:text-primary/90 p-0 h-auto font-normal"
-                        onClick={() => {
-                          if (destinationUrlError.includes('Google')) {
-                            handleGoogleSetup()
-                          } else if (destinationUrlError.includes('Microsoft')) {
-                            handleMicrosoftSetup()
-                          }
-                        }}
-                      >
-                        Connect now
-                      </Button>
-                    )}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <div className="relative w-full">
+                    <Input
+                      type="url"
+                      value={outputUrl}
+                      onChange={(e) => {
+                        handleOutputUrlChange(e.target.value)
+                        setOutputTypeError(null)
+                      }}
+                      onFocus={handleUrlFocus}
+                      placeholder="Enter destination spreadsheet URL"
+                      className="w-full"
+                    />
                   </div>
-                </div>
+                </PopoverTrigger>
+                <PopoverContent className="p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search recent URLs..." />
+                    <CommandEmpty>No recent URLs found.</CommandEmpty>
+                    <CommandGroup>
+                      {isLoadingTitles ? (
+                        <CommandItem disabled>Loading recent documents...</CommandItem>
+                      ) : (
+                        recentUrls.map((recentUrl) => (
+                          <CommandItem
+                            key={recentUrl}
+                            value={recentUrl}
+                            onSelect={() => handleOutputUrlChange(recentUrl)}
+                          >
+                            {documentTitles[recentUrl] || recentUrl}
+                          </CommandItem>
+                        ))
+                      )}
+                    </CommandGroup>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {destinationUrlError && (
+                <div className="text-red-500 text-sm mt-2">{destinationUrlError}</div>
               )}
               {outputUrl && documentTitles[outputUrl] && !destinationUrlError && (
                 <p className="mt-1 text-sm text-gray-600">

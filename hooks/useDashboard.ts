@@ -6,7 +6,6 @@ import type { DownloadFileType, DashboardInitialData, OutputPreferences, Process
 import { ACCEPTED_FILE_TYPES } from '@/constants/file-types'
 import { useRouter } from 'next/navigation'
 
-
 const MAX_FILES = 10
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
@@ -49,6 +48,7 @@ export function useDashboard(initialData?: UserPreferences) {
   const [showSheetModificationWarningPreference, setShowSheetModificationWarningPreference] = useState(true)
   const [documentTitles, setDocumentTitles] = useState<DocumentTitleMap>({})
   const [destinationUrlError, setDestinationUrlError] = useState<string | null>(null)
+  const [isLoadingTitles, setIsLoadingTitles] = useState(true)
 
   const supabase = createClient()
 
@@ -57,20 +57,36 @@ export function useDashboard(initialData?: UserPreferences) {
       if (!user?.id) return
 
       try {
-        const { data: profile, error } = await supabase
-          .from('user_profile')
-          .select('allow_sheet_modification, show_sheet_modification_warning')
-          .eq('id', user.id)
-          .single()
+        setIsLoadingTitles(true)
+        const [{ data: profile }, { data: usage }] = await Promise.all([
+          supabase
+            .from('user_profile')
+            .select('allow_sheet_modification, show_sheet_modification_warning')
+            .eq('id', user.id)
+            .single(),
+          supabase
+            .from('user_usage')
+            .select('recent_urls')
+            .eq('user_id', user.id)
+            .single()
+        ]);
 
-        if (error) throw error
+        if (profile) {
+          console.log('[useDashboard] Fetched user preferences:', profile)
+          setAllowSheetModification(profile.allow_sheet_modification ?? false)
+          setShowSheetModificationWarningPreference(profile.show_sheet_modification_warning ?? true)
+        }
 
-        console.log('[useDashboard] Fetched user preferences:', profile)
-        
-        setAllowSheetModification(profile.allow_sheet_modification ?? false)
-        setShowSheetModificationWarningPreference(profile.show_sheet_modification_warning ?? true)
+        if (usage?.recent_urls?.length) {
+          console.log('[useDashboard] Fetched recent URLs:', usage.recent_urls)
+          setRecentUrls(usage.recent_urls)
+          // Fetch titles for all recent URLs
+          await fetchDocumentTitles(usage.recent_urls)
+        }
       } catch (error) {
-        console.error('[useDashboard] Error fetching user preferences:', error)
+        console.error('[useDashboard] Error fetching user data:', error)
+      } finally {
+        setIsLoadingTitles(false)
       }
     }
 
@@ -223,47 +239,89 @@ export function useDashboard(initialData?: UserPreferences) {
     }
   };
 
-  const handleUrlChange = async (index: number, value: string) => {
-    const newUrls = [...urls]
-    newUrls[index] = value
-    setUrls(newUrls)
-    setUrlPermissionError(null)
-    setUrlValidationError(null)
+  const updateRecentUrls = async (newUrl: string) => {
+    if (!user?.id || !newUrl.trim()) return;
+    
+    try {
+      const { data } = await supabase
+        .from('user_usage')
+        .select('recent_urls')
+        .eq('user_id', user.id)
+        .single();
 
-    if (index === 0 && value && !outputUrl) {
-      setOutputType('online')
-      setOutputUrl(value)
+      let updatedUrls = data?.recent_urls || [];
+      
+      // Remove the URL if it already exists to avoid duplicates
+      updatedUrls = updatedUrls.filter((url: string) => url !== newUrl);
+      
+      // Add the new URL at the beginning
+      updatedUrls = [newUrl, ...updatedUrls];
+      
+      // Keep only the last 6 URLs
+      updatedUrls = updatedUrls.slice(0, 6);
+
+      await supabase
+        .from('user_usage')
+        .upsert({ 
+          user_id: user.id,
+          recent_urls: updatedUrls
+        });
+
+      setRecentUrls(updatedUrls);
+      
+      // Fetch title for the new URL if we don't have it
+      if (!documentTitles[newUrl]) {
+        await fetchDocumentTitles([newUrl]);
+      }
+    } catch (error) {
+      console.error('Error updating recent URLs:', error);
     }
+  };
+
+  const handleUrlChange = async (index: number, value: string) => {
+    const newUrls = [...urls];
+    newUrls[index] = value;
+    setUrls(newUrls);
+    setUrlPermissionError(null);
+    setUrlValidationError(null);
+
+    // if (index === 0 && value && !outputUrl) {
+    //   setOutputType('online');
+    //   setOutputUrl(value);
+    // }
 
     if (value) {
+      // Update recent URLs regardless of validation
+      await updateRecentUrls(value);
+
       // Validate URL format for spreadsheets only
       const isValidSpreadsheetUrl = ['spreadsheets', 'xlsx'].some(
         term => value.toLowerCase().includes(term)
       );
 
       if (!isValidSpreadsheetUrl) {
-        setUrlValidationError('Please enter a valid URL to a Microsoft Excel or Google Sheets spreadsheet workbook')
-        return
+        setUrlValidationError('Please enter a valid URL to a Microsoft Excel or Google Sheets spreadsheet workbook');
+        return;
       }
 
       // Check permissions based on URL type
-      const isGoogleUrl = value.includes('google.com') || value.includes('docs.google.com') || value.includes('sheets.google.com')
-      const isMicrosoftUrl = value.includes('onedrive.live.com') || value.includes('live.com') || value.includes('sharepoint.com')
+      const isGoogleUrl = value.includes('google.com') || value.includes('docs.google.com') || value.includes('sheets.google.com');
+      const isMicrosoftUrl = value.includes('onedrive.live.com') || value.includes('live.com') || value.includes('sharepoint.com');
 
       if (isGoogleUrl && !permissions.google) {
-        setUrlPermissionError('You need to connect your Google account to interact with Google Sheets')
-        setShowPermissionsPrompt(true)
+        setUrlPermissionError('You need to connect your Google account to interact with Google Sheets');
+        setShowPermissionsPrompt(true);
       } else if (isMicrosoftUrl && !permissions.microsoft) {
-        setUrlPermissionError('You need to connect your Microsoft account to interact with Excel Online')
-        setShowPermissionsPrompt(true)
+        setUrlPermissionError('You need to connect your Microsoft account to interact with Excel Online');
+        setShowPermissionsPrompt(true);
       }
 
       // If URL is valid and permissions are correct, fetch the document title
       if (!urlPermissionError && !urlValidationError && /^https?:\/\/.+/.test(value)) {
-        await fetchDocumentTitles([value])
+        await fetchDocumentTitles([value]);
       }
     }
-  }
+  };
 
   const handleUrlFocus = async () => {
     if (user?.id) {
@@ -430,32 +488,16 @@ export function useDashboard(initialData?: UserPreferences) {
     }
   }
 
-  const saveRecentUrls = async (urls: string[]) => {
-    try {
-      await supabase
-        .from('user_profile')
-        .upsert({ 
-          id: user?.id,
-          recent_urls: urls
-        })
-    } catch (error) {
-      console.error('Error saving recent URLs:', error)
+  const handleOutputUrlChange = async (value: string) => {
+    setOutputUrl(value);
+    setOutputTypeError(null);
+    
+    if (value) {
+      // Update recent URLs regardless of validation
+      await updateRecentUrls(value);
+      await validateDestinationUrl(value);
     }
-  }
-
-  useEffect(() => {
-    if (recentUrls.length > 0) {
-      saveRecentUrls(recentUrls)
-    }
-  }, [recentUrls])
-
-  const handleOutputTypeChange = (value: 'download' | 'online' | null) => {
-    setOutputType(value)
-    // Clear output URL when switching to download
-    if (value === 'download') {
-      setOutputUrl('')
-    }
-  }
+  };
 
   const validateDestinationUrl = async (value: string) => {
     setDestinationUrlError(null)
@@ -492,16 +534,6 @@ export function useDashboard(initialData?: UserPreferences) {
     }
 
     return true;
-  }
-
-  const handleOutputUrlChange = async (value: string) => {
-    setOutputUrl(value);
-    setOutputTypeError(null);
-    if (value) {
-      await validateDestinationUrl(value);
-    } else {
-      setDestinationUrlError(null);
-    }
   }
 
   const handleWarningAcknowledgment = async (dontShowAgain: boolean) => {
@@ -661,5 +693,6 @@ export function useDashboard(initialData?: UserPreferences) {
     documentTitles,
     handleOutputUrlChange,
     destinationUrlError,
+    isLoadingTitles,
   } as const
 } 
