@@ -525,9 +525,8 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
                         <p>
-                          When enabled, this application will append to the existing sheet at the destination URL 
-                          provided instead of adding a new sheet to the workbook.  
-                          Note: Microsoft Excel URLs are sheet agnostic so data will only be appended to the first sheet in the workbook.
+                          When enabled, this application will append to an existing sheet instead of adding a new sheet to the workbook.  
+                          Note: For Google Sheets, data will be appended to the sheet at the URL provided as Google URLs are sheet specific, Microsoft Excel URLs are sheet agnostic and data will always be appended to the first sheet in the workbook.
                         </p>
                       </TooltipContent>
                     </Tooltip>
