@@ -338,7 +338,10 @@ export function useDashboard(initialData?: UserPreferences) {
   };
 
   const updateRecentUrls = async (newUrl: string, sheetName: string, docName: string) => {
-    if (!user?.id || !newUrl.trim() || !sheetName || !docName) return;
+    if (!user?.id || !newUrl.trim() || !sheetName.trim() || !docName.trim()) {
+      console.error('Missing required data for updateRecentUrls:', { newUrl, sheetName, docName });
+      return;
+    }
     
     try {
       const { data, error } = await supabase
@@ -356,16 +359,17 @@ export function useDashboard(initialData?: UserPreferences) {
         !(sheet.url === newUrl && sheet.sheet_name === sheetName)
       );
       
-      // Add the new URL at the beginning
+      // Create new sheet entry with explicit sheet name
       const newSheet: OnlineSheet = {
         url: newUrl,
         doc_name: docName,
         sheet_name: sheetName
       };
       
-      // Keep only the last 6 URLs
+      // Add to the beginning of the list
       updatedUrls = [newSheet, ...updatedUrls].slice(0, 6);
 
+      // Update database
       const { error: updateError } = await supabase
         .from('user_usage')
         .upsert({ 
@@ -375,15 +379,9 @@ export function useDashboard(initialData?: UserPreferences) {
 
       if (updateError) throw updateError;
 
+      // Update local state with new URLs
       setRecentUrls(updatedUrls);
 
-      // Update document titles mapping
-      const titleKey = formatTitleKey(newUrl, sheetName);
-      const displayTitle = formatDisplayTitle(docName, sheetName);
-      setDocumentTitles(prev => ({
-        ...prev,
-        [titleKey]: displayTitle
-      }));
     } catch (error) {
       console.error('Error updating recent URLs:', error);
       setError('Failed to update recent URLs');
@@ -440,7 +438,7 @@ export function useDashboard(initialData?: UserPreferences) {
           // If there's only one sheet, use it automatically
           await updateRecentUrls(value, sheetNames[0], workbook.doc_name);
         } else if (sheetNames.length > 1) {
-          // For multiple sheets, show sheet selector
+          // For multiple sheets, ONLY show selector - don't update anything yet
           setSelectedUrl(value);
           setShowSheetSelector(true);
         }
@@ -448,31 +446,50 @@ export function useDashboard(initialData?: UserPreferences) {
     }
   };
 
-  const handleSheetSelection = async (selectedSheet: string) => {
-    if (!selectedUrl) return;
+  const handleSheetSelection = async (url: string, selectedSheet: string) => {
+    if (!url || !selectedSheet) {
+      console.error('Missing required data for sheet selection:', { url, selectedSheet });
+      return;
+    }
 
     setShowSheetSelector(false);
     setIsLoadingTitles(true);
 
     try {
-      const cachedWorkbook = workbookCache[selectedUrl];
+      // Get the cached workbook data
+      const cachedWorkbook = workbookCache[url];
       if (!cachedWorkbook) {
-        throw new Error('Workbook information not found');
+        throw new Error('Workbook information not found in cache');
       }
 
-      // Update document titles mapping
-      const titleKey = formatTitleKey(selectedUrl, selectedSheet);
+      // Verify the selected sheet exists in the workbook
+      if (!cachedWorkbook.sheet_names.includes(selectedSheet)) {
+        throw new Error(`Selected sheet "${selectedSheet}" not found in workbook sheets: ${cachedWorkbook.sheet_names.join(', ')}`);
+      }
+
+      // Create title key and display title using cached workbook data
+      const titleKey = formatTitleKey(url, selectedSheet);
       const displayTitle = formatDisplayTitle(cachedWorkbook.doc_name, selectedSheet);
       
+      // Update document titles mapping
       setDocumentTitles(prev => ({
         ...prev,
         [titleKey]: displayTitle
       }));
 
-      // Update recent URLs in database
-      await updateRecentUrls(selectedUrl, selectedSheet, cachedWorkbook.doc_name);
+      // Update recent URLs in database with cached workbook data
+      await updateRecentUrls(
+        url,
+        selectedSheet,
+        cachedWorkbook.doc_name
+      );
+
     } catch (error) {
-      console.error('Error updating sheet selection:', error);
+      console.error('Error in handleSheetSelection:', {
+        error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
       setError('Failed to update sheet selection');
     } finally {
       setIsLoadingTitles(false);
