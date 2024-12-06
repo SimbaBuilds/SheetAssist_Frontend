@@ -3,15 +3,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { useDashboard } from '@/hooks/useDashboard';
-import { useSetupPermissions } from '@/hooks/useSetupPermissions';
-import { PlusIcon, ArrowTopRightOnSquareIcon as ExternalLinkIcon } from '@heroicons/react/24/outline'
-import type { DownloadFileType } from '@/types/dashboard'
+import { useDashboard } from '@/hooks/useDashboard'
+import { useSetupPermissions } from '@/hooks/useSetupPermissions'
+import { PlusIcon } from '@heroicons/react/24/outline'
+import type { DownloadFileType, SheetTitleKey } from '@/types/dashboard'
 import { DOWNLOAD_FILE_TYPES, ACCEPTED_FILE_EXTENSIONS } from '@/constants/file-types'
 import { ProcessingResultDialog } from '@/components/authorized/ProcessingResultDialog'
 import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { AlertCircle } from 'lucide-react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,9 +27,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { InfoIcon } from 'lucide-react'
 import {
   Command,
-  CommandEmpty,
   CommandGroup,
-  CommandInput,
   CommandItem,
 } from "@/components/ui/command"
 import {
@@ -39,6 +35,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { SheetSelector } from '@/components/SheetSelector'
+
+const formatDisplayTitle = (doc_name: string, sheet_name?: string): string => {
+  if (sheet_name) {
+    return `${doc_name} - ${sheet_name}`;
+  }
+  return doc_name;
+}
+
 const MAX_FILES = 10
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 const MAX_QUERY_LENGTH = 500
@@ -64,56 +69,57 @@ const EXAMPLE_QUERIES = [
   "Filter and count items sold per category in the product sales sheet, summarizing by month"
 ]
 
-type DashboardPageProps = {
-  initialData?: any // Type this according to your data structure
-}
 
-type OutputType = 'download' | 'online' | null
 
-export function DashboardPage({ initialData }: DashboardPageProps) {
+export default function DashboardPage() {
   const {
-    showPermissionsPrompt,
-    setShowPermissionsPrompt,
-    files,
-    setFiles,
     urls,
     query,
-    setQuery,
-    outputType,
-    setOutputType,
-    outputUrl,
-    setOutputUrl,
-    isProcessing,
+    files,
     error,
-    permissions,
+    outputType,
+    outputUrl,
+    isProcessing,
+    showPermissionsPrompt,
     urlPermissionError,
+    urlValidationError,
+    recentUrls,
+    documentTitles,
+    downloadFileType,
+    fileErrors,
+    outputTypeError,
+    processedResult,
+    showResultDialog,
+    allowSheetModification,
+    showModificationWarning,
+    destinationUrlError,
+    isLoadingTitles,
+    availableSheets,
+    showSheetSelector,
+    selectedUrl,
+    permissions,
+    setShowPermissionsPrompt,
+    setFiles,
+    setQuery,
+    setOutputType,
+    setDownloadFileType,
+    setOutputTypeError,
+    setShowResultDialog,
+    setAllowSheetModification,
+    setShowModificationWarning,
+    setShowSheetSelector,
+    handleSheetSelection,
     handleFileChange,
     handleUrlChange,
     handleUrlFocus,
     handleSubmit,
-    recentUrls,
-    downloadFileType,
-    setDownloadFileType,
-    fileErrors,
-    outputTypeError,
-    setOutputTypeError,
-    processedResult,
-    showResultDialog,
-    setShowResultDialog,
-    allowSheetModification,
-    setAllowSheetModification,
-    showModificationWarning,
-    setShowModificationWarning,
-    handleWarningAcknowledgment,
-    continueSubmitAfterWarning,
-    urlValidationError,
     addUrlField,
     removeUrlField,
-    documentTitles,
     handleOutputUrlChange,
-    destinationUrlError,
-    isLoadingTitles,
-  } = useDashboard(initialData)
+    handleWarningAcknowledgment,
+    continueSubmitAfterWarning,
+
+  } = useDashboard()
 
   const {
     handleGoogleSetup,
@@ -298,11 +304,11 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
                           ) : (
                             recentUrls.map((recentUrl) => (
                               <CommandItem
-                                key={recentUrl}
-                                value={recentUrl}
-                                onSelect={() => handleUrlChange(index, recentUrl)}
+                                key={recentUrl.url}
+                                value={recentUrl.url}
+                                onSelect={() => handleUrlChange(index, recentUrl.url)}
                               >
-                                {documentTitles[recentUrl] || recentUrl}
+                                {recentUrl.doc_name ? formatDisplayTitle(recentUrl.doc_name, recentUrl.sheet_name) : recentUrl.url}
                               </CommandItem>
                             ))
                           )}
@@ -340,6 +346,15 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
           )}
         </div>
 
+        {/* Sheet Selector */}
+        <SheetSelector
+          url={selectedUrl}
+          sheets={availableSheets[selectedUrl] || []}
+          onSelect={handleSheetSelection}
+          onClose={() => setShowSheetSelector(false)}
+          open={showSheetSelector}
+        />
+
         {/* Query Input */}
         <div>
           <div className="flex justify-between items-center">
@@ -360,7 +375,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
                     See examples
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="max-w-2xl">
                   <DialogHeader>
                     <DialogTitle>Example Queries</DialogTitle>
                   </DialogHeader>
@@ -500,11 +515,11 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
                       ) : (
                         recentUrls.map((recentUrl) => (
                           <CommandItem
-                            key={recentUrl}
-                            value={recentUrl}
-                            onSelect={() => handleOutputUrlChange(recentUrl)}
+                            key={recentUrl.url}
+                            value={recentUrl.url}
+                            onSelect={() => handleOutputUrlChange(recentUrl.url)}
                           >
-                            {documentTitles[recentUrl] || recentUrl}
+                            {recentUrl.doc_name ? formatDisplayTitle(recentUrl.doc_name, recentUrl.sheet_name) : recentUrl.url}
                           </CommandItem>
                         ))
                       )}
@@ -595,7 +610,7 @@ export function DashboardPage({ initialData }: DashboardPageProps) {
                     htmlFor="dontShowAgain"
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                   >
-                    Don't show this warning again
+                    Don&apos;t show this warning again
                   </label>
                 </div>
               </AlertDialogDescription>

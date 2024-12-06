@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import { processQuery, downloadFile, getDocumentTitles } from '@/services/python_backend'
+import { processQuery, downloadFile, getDocumentTitle } from '@/services/python_backend'
 import { createClient } from '@/utils/supabase/client'
-import type { DownloadFileType, DashboardInitialData, OutputPreferences, ProcessedQueryResult } from '@/types/dashboard'
+import type { DownloadFileType, DashboardInitialData, OutputPreferences, ProcessedQueryResult, SheetTitleKey, InputUrl, OnlineSheet } from '@/types/dashboard'
 import { ACCEPTED_FILE_TYPES } from '@/constants/file-types'
 import { useRouter } from 'next/navigation'
 
@@ -17,7 +17,18 @@ interface FileError {
 }
 
 interface DocumentTitleMap {
-  [url: string]: string;
+  [key: string]: string;  // key will be JSON.stringify(SheetTitleKey)
+}
+
+const formatTitleKey = (url: string, sheet_name?: string): string => {
+  return JSON.stringify({ url, sheet_name } as SheetTitleKey);
+}
+
+const formatDisplayTitle = (doc_name: string, sheet_name?: string): string => {
+  if (sheet_name) {
+    return `${doc_name} - ${sheet_name}`;
+  }
+  return doc_name;
 }
 
 export function useDashboard(initialData?: UserPreferences) {
@@ -37,7 +48,7 @@ export function useDashboard(initialData?: UserPreferences) {
   })
   const [urlPermissionError, setUrlPermissionError] = useState<string | null>(null)
   const [urlValidationError, setUrlValidationError] = useState<string | null>(null)
-  const [recentUrls, setRecentUrls] = useState<string[]>([])
+  const [recentUrls, setRecentUrls] = useState<OnlineSheet[]>([])
   const [downloadFileType, setDownloadFileType] = useState<DownloadFileType>('csv')
   const [fileErrors, setFileErrors] = useState<FileError[]>([])
   const [outputTypeError, setOutputTypeError] = useState<string | null>(null)
@@ -47,17 +58,32 @@ export function useDashboard(initialData?: UserPreferences) {
   const [showModificationWarning, setShowModificationWarning] = useState(false)
   const [showSheetModificationWarningPreference, setShowSheetModificationWarningPreference] = useState(true)
   const [documentTitles, setDocumentTitles] = useState<DocumentTitleMap>({})
+  const [availableSheets, setAvailableSheets] = useState<{ [url: string]: string[] }>({})
+  const [showSheetSelector, setShowSheetSelector] = useState(false)
+  const [selectedUrl, setSelectedUrl] = useState<string>('')
   const [destinationUrlError, setDestinationUrlError] = useState<string | null>(null)
   const [isLoadingTitles, setIsLoadingTitles] = useState(true)
+  const [workbookCache, setWorkbookCache] = useState<{ [url: string]: { doc_name: string, sheet_names: string[] } }>({})
 
   const supabase = createClient()
 
+  // Initialize document titles from recent sheets
+  const initializeFromRecentSheets = (sheets: OnlineSheet[]): DocumentTitleMap => {
+    const newTitleMap: DocumentTitleMap = {};
+    sheets.forEach((sheet: OnlineSheet) => {
+      const titleKey = formatTitleKey(sheet.url, sheet.sheet_name);
+      const displayTitle = formatDisplayTitle(sheet.doc_name, sheet.sheet_name);
+      newTitleMap[titleKey] = displayTitle;
+    });
+    return newTitleMap;
+  };
+
   useEffect(() => {
     const fetchUserPreferences = async () => {
-      if (!user?.id) return
+      if (!user?.id) return;
 
       try {
-        setIsLoadingTitles(true)
+        setIsLoadingTitles(true);
         const [{ data: profile }, { data: usage }] = await Promise.all([
           supabase
             .from('user_profile')
@@ -66,32 +92,85 @@ export function useDashboard(initialData?: UserPreferences) {
             .single(),
           supabase
             .from('user_usage')
-            .select('recent_urls')
+            .select('recent_sheets')
             .eq('user_id', user.id)
             .single()
         ]);
 
         if (profile) {
-          console.log('[useDashboard] Fetched user preferences:', profile)
-          setAllowSheetModification(profile.allow_sheet_modification ?? false)
-          setShowSheetModificationWarningPreference(profile.show_sheet_modification_warning ?? true)
+          console.log('[useDashboard] Fetched user preferences:', profile);
+          setAllowSheetModification(profile.allow_sheet_modification ?? false);
+          setShowSheetModificationWarningPreference(profile.show_sheet_modification_warning ?? true);
         }
 
-        if (usage?.recent_urls?.length) {
-          console.log('[useDashboard] Fetched recent URLs:', usage.recent_urls)
-          setRecentUrls(usage.recent_urls)
-          // Fetch titles for all recent URLs
-          await fetchDocumentTitles(usage.recent_urls)
+        if (usage?.recent_sheets?.length) {
+          console.log('[useDashboard] Fetched recent sheets:', usage.recent_sheets);
+          setRecentUrls(usage.recent_sheets);
+          
+          // Initialize document titles from recent sheets
+          const initialTitleMap = initializeFromRecentSheets(usage.recent_sheets);
+          setDocumentTitles(initialTitleMap);
+          
+          // Fetch sheet information for any URLs without sheet names
+          const sheetsNeedingInfo = usage.recent_sheets.filter(
+            (sheet: OnlineSheet) => !sheet.sheet_name
+          );
+
+          if (sheetsNeedingInfo.length > 0) {
+            const sheetPromises = sheetsNeedingInfo.map(async (sheet: OnlineSheet) => {
+              const url: string = sheet.url;
+
+              try {
+                const workbook = await getDocumentTitle(url);
+                if (workbook.success && workbook.doc_name) {
+                  const newAvailableSheets = [...workbook?.sheet_names ?? []];
+                  const newTitleMap = { ...initialTitleMap };
+
+                  if (newAvailableSheets.length > 0) {
+                    // Update available sheets mapping
+                    setAvailableSheets(prev => ({
+                      ...prev,
+                      [workbook.url]: newAvailableSheets
+                    }));
+
+                    // Create title entries for each sheet
+                    newAvailableSheets.forEach((sheetName: string) => {
+                      const titleKey = formatTitleKey(workbook.url, sheetName);
+                      const displayTitle = formatDisplayTitle(workbook.doc_name, sheetName);
+                      newTitleMap[titleKey] = displayTitle;
+                    });
+
+                    return { url: workbook.url, titleMap: newTitleMap };
+                  }
+                }
+              } catch (error) {
+                console.error('Error fetching workbook details:', error);
+              }
+              return null;
+            });
+
+            const results = await Promise.all(sheetPromises);
+            
+            // Combine all title maps
+            const finalTitleMap = { ...initialTitleMap };
+            results.forEach(result => {
+              if (result) {
+                Object.assign(finalTitleMap, result.titleMap);
+              }
+            });
+
+            setDocumentTitles(finalTitleMap);
+          }
         }
       } catch (error) {
-        console.error('[useDashboard] Error fetching user data:', error)
+        console.error('[useDashboard] Error fetching user data:', error);
       } finally {
-        setIsLoadingTitles(false)
+        setIsLoadingTitles(false);
       }
-    }
+    };
 
-    fetchUserPreferences()
-  }, [user?.id])
+    fetchUserPreferences();
+  }, [user?.id]);
 
   useEffect(() => {
     if (initialData) {
@@ -107,8 +186,8 @@ export function useDashboard(initialData?: UserPreferences) {
       if (initialData.last_query) {
         setQuery(initialData.last_query)
       }
-      if (initialData.recent_urls) {
-        setRecentUrls(initialData.recent_urls)
+      if (initialData.recent_sheets) {
+        setRecentUrls(initialData.recent_sheets);
       }
     }
   }, [initialData])
@@ -196,153 +275,241 @@ export function useDashboard(initialData?: UserPreferences) {
     }
   }
 
-  const handleAuthError = (error: any) => {
-    const errorDetail = error?.response?.data?.detail;
-    if (errorDetail?.includes('Google authentication expired')) {
-      router.push('/auth/setup-permissions?provider=google&reauth=true');
-      return true;
-    } else if (errorDetail?.includes('Microsoft authentication expired')) {
-      router.push('/auth/setup-permissions?provider=microsoft&reauth=true');
-      return true;
+  const handleAuthError = (error: unknown): boolean => {
+    if (error && typeof error === 'object' && 'response' in error) {
+      const errorDetail = (error as { response?: { data?: { detail?: string } } }).response?.data?.detail;
+      if (errorDetail?.includes('Google authentication expired')) {
+        router.push('/auth/setup-permissions?provider=google&reauth=true');
+        return true;
+      } else if (errorDetail?.includes('Microsoft authentication expired')) {
+        router.push('/auth/setup-permissions?provider=microsoft&reauth=true');
+        return true;
+      }
     }
     return false;
   };
 
-  const fetchDocumentTitles = async (urlsToFetch: string[]) => {
+  const fetchDocumentTitles = async (url: string) => {
     try {
-      const titles = await getDocumentTitles(urlsToFetch);
+      const workbook = await getDocumentTitle(url);
       
-      // Check for auth errors in the response
-      for (const title of titles) {
-        if (title.error) {
-          if (title.error === "Error accessing Google Sheets. Please reconnect your Google account.") {
-            router.push('/auth/setup-permissions?provider=google&reauth=true');
-            return;
-          } else if (title.error === "Error accessing Excel Online. Please reconnect your Microsoft account.") {
-            router.push('/auth/setup-permissions?provider=microsoft&reauth=true');
-            return;
-          }
+      // Update documentTitles state with new mappings
+      const newDocumentTitles = { ...documentTitles };
+      
+      if (workbook.success && workbook.doc_name) {
+        if (workbook.sheet_names?.length) {
+          // For URLs with multiple sheets (Microsoft or Google)
+          workbook.sheet_names.forEach((sheetName: string) => {
+            const titleKey = formatTitleKey(workbook.url, sheetName);
+            const displayTitle = formatDisplayTitle(workbook.doc_name, sheetName);
+            newDocumentTitles[titleKey] = displayTitle;
+          });
+
+          // Update available sheets
+          setAvailableSheets(prev => ({
+            ...prev,
+            [workbook.url]: [...workbook?.sheet_names ?? []]
+          }));
+        } else {
+          // For URLs with a single sheet or no sheet specified
+          // Always create a mapping with the sheet name if provided in the input
+          const titleKey = formatTitleKey(workbook.url, '');
+          const displayTitle = formatDisplayTitle(workbook.doc_name, '');
+          newDocumentTitles[titleKey] = displayTitle;
+        }
+      } else if (workbook.error) {
+        // Handle specific error cases
+        if (workbook.error.includes('authentication')) {
+          throw new Error('Authentication failed. Please check your permissions.');
+        } else if (workbook.error.includes('not found')) {
+          throw new Error('Document not found. Please check the URL.');
+        } else {
+          throw new Error(workbook.error);
         }
       }
 
-      // If no auth errors, proceed with updating titles
-      const newTitleMap = titles.reduce((acc, { url, title }) => ({
-        ...acc,
-        [url]: title
-      }), {});
-      setDocumentTitles(prev => ({ ...prev, ...newTitleMap }));
+      setDocumentTitles(newDocumentTitles);
+      return workbook;
     } catch (error) {
-      console.error('Error fetching spreadsheet title:', error);
-      if (!handleAuthError(error)) {
-        setError('Failed to fetch spreadsheet title');
-      }
+      console.error('Error fetching document titles:', error);
+      setError(error instanceof Error ? error.message : 'Failed to fetch document title');
+      return null;
     }
   };
 
-  const updateRecentUrls = async (newUrl: string) => {
-    if (!user?.id || !newUrl.trim()) return;
+  const updateRecentUrls = async (newUrl: string, sheetName: string, docName: string) => {
+    if (!user?.id || !newUrl.trim() || !sheetName || !docName) return;
     
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('user_usage')
-        .select('recent_urls')
+        .select('recent_sheets')
         .eq('user_id', user.id)
         .single();
 
-      let updatedUrls = data?.recent_urls || [];
+      if (error) throw error;
+
+      let updatedUrls = data?.recent_sheets || [];
       
-      // Remove the URL if it already exists to avoid duplicates
-      updatedUrls = updatedUrls.filter((url: string) => url !== newUrl);
+      // Remove any existing entries for this URL and sheet combination
+      updatedUrls = updatedUrls.filter((sheet: OnlineSheet) => 
+        !(sheet.url === newUrl && sheet.sheet_name === sheetName)
+      );
       
       // Add the new URL at the beginning
-      updatedUrls = [newUrl, ...updatedUrls];
+      const newSheet: OnlineSheet = {
+        url: newUrl,
+        doc_name: docName,
+        sheet_name: sheetName
+      };
       
       // Keep only the last 6 URLs
-      updatedUrls = updatedUrls.slice(0, 6);
+      updatedUrls = [newSheet, ...updatedUrls].slice(0, 6);
 
-      await supabase
+      const { error: updateError } = await supabase
         .from('user_usage')
         .upsert({ 
           user_id: user.id,
-          recent_urls: updatedUrls
+          recent_sheets: updatedUrls
         });
 
+      if (updateError) throw updateError;
+
       setRecentUrls(updatedUrls);
-      
-      // Fetch title for the new URL if we don't have it
-      if (!documentTitles[newUrl]) {
-        await fetchDocumentTitles([newUrl]);
-      }
+
+      // Update document titles mapping
+      const titleKey = formatTitleKey(newUrl, sheetName);
+      const displayTitle = formatDisplayTitle(docName, sheetName);
+      setDocumentTitles(prev => ({
+        ...prev,
+        [titleKey]: displayTitle
+      }));
     } catch (error) {
       console.error('Error updating recent URLs:', error);
+      setError('Failed to update recent URLs');
     }
   };
 
   const handleUrlChange = async (index: number, value: string) => {
-    const newUrls = [...urls];
-    newUrls[index] = value;
-    setUrls(newUrls);
     setUrlPermissionError(null);
     setUrlValidationError(null);
 
-    // if (index === 0 && value && !outputUrl) {
-    //   setOutputType('online');
-    //   setOutputUrl(value);
-    // }
+    // Update the URLs array at the specified index
+    const newUrls = [...urls];
+    newUrls[index] = value;
+    setUrls(newUrls);
 
     if (value) {
-      // Update recent URLs regardless of validation
-      await updateRecentUrls(value);
-
-      // Validate URL format for spreadsheets only
-      const isValidSpreadsheetUrl = ['spreadsheets', 'xlsx'].some(
-        term => value.toLowerCase().includes(term)
-      );
-
-      if (!isValidSpreadsheetUrl) {
-        setUrlValidationError('Please enter a valid URL to a Microsoft Excel or Google Sheets spreadsheet workbook');
+      // Basic URL validation
+      if (!/^https?:\/\/.+/.test(value)) {
+        setUrlValidationError('Please enter a valid URL starting with http:// or https://');
         return;
       }
 
-      // Check permissions based on URL type
+      // Check if it's a Google or Microsoft URL
       const isGoogleUrl = value.includes('google.com') || value.includes('docs.google.com') || value.includes('sheets.google.com');
       const isMicrosoftUrl = value.includes('onedrive.live.com') || value.includes('live.com') || value.includes('sharepoint.com');
 
-      if (isGoogleUrl && !permissions.google) {
-        setUrlPermissionError('You need to connect your Google account to interact with Google Sheets');
-        setShowPermissionsPrompt(true);
-      } else if (isMicrosoftUrl && !permissions.microsoft) {
-        setUrlPermissionError('You need to connect your Microsoft account to interact with Excel Online');
-        setShowPermissionsPrompt(true);
+      if (!isGoogleUrl && !isMicrosoftUrl) {
+        setUrlValidationError('Please enter a valid Google Sheets or Microsoft Excel Online URL');
+        return;
       }
 
-      // If URL is valid and permissions are correct, fetch the document title
-      if (!urlPermissionError && !urlValidationError && /^https?:\/\/.+/.test(value)) {
-        await fetchDocumentTitles([value]);
+      // Check permissions
+      if (isGoogleUrl && !permissions.google) {
+        setUrlPermissionError('Please set up Google permissions first');
+      } else if (isMicrosoftUrl && !permissions.microsoft) {
+        setUrlPermissionError('Please set up Microsoft permissions first');
       }
+
+      // Fetch document title and handle sheet selection
+      const workbook = await fetchDocumentTitles(value);
+      if (workbook?.success) {
+        const sheetNames = workbook.sheet_names ?? [];
+        
+        // Cache workbook information
+        setWorkbookCache(prev => ({
+          ...prev,
+          [value]: {
+            doc_name: workbook.doc_name,
+            sheet_names: sheetNames
+          }
+        }));
+        
+        if (sheetNames.length === 1) {
+          // If there's only one sheet, use it automatically
+          await updateRecentUrls(value, sheetNames[0], workbook.doc_name);
+        } else if (sheetNames.length > 1) {
+          // For multiple sheets, show sheet selector
+          setSelectedUrl(value);
+          setShowSheetSelector(true);
+        }
+      }
+    }
+  };
+
+  const handleSheetSelection = async (selectedSheet: string) => {
+    if (!selectedUrl) return;
+
+    setShowSheetSelector(false);
+    setIsLoadingTitles(true);
+
+    try {
+      const cachedWorkbook = workbookCache[selectedUrl];
+      if (!cachedWorkbook) {
+        throw new Error('Workbook information not found');
+      }
+
+      // Update document titles mapping
+      const titleKey = formatTitleKey(selectedUrl, selectedSheet);
+      const displayTitle = formatDisplayTitle(cachedWorkbook.doc_name, selectedSheet);
+      
+      setDocumentTitles(prev => ({
+        ...prev,
+        [titleKey]: displayTitle
+      }));
+
+      // Update recent URLs in database
+      await updateRecentUrls(selectedUrl, selectedSheet, cachedWorkbook.doc_name);
+    } catch (error) {
+      console.error('Error updating sheet selection:', error);
+      setError('Failed to update sheet selection');
+    } finally {
+      setIsLoadingTitles(false);
     }
   };
 
   const handleUrlFocus = async () => {
     if (user?.id) {
-      // Fetch recent URLs from the database
-      const { data: profile } = await supabase
-        .from('user_profile')
-        .select('recent_urls')
-        .eq('id', user.id)
-        .single()
+      try {
+        const { data } = await supabase
+          .from('user_usage')
+          .select('recent_sheets')
+          .eq('user_id', user.id)
+          .single();
 
-      if (profile?.recent_urls) {
-        setRecentUrls(profile.recent_urls)
-        // Fetch titles for URLs that don't have them yet
-        const urlsWithoutTitles = profile.recent_urls.filter((url: string) => !documentTitles[url])
-        if (urlsWithoutTitles.length > 0) {
-          await fetchDocumentTitles(urlsWithoutTitles)
+        if (data?.recent_sheets) {
+          setRecentUrls(data.recent_sheets);
+          
+          // Get titles for URLs that don't have any mapping entries
+          const urlsToFetch = data.recent_sheets.filter((sheet: OnlineSheet) => {
+            const titleKey = formatTitleKey(sheet.url, sheet.sheet_name);
+            return !documentTitles[titleKey];
+          });
+
+          if (urlsToFetch.length > 0) {
+            const titlePromises = urlsToFetch.map((sheet: OnlineSheet) => 
+              fetchDocumentTitles(sheet.url)
+            );
+            
+            await Promise.all(titlePromises);
+          }
         }
+      } catch (error) {
+        console.error('Error fetching recent URLs:', error);
       }
     }
-  }
-
+  };
   const addUrlField = () => {
     if (urls.length < MAX_FILES) {
       setUrls([...urls, ''])
@@ -353,7 +520,6 @@ export function useDashboard(initialData?: UserPreferences) {
     const newUrls = urls.filter((_, i) => i !== index)
     setUrls(newUrls.length ? newUrls : ['']) // Keep at least one URL field
   }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
@@ -401,7 +567,32 @@ export function useDashboard(initialData?: UserPreferences) {
     setIsProcessing(true)
 
     try {
-      const validUrls = urls.filter(url => url)
+      const validUrls = urls.filter(url => url).map(url => {
+        // Find the recent URL entry that matches this URL
+        const recentEntry = recentUrls.find(sheet => sheet.url === url);
+        if (recentEntry) {
+          return {
+            url,
+            sheet_name: recentEntry.sheet_name
+          } as InputUrl;
+        }
+
+        // If no recent entry found, try to find from workbook cache
+        const cachedWorkbook = workbookCache[url];
+        if (cachedWorkbook && cachedWorkbook.sheet_names.length === 1) {
+          return {
+            url,
+            sheet_name: cachedWorkbook.sheet_names[0]
+          } as InputUrl;
+        }
+
+        // If we still don't have a sheet name, this URL hasn't been properly processed
+        console.warn(`No sheet name found for URL: ${url}`);
+        return {
+          url,
+          sheet_name: null
+        } ;
+      });
       
       // Create output preferences object
       const outputPreferences: OutputPreferences = {
@@ -493,44 +684,48 @@ export function useDashboard(initialData?: UserPreferences) {
     setOutputTypeError(null);
     
     if (value) {
-      // Update recent URLs regardless of validation
-      await updateRecentUrls(value);
       await validateDestinationUrl(value);
     }
   };
 
-  const validateDestinationUrl = async (value: string) => {
-    setDestinationUrlError(null)
+  const validateDestinationUrl = async (value: string): Promise<boolean> => {
+    setDestinationUrlError(null);
 
-    if (!value) return true;
-
-    // Validate URL format for spreadsheets only
-    const isValidSpreadsheetUrl = ['spreadsheets', 'xlsx'].some(
-      term => value.toLowerCase().includes(term)
-    );
-
-    if (!isValidSpreadsheetUrl) {
-      setDestinationUrlError('Please enter a valid URL to a Microsoft Excel or Google Sheets spreadsheet workbook')
+    if (!value) {
+      setDestinationUrlError('Please enter a destination URL');
       return false;
     }
 
-    // Check permissions based on URL type
-    const isGoogleUrl = value.includes('google.com') || value.includes('docs.google.com') || value.includes('sheets.google.com')
-    const isMicrosoftUrl = value.includes('onedrive.live.com') || value.includes('live.com') || value.includes('sharepoint.com')
+    // Basic URL validation
+    try {
+      new URL(value);
+    } catch {
+      setDestinationUrlError('Please enter a valid URL starting with http:// or https://');
+      return false;
+    }
 
+    // Check if it's a Google or Microsoft URL
+    const isGoogleUrl = value.includes('google.com') || value.includes('docs.google.com') || value.includes('sheets.google.com');
+    const isMicrosoftUrl = value.includes('onedrive.live.com') || value.includes('live.com') || value.includes('sharepoint.com');
+
+    if (!isGoogleUrl && !isMicrosoftUrl) {
+      setDestinationUrlError('Please enter a valid Google Sheets or Microsoft Excel Online URL');
+      return false;
+    }
+
+    // Check permissions
     if (isGoogleUrl && !permissions.google) {
-      setDestinationUrlError('You need to connect your Google account to interact with Google Sheets')
-      setShowPermissionsPrompt(true)
+      setDestinationUrlError('Please set up Google permissions first');
       return false;
     } else if (isMicrosoftUrl && !permissions.microsoft) {
-      setDestinationUrlError('You need to connect your Microsoft account to interact with Excel Online')
-      setShowPermissionsPrompt(true)
+      setDestinationUrlError('Please set up Microsoft permissions first');
       return false;
     }
 
-    // If URL is valid and permissions are correct, fetch the document title
-    if (!destinationUrlError && /^https?:\/\/.+/.test(value)) {
-      await fetchDocumentTitles([value])
+    const workbook = await fetchDocumentTitles(value);
+    if (!workbook?.success) {
+      setDestinationUrlError('Unable to access the destination document. Please check the URL and your permissions.');
+      return false;
     }
 
     return true;
@@ -565,7 +760,32 @@ export function useDashboard(initialData?: UserPreferences) {
     setIsProcessing(true)
 
     try {
-      const validUrls = urls.filter(url => url)
+      const validUrls = urls.filter(url => url).map(url => {
+        // Find the recent URL entry that matches this URL
+        const recentEntry = recentUrls.find(sheet => sheet.url === url);
+        if (recentEntry) {
+          return {
+            url,
+            sheet_name: recentEntry.sheet_name
+          } as InputUrl;
+        }
+
+        // If no recent entry found, try to find from workbook cache
+        const cachedWorkbook = workbookCache[url];
+        if (cachedWorkbook && cachedWorkbook.sheet_names.length === 1) {
+          return {
+            url,
+            sheet_name: cachedWorkbook.sheet_names[0]
+          } as InputUrl;
+        }
+
+        // If we still don't have a sheet name, this URL hasn't been properly processed
+        console.warn(`No sheet name found for URL: ${url}`);
+        return {
+          url,
+          sheet_name: null
+        } as InputUrl;
+      });
       
       // Create output preferences object
       const outputPreferences: OutputPreferences = {
@@ -652,47 +872,64 @@ export function useDashboard(initialData?: UserPreferences) {
     }
   }
 
+  const handleQueryChange = (value: string) => {
+    setQuery(value);
+  };
+
+  const handleDownloadFormatChange = (value: DownloadFileType) => {
+    setDownloadFileType(value);
+  };
+
   return {
-    showPermissionsPrompt,
-    setShowPermissionsPrompt,
-    files,
-    setFiles,
     urls,
     query,
-    setQuery,
-    outputType,
-    setOutputType,
-    outputUrl,
-    setOutputUrl,
-    isProcessing,
+    files,
     error,
-    permissions,
+    outputType,
+    outputUrl,
+    isProcessing,
+    showPermissionsPrompt,
     urlPermissionError,
+    urlValidationError,
+    recentUrls,
+    documentTitles,
+    downloadFileType,
+    fileErrors,
+    outputTypeError,
+    processedResult,
+    showResultDialog,
+    allowSheetModification,
+    showModificationWarning,
+    showSheetModificationWarningPreference,
+    destinationUrlError,
+    isLoadingTitles,
+    availableSheets,
+    showSheetSelector,
+    selectedUrl,
+    permissions,
+    setShowPermissionsPrompt,
+    setFiles,
+    setQuery,
+    setOutputType,
+    setOutputUrl,
+    setError,
+    setDownloadFileType,
+    setOutputTypeError,
+    setShowResultDialog,
+    setAllowSheetModification,
+    setShowModificationWarning,
+    setShowSheetSelector,
+    handleSheetSelection,
     handleFileChange,
     handleUrlChange,
     handleUrlFocus,
     handleSubmit,
-    recentUrls,
-    downloadFileType,
-    setDownloadFileType,
-    fileErrors,
-    outputTypeError,
-    setOutputTypeError,
-    processedResult,
-    showResultDialog,
-    setShowResultDialog,
-    allowSheetModification,
-    setAllowSheetModification,
-    showModificationWarning,
-    setShowModificationWarning,
-    handleWarningAcknowledgment,
-    continueSubmitAfterWarning,
-    urlValidationError,
     addUrlField,
     removeUrlField,
-    documentTitles,
     handleOutputUrlChange,
-    destinationUrlError,
-    isLoadingTitles,
-  } as const
-} 
+    handleWarningAcknowledgment,
+    continueSubmitAfterWarning,
+    handleQueryChange,
+    handleDownloadFormatChange,
+  } as const;
+}

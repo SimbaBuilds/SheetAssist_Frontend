@@ -1,3 +1,5 @@
+import { OnlineSheet } from './dashboard'
+
 export type PlanType = 'free' | 'base' | 'pro'
 
 // Add plan limits constant
@@ -13,11 +15,7 @@ export const PLAN_IMAGE_LIMITS = {
   pro: 500
 } as const
 
-interface OnlineDoc {
-  url: string;
-  provider: string;
-  sheet_name: string;
-}
+
 
 // user_profile table
 export interface UserProfile {
@@ -39,8 +37,8 @@ export interface UserUsage {
   requests_this_month: number
   images_processed_this_month: number
   requests_previous_3_months: number
-  unsuccessful_requests: number
-  recent_docs: OnlineDoc[] | null // jsonb array of max length 6
+  unsuccessful_requests_this_month: number
+  recent_sheets: OnlineSheet[] | null // jsonb array of max length 6
 
 }
 

@@ -1,16 +1,8 @@
-import { AxiosResponse } from 'axios';
+import { Axios, AxiosResponse } from 'axios';
 import api from './api';
-import { OutputPreferences, FileMetadata, QueryRequest, ProcessedQueryResult, FileInfo } from '@/types/dashboard';
+import { OutputPreferences, FileMetadata, QueryRequest, ProcessedQueryResult, FileInfo, Workbook, InputUrl } from '@/types/dashboard';
 import { AcceptedMimeType } from '@/constants/file-types';
 import { createClient } from '@/utils/supabase/client';
-import { request } from 'http';
-
-interface DocumentTitle {
-  url: string;
-  title?: string;
-  error?: string;
-  success: boolean;
-}
 
 // Helper function to update user usage statistics
 async function updateUserUsage(userId: string, success: boolean, numImagesProcessed: number = 0) {
@@ -34,7 +26,7 @@ async function updateUserUsage(userId: string, success: boolean, numImagesProces
     requests_this_month: (usageData.requests_this_month || 0) + (success ? 1 : 0),
     images_processed_this_month: (usageData.images_processed_this_month || 0) + (success ? numImagesProcessed : 0),
     requests_previous_3_months: (usageData.requests_previous_3_months || 0) + (success ? 1 : 0),
-    unsuccessful_requests: (usageData.unsuccessful_requests || 0) + (success ? 0 : 1)
+    unsuccessful_requests_this_month: (usageData.unsuccessful_requests_this_month || 0) + (success ? 0 : 1)
   };
 
   // Update usage statistics
@@ -47,7 +39,7 @@ async function updateUserUsage(userId: string, success: boolean, numImagesProces
 // Function to process the query
 export const processQuery = async (
   query: string,
-  webUrls: string[] = [],
+  webUrls: InputUrl[] = [],
   files?: File[],
   outputPreferences?: OutputPreferences
 ): Promise<ProcessedQueryResult> => {
@@ -74,7 +66,7 @@ export const processQuery = async (
   // Part 1: JSON payload with metadata
   const jsonData: QueryRequest = {
     query,
-    web_urls: webUrls,
+    input_urls: webUrls,
     files_metadata: filesMetadata,
     output_preferences: outputPreferences
   };
@@ -111,7 +103,7 @@ export const processQuery = async (
       user_id: userId,
       query,
       file_names: files?.map(f => f.name) || [],
-      doc_names: webUrls,
+      doc_names: webUrls.map(url => url.url),
       processing_time_ms: processingTime,
       status: response.data.status,
       success: response.data.status === 'success'
@@ -130,7 +122,7 @@ export const processQuery = async (
       user_id: userId,
       query,
       file_names: files?.map(f => f.name) || [],
-      doc_names: webUrls,
+      doc_names: webUrls.map(url => url.url),
       processing_time_ms: processingTime,
       status: 'error',
       success: false
@@ -169,9 +161,9 @@ export const downloadFile = async (fileInfo: FileInfo): Promise<void> => {
 };
 
 // Function to get document titles from URLs
-export const getDocumentTitles = async (urls: string[]): Promise<DocumentTitle[]> => {
+export const getDocumentTitle = async (url: string): Promise<Workbook> => {
   try {
-    const response: AxiosResponse<DocumentTitle[]> = await api.post('/get_document_titles', { urls });
+    const response: AxiosResponse<Workbook> = await api.post('/get_document_title', { url });
     return response.data;
   } catch (error) {
     console.error('Error fetching document titles:', error);

@@ -1,6 +1,6 @@
 'use client'
 
-import { DashboardPage } from '@/components/authorized/DashboardPage'
+import DashboardPage from '@/components/authorized/DashboardPage'
 
 export default function Dashboard() {
 

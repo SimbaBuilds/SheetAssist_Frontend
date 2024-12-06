@@ -6,7 +6,7 @@ export type DownloadFileType = typeof DOWNLOAD_FILE_TYPES[number]['value']
 export interface DashboardInitialData {
   output_type?: 'download' | 'online' | null;
   last_query?: string;
-  recent_urls?: string[];
+  recent_sheets?: OnlineSheet[];
   allow_sheet_modification?: boolean;
   show_sheet_modification_warning?: boolean;
 }
@@ -16,6 +16,7 @@ export interface OutputPreferences {
   destination_url?: string
   format?: DownloadFileType
   modify_existing?: boolean
+  sheet_name?: string
 
 }
 
@@ -27,19 +28,18 @@ export interface FileMetadata {
   index: number
 }
 
+export interface InputUrl {
+    url: string
+    sheet_name?: string | null
+}
+
 export interface QueryRequest {
   query: string
-  web_urls?: string[]
+  input_urls?: InputUrl[]
   files_metadata?: FileMetadata[]
   output_preferences?: OutputPreferences
 }
 
-export interface CompleteQueryRequest {
-  json: QueryRequest
-  files: {
-    [key: `file_${number}`]: File
-  }
-}
 
 export interface TruncatedSandboxResult {
   original_query: string;
@@ -70,4 +70,32 @@ export interface FileResponse {
   url: string;
   filename: string;
   content_type: string;
+}
+
+
+export interface Workbook {
+  url: string;
+  doc_name: string;
+  provider: string | null;
+  sheet_names: string[] | null;
+  error?: string;
+  success: boolean;
+}
+
+
+export interface OnlineSheet {
+  url: string;
+  provider?: string;
+  doc_name: string;
+  sheet_name: string;
+  
+}
+
+export interface SheetTitleKey {
+  url: string;
+  sheet_name?: string;
+}
+
+export interface DocumentTitleMap {
+  [key: string]: string;  // key will be JSON.stringify(SheetTitleKey)
 }
