@@ -69,6 +69,8 @@ export function useDashboard(initialData?: UserPreferences) {
   const [isLoadingTitles, setIsLoadingTitles] = useState(true)
   const [workbookCache, setWorkbookCache] = useState<{ [url: string]: { doc_name: string, sheet_names: string[] } }>({})
   const [isRetrievingData, setIsRetrievingData] = useState(false)
+  const [selectedUrlPairs, setSelectedUrlPairs] = useState<InputUrl[]>([])
+  const [selectedOutputSheet, setSelectedOutputSheet] = useState<string | null>(null)
 
   const supabase = createClient()
 
@@ -401,15 +403,16 @@ export function useDashboard(initialData?: UserPreferences) {
     setUrls(newUrls);
 
     if (value) {
-      // If selection is from dropdown and we have a mapping, skip fetching
+      // If selection is from dropdown and we have a mapping, use existing sheet info
       if (fromDropdown) {
         const titleKey = value;  // value is the title key when from dropdown
         if (documentTitles[titleKey]) {
           try {
-            const { url } = JSON.parse(titleKey);
-            newUrls[index] = url;  // Update URL to the actual URL, not the title key
-            setUrls(newUrls);
-            console.log('[useDashboard] Skipping fetch - mapping exists for title key:', titleKey);
+            const { url, sheet_name } = JSON.parse(titleKey);
+            // Add to selected pairs instead of just updating URLs
+            const newPair: InputUrl = { url, sheet_name };
+            setSelectedUrlPairs(prev => [...prev, newPair]);
+            setUrls(['']); // Reset URL input field
             return;
           } catch (error) {
             console.error('Error parsing title key:', error);
@@ -439,10 +442,13 @@ export function useDashboard(initialData?: UserPreferences) {
           }));
           
           if (sheetNames.length === 1) {
-            // If there's only one sheet, use it automatically
+            // If there's only one sheet, add it to selected pairs automatically
+            const newPair: InputUrl = { url: value, sheet_name: sheetNames[0] };
+            setSelectedUrlPairs(prev => [...prev, newPair]);
+            setUrls(['']); // Reset URL input field
             await updateRecentUrls(value, sheetNames[0], workbook.doc_name);
           } else if (sheetNames.length > 1) {
-            // For multiple sheets, ONLY show selector - don't update anything yet
+            // For multiple sheets, show selector
             setSelectedUrl(value);
             setShowSheetSelector(true);
           }
@@ -462,14 +468,14 @@ export function useDashboard(initialData?: UserPreferences) {
     setDestinationUrlError(null);
     
     if (value) {
-      // If selection is from dropdown and we have a mapping, skip fetching
+      // If selection is from dropdown and we have a mapping, use existing sheet info
       if (fromDropdown) {
         const titleKey = value;  // value is the title key when from dropdown
         if (documentTitles[titleKey]) {
           try {
-            const { url } = JSON.parse(titleKey);
-            setOutputUrl(url);  // Update outputUrl to the actual URL, not the title key
-            console.log('[useDashboard] Skipping fetch - mapping exists for title key:', titleKey);
+            const { url, sheet_name } = JSON.parse(titleKey);
+            setOutputUrl(url);
+            setSelectedOutputSheet(sheet_name);
             return;
           } catch (error) {
             console.error('Error parsing title key:', error);
@@ -499,7 +505,8 @@ export function useDashboard(initialData?: UserPreferences) {
           }));
           
           if (sheetNames.length === 1) {
-            // If there's only one sheet, use it automatically
+            // If there's only one sheet, set it automatically
+            setSelectedOutputSheet(sheetNames[0]);
             await updateRecentUrls(value, sheetNames[0], workbook.doc_name);
           } else if (sheetNames.length > 1) {
             // For multiple sheets, show selector
@@ -537,25 +544,20 @@ export function useDashboard(initialData?: UserPreferences) {
         throw new Error(`Selected sheet "${selectedSheet}" not found in workbook sheets: ${cachedWorkbook.sheet_names.join(', ')}`);
       }
 
+      // Add to selected pairs
+      const newPair: InputUrl = { url, sheet_name: selectedSheet };
+      setSelectedUrlPairs(prev => [...prev, newPair]);
+      setUrls(['']); // Reset URL input field
+
       // Create title key and display title using cached workbook data
       const titleKey = formatTitleKey(url, selectedSheet);
       const displayTitle = formatDisplayTitle(cachedWorkbook.doc_name, selectedSheet);
       
       // Update document titles mapping
-      setDocumentTitles(prev => {
-        const newMapping = {
-          ...prev,
-          [titleKey]: displayTitle
-        };
-        console.log('Document Titles Mapping Updated:', {
-          // url,
-          // selectedSheet,
-          titleKey,
-          displayTitle,
-          currentMapping: newMapping
-        });
-        return newMapping;
-      });
+      setDocumentTitles(prev => ({
+        ...prev,
+        [titleKey]: displayTitle
+      }));
 
       // Update recent URLs in database with cached workbook data
       await updateRecentUrls(
@@ -565,11 +567,7 @@ export function useDashboard(initialData?: UserPreferences) {
       );
 
     } catch (error) {
-      console.error('Error in handleSheetSelection:', {
-        error,
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
-      });
+      console.error('Error in handleSheetSelection:', error);
       setError('Failed to update sheet selection');
     } finally {
       setIsRetrievingData(false);
@@ -656,48 +654,22 @@ export function useDashboard(initialData?: UserPreferences) {
     setIsProcessing(true)
 
     try {
-      const validUrls = urls.filter(url => url).map(url => {
-        // Find the recent URL entry that matches this URL
-        const recentEntry = recentUrls.find(sheet => sheet.url === url);
-        if (recentEntry) {
-          return {
-            url,
-            sheet_name: recentEntry.sheet_name
-          } as InputUrl;
-        }
-
-        // If no recent entry found, try to find from workbook cache
-        const cachedWorkbook = workbookCache[url];
-        if (cachedWorkbook && cachedWorkbook.sheet_names.length === 1) {
-          return {
-            url,
-            sheet_name: cachedWorkbook.sheet_names[0]
-          } as InputUrl;
-        }
-
-        // If we still don't have a sheet name, this URL hasn't been properly processed
-        console.warn(`No sheet name found for URL: ${url}`);
-        return {
-          url,
-          sheet_name: null
-        } ;
-      });
-      
-      // Create output preferences object
+      // Create output preferences object with sheet name
       const outputPreferences: OutputPreferences = {
         type: outputType ?? 'download',
         ...(outputType === 'online' && { 
           destination_url: outputUrl,
-          modify_existing: allowSheetModification 
+          modify_existing: allowSheetModification,
+          sheet_name: selectedOutputSheet ?? undefined
         }),
         ...(outputType === 'download' && { format: downloadFileType })
       }
 
-      // Process the query
+      // Process the query using selectedUrlPairs directly
       try {
         const result = await processQuery(
           query,
-          validUrls,
+          selectedUrlPairs,
           files,
           outputPreferences
         )
@@ -745,14 +717,13 @@ export function useDashboard(initialData?: UserPreferences) {
         }
       } catch (queryError) {
         if (!handleAuthError(queryError)) {
-          throw queryError; // Re-throw if not an auth error
+          throw queryError;
         }
       }
     } catch (error) {
       console.error('Error processing query:', error)
       setError('An error occurred while processing your request')
       
-      // Log error to Supabase
       if (error instanceof Error) {
         await supabase
           .from('error_log')
@@ -797,48 +768,22 @@ export function useDashboard(initialData?: UserPreferences) {
     setIsProcessing(true)
 
     try {
-      const validUrls = urls.filter(url => url).map(url => {
-        // Find the recent URL entry that matches this URL
-        const recentEntry = recentUrls.find(sheet => sheet.url === url);
-        if (recentEntry) {
-          return {
-            url,
-            sheet_name: recentEntry.sheet_name
-          } as InputUrl;
-        }
-
-        // If no recent entry found, try to find from workbook cache
-        const cachedWorkbook = workbookCache[url];
-        if (cachedWorkbook && cachedWorkbook.sheet_names.length === 1) {
-          return {
-            url,
-            sheet_name: cachedWorkbook.sheet_names[0]
-          } as InputUrl;
-        }
-
-        // If we still don't have a sheet name, this URL hasn't been properly processed
-        console.warn(`No sheet name found for URL: ${url}`);
-        return {
-          url,
-          sheet_name: null
-        } as InputUrl;
-      });
-      
-      // Create output preferences object
+      // Create output preferences object with sheet name
       const outputPreferences: OutputPreferences = {
         type: outputType ?? 'download',
         ...(outputType === 'online' && { 
           destination_url: outputUrl,
-          modify_existing: allowSheetModification 
+          modify_existing: allowSheetModification,
+          sheet_name: selectedOutputSheet ?? undefined
         }),
         ...(outputType === 'download' && { format: downloadFileType })
       }
 
-      // Process the query
+      // Process the query using selectedUrlPairs directly
       try {
         const result = await processQuery(
           query,
-          validUrls,
+          selectedUrlPairs,
           files,
           outputPreferences
         )
@@ -886,14 +831,13 @@ export function useDashboard(initialData?: UserPreferences) {
         }
       } catch (queryError) {
         if (!handleAuthError(queryError)) {
-          throw queryError; // Re-throw if not an auth error
+          throw queryError;
         }
       }
     } catch (error) {
       console.error('Error processing query:', error)
       setError('An error occurred while processing your request')
       
-      // Log error to Supabase
       if (error instanceof Error) {
         await supabase
           .from('error_log')
@@ -915,6 +859,10 @@ export function useDashboard(initialData?: UserPreferences) {
 
   const handleDownloadFormatChange = (value: DownloadFileType) => {
     setDownloadFileType(value);
+  };
+
+  const removeSelectedUrlPair = (index: number) => {
+    setSelectedUrlPairs(prev => prev.filter((_, i) => i !== index));
   };
 
   return {
@@ -971,5 +919,8 @@ export function useDashboard(initialData?: UserPreferences) {
     isRetrievingData,
     formatTitleKey,
     formatDisplayTitle,
+    selectedUrlPairs,
+    selectedOutputSheet,
+    removeSelectedUrlPair,
   } as const;
 }

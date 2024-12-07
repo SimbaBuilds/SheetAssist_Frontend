@@ -93,6 +93,8 @@ export default function DashboardPage() {
     showSheetSelector,
     selectedUrl,
     permissions,
+    selectedUrlPairs,
+    selectedOutputSheet,
     setShowPermissionsPrompt,
     setFiles,
     setQuery,
@@ -108,14 +110,13 @@ export default function DashboardPage() {
     handleUrlChange,
     handleUrlFocus,
     handleSubmit,
-    addUrlField,
-    removeUrlField,
     handleOutputUrlChange,
     handleWarningAcknowledgment,
     continueSubmitAfterWarning,
     formatTitleKey,
     formatDisplayTitle,    
     isRetrievingData,
+    removeSelectedUrlPair,
   } = useDashboard()
 
   const {
@@ -270,95 +271,103 @@ export default function DashboardPage() {
 
         {/* URL Inputs */}
         <div className="space-y-4">
-          <Label>Input URLs</Label>
-          <div className="space-y-2">
-            {urls.map((url, index) => (
-              <div key={index} className="flex gap-2">
-                <div className="flex-1">
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <div className="relative w-full">
-                        <Input
-                          type="url"
-                          value={url}
-                          onChange={(e) => handleUrlChange(index, e.target.value)}
-                          onFocus={handleUrlFocus}
-                          placeholder="Enter spreadsheet URL"
-                          className="w-full"
-                          disabled={isRetrievingData}
-                        />
-                        {url && (
-                          <div className="mt-1 text-sm">
-                            {isRetrievingData ? (
-                              <div className="flex items-center text-muted-foreground">
-                                <span className="animate-spin mr-2">⟳</span>
-                                Retrieving data...
-                              </div>
-                            ) : (
-                              <p className="text-gray-600">
-                                {recentUrls
-                                  .filter(recent => recent.url === url)
-                                  .map(recent => formatDisplayTitle(recent.doc_name, recent.sheet_name))
-                                  .join(', ') || url}
-                              </p>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </PopoverTrigger>
-                    <PopoverContent className="p-0" align="start">
-                      <Command>
-                        <CommandGroup>
-                          {isLoadingTitles ? (
-                            <CommandItem disabled>Loading recent documents...</CommandItem>
-                          ) : (
-                            recentUrls.map((recentUrl) => {
-                              const titleKey = JSON.stringify({ url: recentUrl.url, sheet_name: recentUrl.sheet_name });
-                              return (
-                                <CommandItem
-                                  key={titleKey}
-                                  value={titleKey}
-                                  onSelect={() => handleUrlChange(index, titleKey, true)}
-                                  disabled={isRetrievingData}
-                                >
-                                  {documentTitles[titleKey] || recentUrl.url}
-                                </CommandItem>
-                              );
-                            })
-                          )}
-                        </CommandGroup>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                {urls.length > 1 && (
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => removeUrlField(index)}
-                    disabled={isRetrievingData}
-                  >
-                    ×
-                  </Button>
-                )}
-                {index === urls.length - 1 && urls.length < MAX_FILES && (
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={addUrlField}
-                    disabled={isRetrievingData}
-                  >
-                    <PlusIcon className="h-4 w-4" />
-                  </Button>
-                )}
+          <div>
+            <div className="flex justify-between items-center mb-1">
+              <Label htmlFor="url">Input URLs</Label>
+              <span className="text-sm text-muted-foreground">
+                {selectedUrlPairs.length}/6 sheets
+              </span>
+            </div>
+            <div className="mt-1">
+              <div className="flex gap-2">
+                <Input
+                  id="url"
+                  type="text"
+                  value={urls[0]}
+                  onChange={(e) => handleUrlChange(0, e.target.value)}
+                  onFocus={handleUrlFocus}
+                  placeholder="Enter Google Sheets or Excel Online URL"
+                  className={`${urlValidationError ? 'border-red-500' : ''}`}
+                  disabled={selectedUrlPairs.length >= 6 || isRetrievingData}
+                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="px-2"
+                      type="button"
+                      disabled={selectedUrlPairs.length >= 6 || isRetrievingData}
+                    >
+                      Recent
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0" align="end">
+                    <Command>
+                      <CommandGroup>
+                        {recentUrls.map((sheet, index) => {
+                          const titleKey = sheet.sheet_name ? formatTitleKey(sheet.url, sheet.sheet_name) : '';
+                          const displayTitle = titleKey && documentTitles[titleKey] 
+                            ? documentTitles[titleKey] 
+                            : formatDisplayTitle(sheet.doc_name, sheet.sheet_name || '');
+                          return (
+                            <CommandItem
+                              key={index}
+                              onSelect={() => handleUrlChange(0, titleKey, true)}
+                            >
+                              {displayTitle}
+                            </CommandItem>
+                          );
+                        })}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
-            ))}
+            </div>
           </div>
-          {urlPermissionError && (
-            <div className="text-red-500 text-sm">{urlPermissionError}</div>
+
+          {/* Display selected URL pairs */}
+          {selectedUrlPairs.length > 0 && (
+            <div className="space-y-2">
+              <Label>Selected Documents</Label>
+              <div className="space-y-2">
+                {selectedUrlPairs.map((pair, index) => {
+                  const titleKey = pair.sheet_name ? formatTitleKey(pair.url, pair.sheet_name) : '';
+                  const displayTitle = titleKey && documentTitles[titleKey] 
+                    ? documentTitles[titleKey] 
+                    : `${pair.url}${pair.sheet_name ? ` - ${pair.sheet_name}` : ''}`;
+                  return (
+                    <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                      <span className="text-sm truncate flex-1">{displayTitle}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeSelectedUrlPair(index)}
+                        className="ml-2"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="18" y1="6" x2="6" y2="18"></line>
+                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           )}
+
+          {selectedUrlPairs.length >= 6 && (
+            <p className="text-sm text-amber-600">
+              Maximum number of input URLs (6) reached. Remove some to add more.
+            </p>
+          )}
+
           {urlValidationError && (
-            <div className="text-red-500 text-sm">{urlValidationError}</div>
+            <div className="text-sm text-red-500">{urlValidationError}</div>
+          )}
+          {urlPermissionError && (
+            <div className="text-sm text-red-500">{urlPermissionError}</div>
           )}
         </div>
 
@@ -502,97 +511,65 @@ export default function DashboardPage() {
 
           {outputType === 'online' && (
             <div className="space-y-4">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <div className="relative w-full">
+              <div>
+                <Label htmlFor="destination">Destination URL</Label>
+                <div className="mt-1">
+                  <div className="flex gap-2">
                     <Input
-                      type="url"
+                      id="destination"
+                      type="text"
                       value={outputUrl}
-                      onChange={(e) => {
-                        handleOutputUrlChange(e.target.value)
-                        setOutputTypeError(null)
-                      }}
+                      onChange={(e) => handleOutputUrlChange(e.target.value)}
                       onFocus={handleUrlFocus}
-                      placeholder="Enter destination spreadsheet URL"
-                      className="w-full"
-                      disabled={isRetrievingData}
+                      placeholder="Enter destination Google Sheets or Excel Online URL"
+                      className={`${destinationUrlError ? 'border-red-500' : ''}`}
                     />
-                    {outputUrl && (
-                      <div className="mt-1 text-sm">
-                        {isRetrievingData ? (
-                          <div className="flex items-center text-muted-foreground">
-                            <span className="animate-spin mr-2">⟳</span>
-                            Retrieving data...
-                          </div>
-                        ) : (
-                          <p className="text-gray-600">
-                            {recentUrls
-                              .filter(recent => recent.url === outputUrl)
-                              .map(recent => formatDisplayTitle(recent.doc_name, recent.sheet_name))
-                              .join(', ') || outputUrl}
-                          </p>
-                        )}
-                      </div>
-                    )}
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="px-2"
+                          type="button"
+                        >
+                          Recent
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="p-0" align="end">
+                        <Command>
+                          <CommandGroup>
+                            {recentUrls.map((sheet, index) => {
+                              const titleKey = formatTitleKey(sheet.url, sheet.sheet_name);
+                              const displayTitle = documentTitles[titleKey] || formatDisplayTitle(sheet.doc_name, sheet.sheet_name);
+                              return (
+                                <CommandItem
+                                  key={index}
+                                  onSelect={() => handleOutputUrlChange(titleKey, true)}
+                                >
+                                  {displayTitle}
+                                </CommandItem>
+                              );
+                            })}
+                          </CommandGroup>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                   </div>
-                </PopoverTrigger>
-                <PopoverContent className="p-0" align="start">
-                  <Command>
-                    <CommandGroup>
-                      {isLoadingTitles ? (
-                        <CommandItem disabled>Loading recent documents...</CommandItem>
-                      ) : (
-                        recentUrls.map((recentUrl) => {
-                          const titleKey = JSON.stringify({ url: recentUrl.url, sheet_name: recentUrl.sheet_name });
-                          return (
-                            <CommandItem
-                              key={titleKey}
-                              value={titleKey}
-                              onSelect={() => handleOutputUrlChange(titleKey, true)}
-                              disabled={isRetrievingData}
-                            >
-                              {documentTitles[titleKey] || recentUrl.url}
-                            </CommandItem>
-                          );
-                        })
-                      )}
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              {destinationUrlError && (
-                <div className="text-red-500 text-sm mt-2">{destinationUrlError}</div>
-              )}
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-medium">Append to Existing Sheet</h3>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <InfoIcon className="h-4 w-4 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        <p>
-                        When enabled, this application will append to the sheet that you have selected
-                        instead of adding a new sheet to the workbook.  Note: Microsoft URLs are sheet agnostic
-                        so further processing is done behind the scenes.
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
                 </div>
-                <Switch
-                  checked={allowSheetModification}
-                  onCheckedChange={(checked) => {
-                    console.log('[DashboardPage] Sheet modification toggle changed:', {
-                      previousValue: allowSheetModification,
-                      newValue: checked
-                    })
-                    setAllowSheetModification(checked)
-                  }}
-                  disabled={isProcessing}
-                />
               </div>
+
+              {destinationUrlError && (
+                <div className="text-sm text-red-500">{destinationUrlError}</div>
+              )}
+
+              {/* Show selected output sheet if available */}
+              {selectedOutputSheet && outputUrl && (
+                <div className="text-sm text-gray-600">
+                  Destination Sheet: {(() => {
+                    const titleKey = formatTitleKey(outputUrl, selectedOutputSheet);
+                    return documentTitles[titleKey] || `${outputUrl} - ${selectedOutputSheet}`;
+                  })()}
+                </div>
+              )}
             </div>
           )}
         </div>
