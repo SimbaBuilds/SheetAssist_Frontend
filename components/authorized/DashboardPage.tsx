@@ -274,9 +274,6 @@ export default function DashboardPage() {
           <div>
             <div className="flex justify-between items-center mb-1">
               <Label htmlFor="url">Input URLs</Label>
-              <span className="text-sm text-muted-foreground">
-                {selectedUrlPairs.length}/6 sheets
-              </span>
             </div>
             <div className="mt-1">
               <div className="flex gap-2">
