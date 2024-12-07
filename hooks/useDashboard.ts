@@ -347,58 +347,92 @@ export function useDashboard(initialData?: UserPreferences) {
     }
   };
 
-  const handleUrlChange = async (index: number, selectedTitleKey: string) => {
+  const validateUrl = async (value: string, isDestination = false): Promise<boolean> => {
+    const setError = isDestination ? setDestinationUrlError : setUrlValidationError;
+    setError(null);
+
+    if (!value) {
+      setError('Please enter a URL');
+      return false;
+    }
+
+    // Basic URL validation
+    try {
+      new URL(value);
+    } catch {
+      setError('Please enter a valid URL starting with http:// or https://');
+      return false;
+    }
+
+    // Check if it's a Google or Microsoft URL
+    const isGoogleUrl = value.includes('google.com') || value.includes('docs.google.com') || value.includes('sheets.google.com');
+    const isMicrosoftUrl = value.includes('onedrive.live.com') || value.includes('live.com') || value.includes('sharepoint.com');
+
+    if (!isGoogleUrl && !isMicrosoftUrl) {
+      setError('Please enter a valid Google Sheets or Microsoft Excel Online URL');
+      return false;
+    }
+
+    // Check permissions
+    if (isGoogleUrl && !permissions.google) {
+      setError('Please set up Google permissions in your account page');
+      return false;
+    } else if (isMicrosoftUrl && !permissions.microsoft) {
+      setError('Please set up Microsoft permissions in your account page');
+      return false;
+    }
+
+    const workbook = await fetchDocumentTitles(value);
+    if (!workbook?.success) {
+      setError('Unable to access the document. Please check the URL and your permissions.');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleUrlChange = async (index: number, value: string, fromDropdown = false) => {
     setUrlPermissionError(null);
     setUrlValidationError(null);
 
-    try {
-      // Parse the selected title key to get URL and sheet info
-      const { url } = JSON.parse(selectedTitleKey);
-      
-      // Update the URLs array at the specified index
-      const newUrls = [...urls];
-      newUrls[index] = url;
-      setUrls(newUrls);
+    // Update the URLs array at the specified index
+    const newUrls = [...urls];
+    newUrls[index] = value;
+    setUrls(newUrls);
 
-      // If we have a mapping for this exact title key, no need to fetch
-      if (documentTitles[selectedTitleKey]) {
-        console.log('[useDashboard] Skipping fetch - mapping exists for title key:', selectedTitleKey);
-        return;
+    if (value) {
+      // If selection is from dropdown and we have a mapping, skip fetching
+      if (fromDropdown) {
+        const titleKey = value;  // value is the title key when from dropdown
+        if (documentTitles[titleKey]) {
+          try {
+            const { url } = JSON.parse(titleKey);
+            newUrls[index] = url;  // Update URL to the actual URL, not the title key
+            setUrls(newUrls);
+            console.log('[useDashboard] Skipping fetch - mapping exists for title key:', titleKey);
+            return;
+          } catch (error) {
+            console.error('Error parsing title key:', error);
+          }
+        }
       }
 
       setIsRetrievingData(true);
       try {
-        // Basic URL validation
-        if (!/^https?:\/\/.+/.test(url)) {
-          setUrlValidationError('Please enter a valid URL starting with http:// or https://');
+        // Validate URL
+        if (!(await validateUrl(value))) {
           return;
-        }
-
-        // Check if it's a Google or Microsoft URL
-        const isGoogleUrl = url.includes('google.com') || url.includes('docs.google.com') || url.includes('sheets.google.com');
-        const isMicrosoftUrl = url.includes('onedrive.live.com') || url.includes('live.com') || url.includes('sharepoint.com');
-
-        if (!isGoogleUrl && !isMicrosoftUrl) {
-          setUrlValidationError('Please enter a valid Google Sheets or Microsoft Excel Online URL');
-          return;
-        }
-
-        // Check permissions
-        if (isGoogleUrl && !permissions.google) {
-          setUrlPermissionError('Please set up Google permissions first');
-        } else if (isMicrosoftUrl && !permissions.microsoft) {
-          setUrlPermissionError('Please set up Microsoft permissions first');
         }
 
         // Fetch document title and handle sheet selection
-        const workbook = await fetchDocumentTitles(url);
+        const workbook = await fetchDocumentTitles(value);
         if (workbook?.success) {
           const sheetNames = workbook.sheet_names ?? [];
           
           // Cache workbook information
           setWorkbookCache(prev => ({
             ...prev,
-            [url]: {
+            [value]: {
               doc_name: workbook.doc_name,
               sheet_names: sheetNames
             }
@@ -406,10 +440,10 @@ export function useDashboard(initialData?: UserPreferences) {
           
           if (sheetNames.length === 1) {
             // If there's only one sheet, use it automatically
-            await updateRecentUrls(url, sheetNames[0], workbook.doc_name);
+            await updateRecentUrls(value, sheetNames[0], workbook.doc_name);
           } else if (sheetNames.length > 1) {
             // For multiple sheets, ONLY show selector - don't update anything yet
-            setSelectedUrl(url);
+            setSelectedUrl(value);
             setShowSheetSelector(true);
           }
         }
@@ -419,30 +453,66 @@ export function useDashboard(initialData?: UserPreferences) {
       } finally {
         setIsRetrievingData(false);
       }
-    } catch (error) {
-      console.error('Error parsing selected title key:', error);
-      // If title key parsing fails, treat it as a raw URL input
-      handleRawUrlInput(index, selectedTitleKey);
     }
   };
 
-  const handleRawUrlInput = async (index: number, url: string) => {
-    // Update the URLs array
-    const newUrls = [...urls];
-    newUrls[index] = url;
-    setUrls(newUrls);
+  const handleOutputUrlChange = async (value: string, fromDropdown = false) => {
+    setOutputUrl(value);
+    setOutputTypeError(null);
+    setDestinationUrlError(null);
+    
+    if (value) {
+      // If selection is from dropdown and we have a mapping, skip fetching
+      if (fromDropdown) {
+        const titleKey = value;  // value is the title key when from dropdown
+        if (documentTitles[titleKey]) {
+          try {
+            const { url } = JSON.parse(titleKey);
+            setOutputUrl(url);  // Update outputUrl to the actual URL, not the title key
+            console.log('[useDashboard] Skipping fetch - mapping exists for title key:', titleKey);
+            return;
+          } catch (error) {
+            console.error('Error parsing title key:', error);
+          }
+        }
+      }
 
-    if (!url) return;
+      setIsRetrievingData(true);
+      try {
+        // Validate URL
+        if (!(await validateUrl(value, true))) {
+          return;
+        }
 
-    setIsRetrievingData(true);
-    try {
-      // Proceed with normal URL validation and fetching
-      // ... (rest of the original URL handling logic)
-    } catch (error) {
-      console.error('Error handling raw URL input:', error);
-      setError('Failed to retrieve document data');
-    } finally {
-      setIsRetrievingData(false);
+        // Fetch document title and handle sheet selection
+        const workbook = await fetchDocumentTitles(value);
+        if (workbook?.success) {
+          const sheetNames = workbook.sheet_names ?? [];
+          
+          // Cache workbook information
+          setWorkbookCache(prev => ({
+            ...prev,
+            [value]: {
+              doc_name: workbook.doc_name,
+              sheet_names: sheetNames
+            }
+          }));
+          
+          if (sheetNames.length === 1) {
+            // If there's only one sheet, use it automatically
+            await updateRecentUrls(value, sheetNames[0], workbook.doc_name);
+          } else if (sheetNames.length > 1) {
+            // For multiple sheets, show selector
+            setSelectedUrl(value);
+            setShowSheetSelector(true);
+          }
+        }
+      } catch (error) {
+        console.error('Error handling destination URL change:', error);
+        setDestinationUrlError('Failed to retrieve document data');
+      } finally {
+        setIsRetrievingData(false);
+      }
     }
   };
 
@@ -552,12 +622,6 @@ export function useDashboard(initialData?: UserPreferences) {
     setError('')
     setOutputTypeError(null)
 
-    console.log('[useDashboard] Submit conditions:', {
-      outputType,
-      allowSheetModification,
-      showWarningPreference: showSheetModificationWarningPreference
-    })
-
     // Validate output preferences
     if (!outputType) {
       setOutputTypeError('Please select an output preference')
@@ -576,15 +640,13 @@ export function useDashboard(initialData?: UserPreferences) {
 
     // Validate destination URL if output type is 'online'
     if (outputType === 'online') {
-      const isDestinationValid = await validateDestinationUrl(outputUrl);
-      if (!isDestinationValid) {
+      if (!(await validateUrl(outputUrl, true))) {
         return;
       }
     }
 
     // Only show warning on submit if conditions are met
     if (outputType === 'online' && allowSheetModification && showSheetModificationWarningPreference) {
-      console.log('[useDashboard] Setting warning to show on submit')
       setShowModificationWarning(true)
       return // Stop here and wait for user acknowledgment
     }
@@ -704,149 +766,6 @@ export function useDashboard(initialData?: UserPreferences) {
     } finally {
       setIsProcessing(false)
     }
-  }
-
-  const handleOutputUrlChange = async (selectedTitleKey: string) => {
-    try {
-      // Parse the selected title key to get URL and sheet info
-      const { url } = JSON.parse(selectedTitleKey);
-      
-      setOutputUrl(url);
-      setOutputTypeError(null);
-      setDestinationUrlError(null);
-
-      // If we have a mapping for this exact title key, no need to fetch
-      if (documentTitles[selectedTitleKey]) {
-        console.log('[useDashboard] Skipping fetch - mapping exists for title key:', selectedTitleKey);
-        return;
-      }
-
-      setIsRetrievingData(true);
-      try {
-        // Basic URL validation
-        try {
-          new URL(url);
-        } catch {
-          setDestinationUrlError('Please enter a valid URL starting with http:// or https://');
-          return;
-        }
-
-        // Check if it's a Google or Microsoft URL
-        const isGoogleUrl = url.includes('google.com') || url.includes('docs.google.com') || url.includes('sheets.google.com');
-        const isMicrosoftUrl = url.includes('onedrive.live.com') || url.includes('live.com') || url.includes('sharepoint.com');
-
-        if (!isGoogleUrl && !isMicrosoftUrl) {
-          setDestinationUrlError('Please enter a valid Google Sheets or Microsoft Excel Online URL');
-          return;
-        }
-
-        // Check permissions
-        if (isGoogleUrl && !permissions.google) {
-          setDestinationUrlError('Please set up Google permissions first');
-          return;
-        } else if (isMicrosoftUrl && !permissions.microsoft) {
-          setDestinationUrlError('Please set up Microsoft permissions first');
-          return;
-        }
-
-        // Fetch document title and handle sheet selection
-        const workbook = await fetchDocumentTitles(url);
-        if (workbook?.success) {
-          const sheetNames = workbook.sheet_names ?? [];
-          
-          // Cache workbook information
-          setWorkbookCache(prev => ({
-            ...prev,
-            [url]: {
-              doc_name: workbook.doc_name,
-              sheet_names: sheetNames
-            }
-          }));
-          
-          if (sheetNames.length === 1) {
-            // If there's only one sheet, use it automatically
-            await updateRecentUrls(url, sheetNames[0], workbook.doc_name);
-          } else if (sheetNames.length > 1) {
-            // For multiple sheets, show selector
-            setSelectedUrl(url);
-            setShowSheetSelector(true);
-          }
-        } else {
-          setDestinationUrlError('Unable to access the destination document. Please check the URL and your permissions.');
-        }
-      } catch (error) {
-        console.error('Error handling destination URL change:', error);
-        setDestinationUrlError('Failed to retrieve document data');
-      } finally {
-        setIsRetrievingData(false);
-      }
-    } catch (error) {
-      console.error('Error parsing selected title key:', error);
-      // If title key parsing fails, treat it as a raw URL input
-      handleRawOutputUrlInput(selectedTitleKey);
-    }
-  };
-
-  const handleRawOutputUrlInput = async (url: string) => {
-    setOutputUrl(url);
-    setOutputTypeError(null);
-    setDestinationUrlError(null);
-
-    if (!url) return;
-
-    setIsRetrievingData(true);
-    try {
-      // Proceed with normal URL validation and fetching
-      // ... (rest of the original URL handling logic)
-    } catch (error) {
-      console.error('Error handling raw output URL input:', error);
-      setDestinationUrlError('Failed to retrieve document data');
-    } finally {
-      setIsRetrievingData(false);
-    }
-  };
-
-  const validateDestinationUrl = async (value: string): Promise<boolean> => {
-    setDestinationUrlError(null);
-
-    if (!value) {
-      setDestinationUrlError('Please enter a destination URL');
-      return false;
-    }
-
-    // Basic URL validation
-    try {
-      new URL(value);
-    } catch {
-      setDestinationUrlError('Please enter a valid URL starting with http:// or https://');
-      return false;
-    }
-
-    // Check if it's a Google or Microsoft URL
-    const isGoogleUrl = value.includes('google.com') || value.includes('docs.google.com') || value.includes('sheets.google.com');
-    const isMicrosoftUrl = value.includes('onedrive.live.com') || value.includes('live.com') || value.includes('sharepoint.com');
-
-    if (!isGoogleUrl && !isMicrosoftUrl) {
-      setDestinationUrlError('Please enter a valid Google Sheets or Microsoft Excel Online URL');
-      return false;
-    }
-
-    // Check permissions
-    if (isGoogleUrl && !permissions.google) {
-      setDestinationUrlError('Please set up Google permissions first');
-      return false;
-    } else if (isMicrosoftUrl && !permissions.microsoft) {
-      setDestinationUrlError('Please set up Microsoft permissions first');
-      return false;
-    }
-
-    const workbook = await fetchDocumentTitles(value);
-    if (!workbook?.success) {
-      setDestinationUrlError('Unable to access the destination document. Please check the URL and your permissions.');
-      return false;
-    }
-
-    return true;
   }
 
   const handleWarningAcknowledgment = async (dontShowAgain: boolean) => {

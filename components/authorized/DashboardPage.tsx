@@ -318,7 +318,7 @@ export default function DashboardPage() {
                                 <CommandItem
                                   key={titleKey}
                                   value={titleKey}
-                                  onSelect={() => handleUrlChange(index, titleKey)}
+                                  onSelect={() => handleUrlChange(index, titleKey, true)}
                                   disabled={isRetrievingData}
                                 >
                                   {documentTitles[titleKey] || recentUrl.url}
@@ -548,7 +548,7 @@ export default function DashboardPage() {
                             <CommandItem
                               key={titleKey}
                               value={titleKey}
-                              onSelect={() => handleOutputUrlChange(titleKey)}
+                              onSelect={() => handleOutputUrlChange(titleKey, true)}
                               disabled={isRetrievingData}
                             >
                               {documentTitles[titleKey] || recentUrl.url}
