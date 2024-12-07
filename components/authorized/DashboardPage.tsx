@@ -195,10 +195,10 @@ export default function DashboardPage() {
       <form onSubmit={(e) => {
         e.preventDefault();
         const hasFiles = files.length > 0;
-        const hasUrls = urls.some(url => url && url.trim() !== '');
+        const hasInputUrls = selectedUrlPairs.length > 0;
         
-        if (!hasFiles && !hasUrls) {
-          setOutputTypeError('Please attach a file or enter a URL');
+        if (!hasFiles && !hasInputUrls) {
+          setOutputTypeError('Please attach a file or select an input URL');
           return;
         }
         
