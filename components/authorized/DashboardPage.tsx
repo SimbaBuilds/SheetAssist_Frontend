@@ -37,12 +37,7 @@ import {
 } from "@/components/ui/popover"
 import { SheetSelector } from '@/components/SheetSelector'
 
-const formatDisplayTitle = (doc_name: string, sheet_name?: string): string => {
-  if (sheet_name) {
-    return `${doc_name} - ${sheet_name}`;
-  }
-  return doc_name;
-}
+
 
 const MAX_FILES = 10
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
@@ -118,6 +113,8 @@ export default function DashboardPage() {
     handleOutputUrlChange,
     handleWarningAcknowledgment,
     continueSubmitAfterWarning,
+    formatTitleKey,
+    formatDisplayTitle,    
     isRetrievingData,
   } = useDashboard()
 
@@ -297,9 +294,12 @@ export default function DashboardPage() {
                                 <span className="animate-spin mr-2">⟳</span>
                                 Retrieving data...
                               </div>
-                            ) : documentTitles[url] && (
+                            ) : (
                               <p className="text-gray-600">
-                                {documentTitles[url]}
+                                {recentUrls
+                                  .filter(recent => recent.url === url)
+                                  .map(recent => formatDisplayTitle(recent.doc_name, recent.sheet_name))
+                                  .join(', ') || url}
                               </p>
                             )}
                           </div>
@@ -312,16 +312,19 @@ export default function DashboardPage() {
                           {isLoadingTitles ? (
                             <CommandItem disabled>Loading recent documents...</CommandItem>
                           ) : (
-                            recentUrls.map((recentUrl) => (
-                              <CommandItem
-                                key={`${recentUrl.url}-${recentUrl.sheet_name || 'default'}`}
-                                value={recentUrl.url}
-                                onSelect={() => handleUrlChange(index, recentUrl.url)}
-                                disabled={isRetrievingData}
-                              >
-                                {recentUrl.doc_name ? formatDisplayTitle(recentUrl.doc_name, recentUrl.sheet_name) : recentUrl.url}
-                              </CommandItem>
-                            ))
+                            recentUrls.map((recentUrl) => {
+                              const titleKey = JSON.stringify({ url: recentUrl.url, sheet_name: recentUrl.sheet_name });
+                              return (
+                                <CommandItem
+                                  key={titleKey}
+                                  value={titleKey}
+                                  onSelect={() => handleUrlChange(index, titleKey)}
+                                  disabled={isRetrievingData}
+                                >
+                                  {documentTitles[titleKey] || recentUrl.url}
+                                </CommandItem>
+                              );
+                            })
                           )}
                         </CommandGroup>
                       </Command>
@@ -521,9 +524,12 @@ export default function DashboardPage() {
                             <span className="animate-spin mr-2">⟳</span>
                             Retrieving data...
                           </div>
-                        ) : documentTitles[outputUrl] && (
+                        ) : (
                           <p className="text-gray-600">
-                            {documentTitles[outputUrl]}
+                            {recentUrls
+                              .filter(recent => recent.url === outputUrl)
+                              .map(recent => formatDisplayTitle(recent.doc_name, recent.sheet_name))
+                              .join(', ') || outputUrl}
                           </p>
                         )}
                       </div>
@@ -536,16 +542,19 @@ export default function DashboardPage() {
                       {isLoadingTitles ? (
                         <CommandItem disabled>Loading recent documents...</CommandItem>
                       ) : (
-                        recentUrls.map((recentUrl) => (
-                          <CommandItem
-                            key={`${recentUrl.url}-${recentUrl.sheet_name || 'default'}`}
-                            value={recentUrl.url}
-                            onSelect={() => handleOutputUrlChange(recentUrl.url)}
-                            disabled={isRetrievingData}
-                          >
-                            {recentUrl.doc_name ? formatDisplayTitle(recentUrl.doc_name, recentUrl.sheet_name) : recentUrl.url}
-                          </CommandItem>
-                        ))
+                        recentUrls.map((recentUrl) => {
+                          const titleKey = JSON.stringify({ url: recentUrl.url, sheet_name: recentUrl.sheet_name });
+                          return (
+                            <CommandItem
+                              key={titleKey}
+                              value={titleKey}
+                              onSelect={() => handleOutputUrlChange(titleKey)}
+                              disabled={isRetrievingData}
+                            >
+                              {documentTitles[titleKey] || recentUrl.url}
+                            </CommandItem>
+                          );
+                        })
                       )}
                     </CommandGroup>
                   </Command>
