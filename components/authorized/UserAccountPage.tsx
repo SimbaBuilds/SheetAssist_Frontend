@@ -269,11 +269,9 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
                 <div>
                   <h3 className="font-medium">Append to Existing Sheet</h3>
                   <p className="text-sm text-muted-foreground">
-                    When enabled, this application will append to the existing sheet at the destination URL <br />
-                  provided instead of adding a new sheet to the workbook.  Note: For Google Sheets, data will<br /> 
-                  be appended to the sheet at the URL provided as Google URLs are sheet specific, Microsoft Excel URLs are sheet agnostic and data will always be appended to the first sheet in the workbook.
-
-
+                    When enabled, this application will append to the sheet that you have selected <br />
+                   instead of adding a new sheet to the workbook.  Note: Microsoft URLs are sheet agnostic <br />
+                   so further processing is done behind the scenes.
                   </p>
                 </div>
                 <Switch

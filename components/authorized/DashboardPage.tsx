@@ -573,8 +573,9 @@ export default function DashboardPage() {
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
                         <p>
-                          When enabled, this application will append to an existing sheet instead of adding a new sheet to the workbook.  
-                          Note: For Google Sheets, data will be appended to the sheet at the URL provided as Google URLs are sheet specific, Microsoft Excel URLs are sheet agnostic and data will always be appended to the first sheet in the workbook.
+                        When enabled, this application will append to the sheet that you have selected
+                        instead of adding a new sheet to the workbook.  Note: Microsoft URLs are sheet agnostic
+                        so further processing is done behind the scenes.
                         </p>
                       </TooltipContent>
                     </Tooltip>
@@ -630,7 +631,7 @@ export default function DashboardPage() {
               <AlertDialogTitle>Warning: Direct Sheet Modification</AlertDialogTitle>
               <AlertDialogDescription className="space-y-4">
                 <p>
-                  You have sheet modification enabled. This application will append to an existing sheet 
+                  You have sheet modification enabled. This application will append to the sheet you selected 
                   instead of creating a new sheet in the workbook.
                 </p>
                 <div className="flex items-center space-x-2">
