@@ -18,15 +18,21 @@ interface SheetSelectorProps {
 export function SheetSelector({ url, sheets, onSelect, onClose, open }: SheetSelectorProps) {
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent 
+        className="sm:max-w-[425px]"
+        aria-describedby="sheet-selector-description"
+      >
         <DialogHeader>
           <DialogTitle>Select a Sheet</DialogTitle>
         </DialogHeader>
+        <div id="sheet-selector-description" className="text-sm text-muted-foreground mb-4">
+          Choose which sheet you would like to work with from this document.
+        </div>
         <div className="grid gap-4 py-4">
           <div className="grid grid-cols-1 gap-2">
             {sheets.map((sheet) => (
               <Button
-                key={sheet}
+                key={`${url}-${sheet}`}
                 variant="outline"
                 onClick={() => onSelect(url, sheet)}
                 className="w-full justify-start text-left font-normal"

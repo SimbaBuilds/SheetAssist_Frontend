@@ -118,7 +118,7 @@ export default function DashboardPage() {
     handleOutputUrlChange,
     handleWarningAcknowledgment,
     continueSubmitAfterWarning,
-
+    isRetrievingData,
   } = useDashboard()
 
   const {
@@ -288,11 +288,21 @@ export default function DashboardPage() {
                           onFocus={handleUrlFocus}
                           placeholder="Enter spreadsheet URL"
                           className="w-full"
+                          disabled={isRetrievingData}
                         />
-                        {url && documentTitles[url] && (
-                          <p className="mt-1 text-sm text-gray-600">
-                            {documentTitles[url]}
-                          </p>
+                        {url && (
+                          <div className="mt-1 text-sm">
+                            {isRetrievingData ? (
+                              <div className="flex items-center text-muted-foreground">
+                                <span className="animate-spin mr-2">⟳</span>
+                                Retrieving data...
+                              </div>
+                            ) : documentTitles[url] && (
+                              <p className="text-gray-600">
+                                {documentTitles[url]}
+                              </p>
+                            )}
+                          </div>
                         )}
                       </div>
                     </PopoverTrigger>
@@ -304,9 +314,10 @@ export default function DashboardPage() {
                           ) : (
                             recentUrls.map((recentUrl) => (
                               <CommandItem
-                                key={recentUrl.url}
+                                key={`${recentUrl.url}-${recentUrl.sheet_name || 'default'}`}
                                 value={recentUrl.url}
                                 onSelect={() => handleUrlChange(index, recentUrl.url)}
+                                disabled={isRetrievingData}
                               >
                                 {recentUrl.doc_name ? formatDisplayTitle(recentUrl.doc_name, recentUrl.sheet_name) : recentUrl.url}
                               </CommandItem>
@@ -322,6 +333,7 @@ export default function DashboardPage() {
                     variant="outline"
                     size="icon"
                     onClick={() => removeUrlField(index)}
+                    disabled={isRetrievingData}
                   >
                     ×
                   </Button>
@@ -331,6 +343,7 @@ export default function DashboardPage() {
                     variant="outline"
                     size="icon"
                     onClick={addUrlField}
+                    disabled={isRetrievingData}
                   >
                     <PlusIcon className="h-4 w-4" />
                   </Button>
@@ -499,11 +512,21 @@ export default function DashboardPage() {
                       onFocus={handleUrlFocus}
                       placeholder="Enter destination spreadsheet URL"
                       className="w-full"
+                      disabled={isRetrievingData}
                     />
-                    {outputUrl && documentTitles[outputUrl] && (
-                      <p className="mt-1 text-sm text-gray-600">
-                        {documentTitles[outputUrl]}
-                      </p>
+                    {outputUrl && (
+                      <div className="mt-1 text-sm">
+                        {isRetrievingData ? (
+                          <div className="flex items-center text-muted-foreground">
+                            <span className="animate-spin mr-2">⟳</span>
+                            Retrieving data...
+                          </div>
+                        ) : documentTitles[outputUrl] && (
+                          <p className="text-gray-600">
+                            {documentTitles[outputUrl]}
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
                 </PopoverTrigger>
@@ -515,9 +538,10 @@ export default function DashboardPage() {
                       ) : (
                         recentUrls.map((recentUrl) => (
                           <CommandItem
-                            key={recentUrl.url}
+                            key={`${recentUrl.url}-${recentUrl.sheet_name || 'default'}`}
                             value={recentUrl.url}
                             onSelect={() => handleOutputUrlChange(recentUrl.url)}
+                            disabled={isRetrievingData}
                           >
                             {recentUrl.doc_name ? formatDisplayTitle(recentUrl.doc_name, recentUrl.sheet_name) : recentUrl.url}
                           </CommandItem>
