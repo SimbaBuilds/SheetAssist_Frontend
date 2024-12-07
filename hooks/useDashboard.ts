@@ -5,6 +5,7 @@ import { createClient } from '@/utils/supabase/client'
 import type { DownloadFileType, DashboardInitialData, OutputPreferences, ProcessedQueryResult, SheetTitleKey, InputUrl, OnlineSheet } from '@/types/dashboard'
 import { ACCEPTED_FILE_TYPES } from '@/constants/file-types'
 import { useRouter } from 'next/navigation'
+import { useToast } from '@/components/ui/use-toast'
 
 const MAX_FILES = 10
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
@@ -71,6 +72,8 @@ export function useDashboard(initialData?: UserPreferences) {
   const [isRetrievingData, setIsRetrievingData] = useState(false)
   const [selectedUrlPairs, setSelectedUrlPairs] = useState<InputUrl[]>([])
   const [selectedOutputSheet, setSelectedOutputSheet] = useState<string | null>(null)
+  const [isUpdating, setIsUpdating] = useState(false)
+  const { toast } = useToast()
 
   const supabase = createClient()
 
@@ -865,6 +868,45 @@ export function useDashboard(initialData?: UserPreferences) {
     setSelectedUrlPairs(prev => prev.filter((_, i) => i !== index));
   };
 
+  const updateSheetModificationPreference = async (allow: boolean) => {
+    try {
+      console.log('[useDashboard] Updating sheet modification preference:', {
+        currentValue: allowSheetModification,
+        newValue: allow
+      })
+      
+      setIsUpdating(true)
+      const { error } = await supabase
+        .from('user_profile')
+        .update({ 
+          allow_sheet_modification: allow,
+          show_sheet_modification_warning: true
+        })
+        .eq('id', user?.id)
+
+      if (error) throw error
+
+      console.log('[useDashboard] Successfully updated sheet modification preference')
+      
+      setAllowSheetModification(allow)
+      setShowSheetModificationWarningPreference(true)
+      
+      toast({
+        title: "Success",
+        description: `Direct sheet modification ${allow ? 'enabled' : 'disabled'}.`,
+      })
+    } catch (error) {
+      console.error('[useDashboard] Failed to update sheet modification preference:', error)
+      toast({
+        title: "Error",
+        description: "Failed to update sheet modification preference.",
+        className: "destructive"
+      })
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
   return {
     urls,
     query,
@@ -922,5 +964,7 @@ export function useDashboard(initialData?: UserPreferences) {
     selectedUrlPairs,
     selectedOutputSheet,
     removeSelectedUrlPair,
+    isUpdating,
+    updateSheetModificationPreference,
   } as const;
 }

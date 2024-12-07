@@ -117,6 +117,8 @@ export default function DashboardPage() {
     formatDisplayTitle,    
     isRetrievingData,
     removeSelectedUrlPair,
+    updateSheetModificationPreference,
+    isUpdating,
   } = useDashboard()
 
   const {
@@ -567,6 +569,34 @@ export default function DashboardPage() {
                   })()}
                 </div>
               )}
+
+              <div className="flex items-center justify-between mt-4">
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="appendToSheet">Append to Existing Sheet</Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <InfoIcon className="h-4 w-4 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-[300px]">
+                        When enabled, this application will append to the sheet that you have selected instead of adding a new sheet to the workbook. Note: Microsoft URLs are sheet agnostic so further processing is done behind the scenes.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <Switch
+                  id="appendToSheet"
+                  checked={allowSheetModification}
+                  onCheckedChange={(checked) => {
+                    console.log('[DashboardPage] Sheet modification toggle changed:', {
+                      previousValue: allowSheetModification,
+                      newValue: checked
+                    })
+                    updateSheetModificationPreference(checked)
+                  }}
+                  disabled={isProcessing || isUpdating}
+                />
+              </div>
             </div>
           )}
         </div>
