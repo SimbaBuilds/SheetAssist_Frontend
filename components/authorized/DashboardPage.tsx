@@ -39,7 +39,7 @@ import { SheetSelector } from '@/components/SheetSelector'
 
 
 
-const MAX_FILES = 10
+const MAX_FILES = 5
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 const MAX_QUERY_LENGTH = 500
 
@@ -275,7 +275,19 @@ export default function DashboardPage() {
         <div className="space-y-4">
           <div>
             <div className="flex justify-between items-center mb-1">
-              <Label htmlFor="url">Input URLs</Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="url">Input Sheet URLs</Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <InfoIcon className="h-4 w-4 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-[300px]">
+                      Google Sheet URLs are sheet specific — please use the address specific to the URL. Microsoft Office URLs are sheet agnostic -- you will be prompted to select the desired sheet.
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
             </div>
             <div className="mt-1">
               <div className="flex gap-2">
@@ -472,18 +484,7 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="online" id="online" />
-              <Label htmlFor="online">
-                {allowSheetModification ? (
-                  <div className="flex items-center gap-2">
-                    <span>Online Spreadsheet</span>
-                    <Badge variant="secondary" className="text-xs">
-                      Direct Modification Enabled
-                    </Badge>
-                  </div>
-                ) : (
-                  "Online Spreadsheet"
-                )}
-              </Label>
+              <Label htmlFor="online">Online Spreadsheet</Label>
             </div>
           </RadioGroup>
 
@@ -579,23 +580,23 @@ export default function DashboardPage() {
                         <InfoIcon className="h-4 w-4 text-muted-foreground" />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-[300px]">
-                        When enabled, this application will append to the sheet that you have selected instead of adding a new sheet to the workbook. Note: Microsoft URLs are sheet agnostic so further processing is done behind the scenes.
+                        When enabled, this application will append to the sheet that you have selected instead of adding a new sheet to the workbook.
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
+                  <Switch
+                    id="appendToSheet"
+                    checked={allowSheetModification}
+                    onCheckedChange={(checked) => {
+                      console.log('[DashboardPage] Sheet modification toggle changed:', {
+                        previousValue: allowSheetModification,
+                        newValue: checked
+                      })
+                      updateSheetModificationPreference(checked)
+                    }}
+                    disabled={isProcessing || isUpdating}
+                  />
                 </div>
-                <Switch
-                  id="appendToSheet"
-                  checked={allowSheetModification}
-                  onCheckedChange={(checked) => {
-                    console.log('[DashboardPage] Sheet modification toggle changed:', {
-                      previousValue: allowSheetModification,
-                      newValue: checked
-                    })
-                    updateSheetModificationPreference(checked)
-                  }}
-                  disabled={isProcessing || isUpdating}
-                />
               </div>
             </div>
           )}

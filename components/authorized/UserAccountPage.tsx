@@ -270,8 +270,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
                   <h3 className="font-medium">Append to Existing Sheet</h3>
                   <p className="text-sm text-muted-foreground">
                     When enabled, this application will append to the sheet that you have selected <br />
-                   instead of adding a new sheet to the workbook.  Note: Microsoft URLs are sheet agnostic <br />
-                   so further processing is done behind the scenes.
+                   instead of adding a new sheet to the workbook.
                   </p>
                 </div>
                 <Switch
