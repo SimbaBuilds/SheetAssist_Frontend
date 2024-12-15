@@ -47,6 +47,15 @@ const getUrlProvider = (url: string): 'google' | 'microsoft' | null => {
   return null;
 };
 
+const checkUrlPermissions = (url: string, permissions: { google: boolean | null; microsoft: boolean | null }) => {
+  const provider = getUrlProvider(url);
+  if (!provider) return { hasPermission: false, provider: null };
+  return { 
+    hasPermission: !!permissions[provider], 
+    provider 
+  };
+};
+
 export function useDashboard(initialData?: UserPreferences) {
   const { user } = useAuth()
   const router = useRouter()
@@ -89,59 +98,121 @@ export function useDashboard(initialData?: UserPreferences) {
   const [isUpdating, setIsUpdating] = useState(false)
   const { toast } = useToast()
   const { verifyFileAccess, storeFilePermission, launchPicker } = useFilePicker()
+  const [isInitializing, setIsInitializing] = useState(true)
 
   const supabase = createClient()
 
   useEffect(() => {
-    const fetchUserPreferences = async () => {
+    const initializeDashboard = async () => {
       if (!user?.id) return;
-
+      
+      setIsInitializing(true)
       try {
-        setIsLoadingTitles(true);
-        const [{ data: profile }, { data: usage }] = await Promise.all([
+        // Fetch all initial data in parallel
+        const [profileResult, usageResult, accessTokensResult] = await Promise.all([
           supabase
             .from('user_profile')
-            .select('allow_sheet_modification, show_sheet_modification_warning')
+            .select('google_permissions_set, microsoft_permissions_set, allow_sheet_modification, show_sheet_modification_warning')
             .eq('id', user.id)
             .single(),
           supabase
             .from('user_usage')
             .select('recent_sheets')
             .eq('user_id', user.id)
-            .single()
+            .single(),
+          supabase
+            .from('user_documents_access')
+            .select('provider, expires_at, access_token, refresh_token')
+            .eq('user_id', user.id)
         ]);
 
-        if (profile) {
-          console.log('[useDashboard] Fetched user preferences:', profile);
-          setAllowSheetModification(profile.allow_sheet_modification ?? false);
-          setShowSheetModificationWarningPreference(profile.show_sheet_modification_warning ?? true);
+        // Handle profile data
+        if (profileResult.data) {
+          const { 
+            google_permissions_set,
+            microsoft_permissions_set,
+            allow_sheet_modification,
+            show_sheet_modification_warning 
+          } = profileResult.data;
+
+          // Initialize permissions from profile
+          const updatedPermissions = {
+            google: google_permissions_set,
+            microsoft: microsoft_permissions_set
+          };
+
+          // Check for expired tokens
+          const now = new Date().toISOString();
+          const expiredProviders = accessTokensResult.data?.filter(token => {
+            // Check if token exists and is expired
+            if (!token.access_token || !token.refresh_token) {
+              return true; // Consider missing tokens as expired
+            }
+            return token.expires_at < now;
+          }).map(token => token.provider as 'google' | 'microsoft') || [];
+
+          // If we found expired tokens, update the permissions
+          if (expiredProviders.length > 0) {
+            console.log('[useDashboard] Found expired tokens for providers:', expiredProviders);
+
+            // Create update object for user_profile
+            const updateData: { [key: string]: boolean } = {};
+            expiredProviders.forEach(provider => {
+              const permissionField = `${provider}_permissions_set` as const;
+              updateData[permissionField] = false;
+              updatedPermissions[provider] = false;
+            });
+
+            // Update the database
+            const { error: updateError } = await supabase
+              .from('user_profile')
+              .update(updateData)
+              .eq('id', user.id);
+
+            if (updateError) {
+              console.error('[useDashboard] Error updating permissions:', updateError);
+            }
+          }
+
+          // Set permissions state after checking for expired tokens
+          setPermissions(updatedPermissions);
+          
+          setAllowSheetModification(allow_sheet_modification ?? false);
+          setShowSheetModificationWarningPreference(show_sheet_modification_warning ?? true);
         }
 
-        if (usage?.recent_sheets?.length) {
-          console.log('[useDashboard] Fetched recent sheets:', usage.recent_sheets);
-          setRecentUrls(usage.recent_sheets);
+        // Handle usage data (recent sheets)
+        if (usageResult.data?.recent_sheets?.length) {
+          setRecentUrls(usageResult.data.recent_sheets);
           
-          // Create document titles mapping from recent sheets data
+          // Create document titles mapping
           const titleMap: DocumentTitleMap = {};
-          usage.recent_sheets.forEach((sheet: OnlineSheet) => {
+          usageResult.data.recent_sheets.forEach((sheet: OnlineSheet) => {
             if (sheet.url && sheet.doc_name && sheet.sheet_name) {
               const titleKey = formatTitleKey(sheet.url, sheet.sheet_name);
               const displayTitle = formatDisplayTitle(sheet.doc_name, sheet.sheet_name);
               titleMap[titleKey] = displayTitle;
             }
           });
-
-          console.log('[useDashboard] Setting document titles:', titleMap);
+          
           setDocumentTitles(titleMap);
         }
+
       } catch (error) {
-        console.error('[useDashboard] Error fetching user data:', error);
+        console.error('Error initializing dashboard:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load dashboard data. Please refresh the page.",
+        });
       } finally {
+        setIsInitializing(false);
         setIsLoadingTitles(false);
       }
     };
 
-    fetchUserPreferences();
+    if (user?.id) {
+      initializeDashboard();
+    }
   }, [user?.id]);
 
   useEffect(() => {
@@ -163,74 +234,6 @@ export function useDashboard(initialData?: UserPreferences) {
       }
     }
   }, [initialData])
-
-  useEffect(() => {
-    const checkPermissions = async () => {
-      try {
-        // Get user profile and access tokens
-        const [{ data: profile }, { data: accessTokens }] = await Promise.all([
-          supabase
-            .from('user_profile')
-            .select('google_permissions_set, microsoft_permissions_set')
-            .eq('id', user?.id)
-            .single(),
-          supabase
-            .from('user_documents_access')
-            .select('provider, expires_at')
-            .eq('user_id', user?.id)
-        ]);
-
-        if (!profile) throw new Error('No profile found');
-
-        // Initialize permissions from profile
-        const updatedPermissions = {
-          google: Boolean(profile.google_permissions_set),
-          microsoft: Boolean(profile.microsoft_permissions_set)
-        };
-
-        // Check for expired tokens
-        const now = new Date().toISOString();
-        const expiredProviders = accessTokens?.filter(token => token.expires_at < now).map(token => token.provider) || [];
-
-        // If we found expired tokens, update the permissions in the database and state
-        if (expiredProviders.length > 0) {
-          console.log('[useDashboard] Found expired tokens for providers:', expiredProviders);
-
-          // Create update object for user_profile
-          const updateData: { [key: string]: boolean } = {};
-          expiredProviders.forEach(provider => {
-            updateData[`${provider}_permissions_set`] = false;
-            updatedPermissions[provider as keyof typeof updatedPermissions] = false;
-          });
-
-          // Update the database
-          const { error: updateError } = await supabase
-            .from('user_profile')
-            .update(updateData)
-            .eq('id', user?.id);
-
-          if (updateError) {
-            console.error('[useDashboard] Error updating permissions:', updateError);
-          }
-        }
-
-        // Update permissions state
-        setPermissions(updatedPermissions);
-
-        // // Show permissions prompt if setup not completed or if any tokens are expired
-        // if (expiredProviders.length > 0) {
-        //   setShowPermissionsPrompt(true);
-        // }
-
-      } catch (error) {
-        console.error('[useDashboard] Error checking permissions:', error);
-      }
-    };
-
-    if (user) {
-      checkPermissions();
-    }
-  }, [user]);
 
   const validateFile = (file: File): string | null => {
     // Check file size
@@ -432,7 +435,7 @@ export function useDashboard(initialData?: UserPreferences) {
 
     // Early permissions check
     if (!permissions[provider]) {
-      setError(`Please set up ${provider === 'google' ? 'Google' : 'Microsoft'} permissions in your account settings`);
+      setError(`Please set up or reconnect your ${provider === 'google' ? 'Google' : 'Microsoft'} account in your account settings`);
       return false;
     }
 
@@ -462,6 +465,16 @@ export function useDashboard(initialData?: UserPreferences) {
         if (documentTitles[titleKey]) {
           try {
             const { url, sheet_name } = JSON.parse(titleKey);
+            
+            // Check permissions before adding
+            const { hasPermission, provider } = checkUrlPermissions(url, permissions);
+            if (!hasPermission) {
+              const providerName = provider === 'google' ? 'Google' : 'Microsoft';
+              setUrlValidationError(`Please set up your ${providerName} permissions before adding this document`);
+              router.push(`/auth/setup-permissions?provider=${provider}`);
+              return;
+            }
+
             const newPair: InputUrl = { url, sheet_name };
             setSelectedUrlPairs(prev => [...prev, newPair]);
             setUrls(['']);
@@ -474,9 +487,14 @@ export function useDashboard(initialData?: UserPreferences) {
 
       // Early permissions check
       const provider = getUrlProvider(value);
-      if (provider && !permissions[provider]) {
-        setUrlValidationError(`Please set up ${provider === 'google' ? 'Google' : 'Microsoft'} permissions in your account settings`);
-        return;
+      if (provider) {
+        const { hasPermission } = checkUrlPermissions(value, permissions);
+        if (!hasPermission) {
+          const providerName = provider === 'google' ? 'Google' : 'Microsoft';
+          setUrlValidationError(`Please set up your ${providerName} permissions before adding this document`);
+          router.push(`/auth/setup-permissions?provider=${provider}`);
+          return;
+        }
       }
 
       setIsRetrievingData(true);
@@ -628,6 +646,15 @@ export function useDashboard(initialData?: UserPreferences) {
   const handleSheetSelection = async (url: string, selectedSheet: string) => {
     if (!url || !selectedSheet) {
       console.error('Missing required data for sheet selection:', { url, selectedSheet });
+      return;
+    }
+
+    // Check permissions before proceeding
+    const { hasPermission, provider } = checkUrlPermissions(url, permissions);
+    if (!hasPermission) {
+      const providerName = provider === 'google' ? 'Google' : 'Microsoft';
+      setError(`Please set up your ${providerName} permissions before adding this document`);
+      router.push(`/auth/setup-permissions?provider=${provider}`);
       return;
     }
 
@@ -1007,6 +1034,7 @@ export function useDashboard(initialData?: UserPreferences) {
   }
 
   return {
+    isInitializing,
     urls,
     query,
     files,

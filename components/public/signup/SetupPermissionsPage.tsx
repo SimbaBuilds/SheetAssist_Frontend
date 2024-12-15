@@ -49,9 +49,8 @@ export function SetupPermissionsPage() {
           <h1 className="text-2xl font-bold">Set Up Permissions</h1>
           <div className="bg-primary/10 border-2 border-primary rounded-lg p-4">
             <p className="text-primary font-medium leading-relaxed">
-              Allow us access to your spreadsheets to get the most out of this application. <br/>
-              Our application will only read and add to the workbooks you select -- no deletions or
-              modifications will be made to your files.
+              Please accept all permissions to get the most out of this application. <br/>
+              Changes to your sheets will only be additive.  No deletions or modifications will be made to your files or their contents.
             </p>
           </div>
         </div>

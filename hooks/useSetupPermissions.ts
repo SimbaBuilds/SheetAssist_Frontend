@@ -2,21 +2,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import type { PermissionSetupOptions } from '@/types/auth'
-
-export const DOCUMENT_SCOPES = {
-    google: [
-
-      'https://www.googleapis.com/auth/drive.file',
-      'https://www.googleapis.com/auth/drive.readonly',
-      'https://www.googleapis.com/auth/spreadsheets.readonly'
-    ].join(' '),
-    microsoft: [
-      'offline_access',
-      'Files.Read',
-      'Files.ReadWrite.Selected',
-      'User.Read',
-    ].join(' ')
-  } as const
+import { DOCUMENT_SCOPES } from '@/constants/routes'
 
 export function useSetupPermissions() {
   const router = useRouter()

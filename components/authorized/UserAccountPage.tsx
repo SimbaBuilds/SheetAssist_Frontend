@@ -110,9 +110,8 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
           <CardHeader>
             <CardTitle>Connected Services</CardTitle>
             <CardDescription>
-              Allow us access to your spreadsheets to get the most out of this application. 
-              < br/>Our application will only read and add to the workbooks you select -- no deletions or 
-              modifications will be made to your files.
+              Please accept all permissions to get the most out of this application. 
+              < br/>Changes to your sheets will only be additive.  No deletions or modifications will be made to your files or their contents.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
