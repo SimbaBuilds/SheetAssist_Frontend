@@ -63,7 +63,6 @@ export function useSignUp() {
             last_name: data.lastName,
             google_permissions_set: false,
             microsoft_permissions_set: false,
-            permissions_setup_completed: false,
             plan: 'free'
           })
 

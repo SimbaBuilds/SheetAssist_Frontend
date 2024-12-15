@@ -25,21 +25,24 @@ export default function LandingPage() {
       <div className="container mx-auto px-4 py-20">
         <h2 className="text-3xl font-bold text-center mb-12">Example Use Cases</h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+
+
+
           <Card>
             <CardHeader>
-              <CardTitle>PDF to Spreadsheet</CardTitle>
+              <CardTitle>Document Merge</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Convert complex PDF tables and documents into perfectly formatted spreadsheets. 
-                Maintain formatting and data accuracy with smart column detection.
+                Combine multiple spreadsheets into a single, organized document. 
+                Smart matching of headers and columns for consistent formatting.
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Image Data Extraction</CardTitle>
+              <CardTitle>Image to Spreadsheet</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
@@ -49,14 +52,15 @@ export default function LandingPage() {
             </CardContent>
           </Card>
 
+
           <Card>
             <CardHeader>
-              <CardTitle>Document Merge</CardTitle>
+              <CardTitle>PDF to Spreadsheet</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Combine multiple PDFs and spreadsheets into a single, organized document. 
-                Smart matching of headers and columns for consistent formatting.
+                Convert complex PDF tables and documents into  formatted spreadsheets. 
+                Maintain formatting and data accuracy with smart column detection.
               </p>
             </CardContent>
           </Card>
@@ -80,7 +84,6 @@ export default function LandingPage() {
             <CardContent>
               <p className="text-muted-foreground">
                 Seamlessly convert between different file formats including Excel, CSV, and PDF. 
-                Intelligent layout preservation ensures your data stays organized and readable.
               </p>
             </CardContent>
           </Card>

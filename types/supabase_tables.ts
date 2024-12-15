@@ -24,7 +24,6 @@ export interface UserProfile {
   last_name: string | null
   google_permissions_set: boolean
   microsoft_permissions_set: boolean
-  permissions_setup_completed: boolean
   plan: PlanType
   allow_sheet_modification: boolean
   show_sheet_modification_warning: boolean
@@ -79,4 +78,14 @@ export interface UserDocumentsAccess {
   scope: string
   created_at: string // ISO timestamp
   updated_at: string // ISO timestamp
+}
+
+// file_permissions table
+export interface FilePermissions {
+  id: string // UUID
+  user_id: string // UUID 
+  file_id: string
+  provider: 'google' | 'microsoft'
+  expires_at: string // ISO timestamp
+  created_at: string // ISO timestamp
 }

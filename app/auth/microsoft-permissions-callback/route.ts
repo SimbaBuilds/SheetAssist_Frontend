@@ -91,8 +91,7 @@ export async function GET(request: NextRequest) {
     const { error: updateError } = await supabase
       .from('user_profile')
       .update({
-        microsoft_permissions_set: true,
-        permissions_setup_completed: true,
+        microsoft_permissions_set: true
       })
       .eq('id', user.id)
 

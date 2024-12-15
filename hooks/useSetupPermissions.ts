@@ -5,15 +5,16 @@ import type { PermissionSetupOptions } from '@/types/auth'
 
 export const DOCUMENT_SCOPES = {
     google: [
-      'https://www.googleapis.com/auth/spreadsheets',
-      'https://www.googleapis.com/auth/documents',
-      'https://www.googleapis.com/auth/drive',
+
+      'https://www.googleapis.com/auth/drive.file',
+      'https://www.googleapis.com/auth/drive.readonly',
+      'https://www.googleapis.com/auth/spreadsheets.readonly'
     ].join(' '),
     microsoft: [
-      'Files.ReadWrite.All',
-      'Sites.ReadWrite.All', 
       'offline_access',
-      'User.Read'
+      'Files.Read',
+      'Files.ReadWrite.Selected',
+      'User.Read',
     ].join(' ')
   } as const
 

@@ -43,7 +43,6 @@ export async function GET(request: Request) {
           last_name: '',
           google_permissions_set: false,
           microsoft_permissions_set: false,
-          permissions_setup_completed: false,
           plan: 'free'
         }
       ])

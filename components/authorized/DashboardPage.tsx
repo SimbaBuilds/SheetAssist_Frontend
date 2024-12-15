@@ -36,6 +36,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { SheetSelector } from '@/components/SheetSelector'
+import { useRouter } from 'next/navigation'
 
 
 
@@ -127,10 +128,11 @@ export default function DashboardPage() {
   } = useSetupPermissions()
 
   const [dontShowAgain, setDontShowAgain] = useState(false)
+  const router = useRouter()
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
-      {showPermissionsPrompt && (
+      {/* {showPermissionsPrompt && (
         <div className="mb-8 p-4 border rounded-lg bg-yellow-50">
           <div className="space-y-4">
             <div className="flex items-start justify-between">
@@ -190,7 +192,7 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* <h1 className="text-2xl font-bold mb-8">AI File Processing</h1> */}
       
@@ -297,7 +299,7 @@ export default function DashboardPage() {
                   value={urls[0]}
                   onChange={(e) => handleUrlChange(0, e.target.value)}
                   onFocus={handleUrlFocus}
-                  placeholder="Enter Google Sheets or Excel Online URL"
+                  placeholder="Paste Google Sheet or Excel Online URL here or select from recent documents"
                   className={`${urlValidationError ? 'border-red-500' : ''}`}
                   disabled={selectedUrlPairs.length >= 6 || isRetrievingData}
                 />
@@ -512,7 +514,7 @@ export default function DashboardPage() {
           {outputType === 'online' && (
             <div className="space-y-4">
               <div>
-                <Label htmlFor="destination">Destination URL</Label>
+                <Label htmlFor="destination">Destination</Label>
                 <div className="mt-1">
                   <div className="flex gap-2">
                     <Input
@@ -521,7 +523,7 @@ export default function DashboardPage() {
                       value={outputUrl}
                       onChange={(e) => handleOutputUrlChange(e.target.value)}
                       onFocus={handleUrlFocus}
-                      placeholder="Enter destination Google Sheets or Excel Online URL"
+                      placeholder="Paste Google Sheet or Excel Online URL here or select from recent documents"
                       className={`${destinationUrlError ? 'border-red-500' : ''}`}
                     />
                     <Popover>
@@ -603,7 +605,22 @@ export default function DashboardPage() {
         </div>
 
         {error && (
-          <div className="text-red-500 text-sm">{error}</div>
+          <div className="text-red-500 text-sm">
+            {error.toLowerCase().includes('reconnect') ? (
+              <div className="flex items-center gap-2">
+                <span>{error}</span>
+                <Button
+                  variant="link"
+                  className="h-auto p-0 text-sm font-medium text-blue-600 hover:text-blue-800"
+                  onClick={() => router.push('user-account')}
+                >
+                  Reconnect Account
+                </Button>
+              </div>
+            ) : (
+              error
+            )}
+          </div>
         )}
 
         <Button type="submit" disabled={isProcessing} className="w-full">

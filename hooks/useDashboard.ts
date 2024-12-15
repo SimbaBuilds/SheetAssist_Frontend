@@ -6,6 +6,7 @@ import type { DownloadFileType, DashboardInitialData, OutputPreferences, Process
 import { ACCEPTED_FILE_TYPES } from '@/constants/file-types'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/use-toast'
+import { useFilePicker } from '@/hooks/useFilePicker'
 
 const MAX_FILES = 10
 const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
@@ -35,6 +36,16 @@ export const formatDisplayTitle = (doc_name: string, sheet_name?: string): strin
   }
   return doc_name;
 }
+
+const getUrlProvider = (url: string): 'google' | 'microsoft' | null => {
+  if (url.includes('google.com') || url.includes('docs.google.com') || url.includes('sheets.google.com')) {
+    return 'google';
+  }
+  if (url.includes('onedrive.live.com') || url.includes('live.com') || url.includes('sharepoint.com')) {
+    return 'microsoft';
+  }
+  return null;
+};
 
 export function useDashboard(initialData?: UserPreferences) {
   const { user } = useAuth()
@@ -74,6 +85,7 @@ export function useDashboard(initialData?: UserPreferences) {
   const [selectedOutputSheet, setSelectedOutputSheet] = useState<string | null>(null)
   const [isUpdating, setIsUpdating] = useState(false)
   const { toast } = useToast()
+  const { verifyFileAccess, storeFilePermission, launchPicker } = useFilePicker()
 
   const supabase = createClient()
 
@@ -152,31 +164,70 @@ export function useDashboard(initialData?: UserPreferences) {
   useEffect(() => {
     const checkPermissions = async () => {
       try {
-        const { data: profile, error: profileError } = await supabase
-          .from('user_profile')
-          .select('google_permissions_set, microsoft_permissions_set, permissions_setup_completed')
-          .eq('id', user?.id)
-          .single()
+        // Get user profile and access tokens
+        const [{ data: profile }, { data: accessTokens }] = await Promise.all([
+          supabase
+            .from('user_profile')
+            .select('google_permissions_set, microsoft_permissions_set')
+            .eq('id', user?.id)
+            .single(),
+          supabase
+            .from('user_documents_access')
+            .select('provider, expires_at')
+            .eq('user_id', user?.id)
+        ]);
 
-        if (profileError) throw profileError
+        if (!profile) throw new Error('No profile found');
 
-        setPermissions({
-          google: !!profile?.google_permissions_set,
-          microsoft: !!profile?.microsoft_permissions_set
-        })
+        // Initialize permissions from profile
+        const updatedPermissions = {
+          google: !!profile.google_permissions_set,
+          microsoft: !!profile.microsoft_permissions_set
+        };
 
-        if (!profile?.permissions_setup_completed) {
-          setShowPermissionsPrompt(true)
+        // Check for expired tokens
+        const now = new Date().toISOString();
+        const expiredProviders = accessTokens?.filter(token => token.expires_at < now).map(token => token.provider) || [];
+
+        // If we found expired tokens, update the permissions in the database and state
+        if (expiredProviders.length > 0) {
+          console.log('[useDashboard] Found expired tokens for providers:', expiredProviders);
+
+          // Create update object for user_profile
+          const updateData: { [key: string]: boolean } = {};
+          expiredProviders.forEach(provider => {
+            updateData[`${provider}_permissions_set`] = false;
+            updatedPermissions[provider as keyof typeof updatedPermissions] = false;
+          });
+
+          // Update the database
+          const { error: updateError } = await supabase
+            .from('user_profile')
+            .update(updateData)
+            .eq('id', user?.id);
+
+          if (updateError) {
+            console.error('[useDashboard] Error updating permissions:', updateError);
+          }
         }
+
+        // Update permissions state
+        setPermissions(updatedPermissions);
+
+        // // Show permissions prompt if setup not completed or if any tokens are expired
+        // if (expiredProviders.length > 0) {
+        //   setShowPermissionsPrompt(true);
+        // }
+
       } catch (error) {
-        console.error('Error checking permissions:', error)
+        console.error('[useDashboard] Error checking permissions:', error);
       }
-    }
+    };
 
     if (user) {
-      checkPermissions()
+      checkPermissions();
     }
-  }, [user])
+  }, [user]);
 
   const validateFile = (file: File): string | null => {
     // Check file size
@@ -369,24 +420,20 @@ export function useDashboard(initialData?: UserPreferences) {
       return false;
     }
 
-    // Check if it's a Google or Microsoft URL
-    const isGoogleUrl = value.includes('google.com') || value.includes('docs.google.com') || value.includes('sheets.google.com');
-    const isMicrosoftUrl = value.includes('onedrive.live.com') || value.includes('live.com') || value.includes('sharepoint.com');
-
-    if (!isGoogleUrl && !isMicrosoftUrl) {
+    // Check provider and permissions
+    const provider = getUrlProvider(value);
+    if (!provider) {
       setError('Please enter a valid Google Sheets or Microsoft Excel Online URL');
       return false;
     }
 
-    // Check permissions
-    if (isGoogleUrl && !permissions.google) {
-      setError('Please set up Google permissions in your account page');
-      return false;
-    } else if (isMicrosoftUrl && !permissions.microsoft) {
-      setError('Please set up Microsoft permissions in your account page');
+    // Early permissions check
+    if (!permissions[provider]) {
+      setError(`Please set up ${provider === 'google' ? 'Google' : 'Microsoft'} permissions in your account settings`);
       return false;
     }
 
+    // Only proceed with document title fetching if we have permissions
     const workbook = await fetchDocumentTitles(value);
     if (!workbook?.success) {
       setError('Unable to access the document. Please check the URL and your permissions.');
@@ -406,16 +453,15 @@ export function useDashboard(initialData?: UserPreferences) {
     setUrls(newUrls);
 
     if (value) {
-      // If selection is from dropdown and we have a mapping, use existing sheet info
+      // If selection is from dropdown, use existing logic
       if (fromDropdown) {
         const titleKey = value;  // value is the title key when from dropdown
         if (documentTitles[titleKey]) {
           try {
             const { url, sheet_name } = JSON.parse(titleKey);
-            // Add to selected pairs instead of just updating URLs
             const newPair: InputUrl = { url, sheet_name };
             setSelectedUrlPairs(prev => [...prev, newPair]);
-            setUrls(['']); // Reset URL input field
+            setUrls(['']);
             return;
           } catch (error) {
             console.error('Error parsing title key:', error);
@@ -423,42 +469,72 @@ export function useDashboard(initialData?: UserPreferences) {
         }
       }
 
+      // Early permissions check
+      const provider = getUrlProvider(value);
+      if (provider && !permissions[provider]) {
+        setUrlValidationError(`Please set up ${provider === 'google' ? 'Google' : 'Microsoft'} permissions in your account settings`);
+        return;
+      }
+
       setIsRetrievingData(true);
       try {
-        // Validate URL
-        if (!(await validateUrl(value))) {
-          return;
-        }
+        // Only proceed with file picker and title fetching if we have permissions
+        if (provider && permissions[provider]) {
+          // Verify file access
+          const { hasPermission, fileInfo, error } = await verifyFileAccess(value);
+          
+          if (!fileInfo) {
+            setUrlValidationError('Invalid URL format');
+            return;
+          }
 
-        // Fetch document title and handle sheet selection
-        const workbook = await fetchDocumentTitles(value);
-        if (workbook?.success) {
-          const sheetNames = workbook.sheet_names ?? [];
-          
-          // Cache workbook information
-          setWorkbookCache(prev => ({
-            ...prev,
-            [value]: {
-              doc_name: workbook.doc_name,
-              sheet_names: sheetNames
+          if (!hasPermission) {
+            // Launch the file picker when permission is not found
+            const pickerResult = await launchPicker(fileInfo.provider);
+            
+            if (!pickerResult.success) {
+              setUrlPermissionError(pickerResult.error || 'Failed to get file permission');
+              return;
             }
-          }));
-          
-          if (sheetNames.length === 1) {
-            // If there's only one sheet, add it to selected pairs automatically
-            const newPair: InputUrl = { url: value, sheet_name: sheetNames[0] };
-            setSelectedUrlPairs(prev => [...prev, newPair]);
-            setUrls(['']); // Reset URL input field
-            await updateRecentUrls(value, sheetNames[0], workbook.doc_name);
-          } else if (sheetNames.length > 1) {
-            // For multiple sheets, show selector
-            setSelectedUrl(value);
-            setShowSheetSelector(true);
+            
+            // If picker was successful, continue with URL validation
+            if (pickerResult.url) {
+              value = pickerResult.url; // Use the URL from the picker
+            }
+          }
+
+          // Continue with existing URL validation and processing
+          if (!(await validateUrl(value))) {
+            return;
+          }
+
+          // Fetch document title and handle sheet selection
+          const workbook = await fetchDocumentTitles(value);
+          if (workbook?.success) {
+            const sheetNames = workbook.sheet_names ?? [];
+            
+            setWorkbookCache(prev => ({
+              ...prev,
+              [value]: {
+                doc_name: workbook.doc_name,
+                sheet_names: sheetNames
+              }
+            }));
+            
+            if (sheetNames.length === 1) {
+              const newPair: InputUrl = { url: value, sheet_name: sheetNames[0] };
+              setSelectedUrlPairs(prev => [...prev, newPair]);
+              setUrls(['']);
+              await updateRecentUrls(value, sheetNames[0], workbook.doc_name);
+            } else if (sheetNames.length > 1) {
+              setSelectedUrl(value);
+              setShowSheetSelector(true);
+            }
           }
         }
       } catch (error) {
         console.error('Error handling URL change:', error);
-        setError('Failed to retrieve document data');
+        setError('Failed to process URL');
       } finally {
         setIsRetrievingData(false);
       }
@@ -471,7 +547,7 @@ export function useDashboard(initialData?: UserPreferences) {
     setDestinationUrlError(null);
     
     if (value) {
-      // If selection is from dropdown and we have a mapping, use existing sheet info
+      // Handle dropdown selection
       if (fromDropdown) {
         const titleKey = value;  // value is the title key when from dropdown
         if (documentTitles[titleKey]) {
@@ -488,9 +564,32 @@ export function useDashboard(initialData?: UserPreferences) {
 
       setIsRetrievingData(true);
       try {
-        // Validate URL
+        // Verify file access
+        const { hasPermission, fileInfo, error } = await verifyFileAccess(value)
+        
+        if (!fileInfo) {
+          setDestinationUrlError('Invalid URL format')
+          return
+        }
+
+        if (!hasPermission) {
+          // Launch the file picker when permission is not found
+          const pickerResult = await launchPicker(fileInfo.provider)
+          
+          if (!pickerResult.success) {
+            setDestinationUrlError(pickerResult.error || 'Failed to get file permission')
+            return
+          }
+          
+          // If picker was successful, continue with URL validation
+          if (pickerResult.url) {
+            value = pickerResult.url // Use the URL from the picker
+          }
+        }
+
+        // Continue with existing validation and processing
         if (!(await validateUrl(value, true))) {
-          return;
+          return
         }
 
         // Fetch document title and handle sheet selection
@@ -498,7 +597,6 @@ export function useDashboard(initialData?: UserPreferences) {
         if (workbook?.success) {
           const sheetNames = workbook.sheet_names ?? [];
           
-          // Cache workbook information
           setWorkbookCache(prev => ({
             ...prev,
             [value]: {
@@ -508,11 +606,9 @@ export function useDashboard(initialData?: UserPreferences) {
           }));
           
           if (sheetNames.length === 1) {
-            // If there's only one sheet, set it automatically
             setSelectedOutputSheet(sheetNames[0]);
             await updateRecentUrls(value, sheetNames[0], workbook.doc_name);
           } else if (sheetNames.length > 1) {
-            // For multiple sheets, show selector
             setSelectedUrl(value);
             setShowSheetSelector(true);
           }

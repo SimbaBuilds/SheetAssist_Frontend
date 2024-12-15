@@ -103,8 +103,7 @@ export async function GET(request: NextRequest) {
     const { error: updateError } = await supabase
       .from('user_profile')
       .update({
-        [`${provider}_permissions_set`]: true,
-        permissions_setup_completed: true,
+        [`${provider}_permissions_set`]: true
       })
       .eq('id', user.id)
 
