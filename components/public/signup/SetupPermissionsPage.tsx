@@ -49,7 +49,7 @@ export function SetupPermissionsPage() {
           <h1 className="text-2xl font-bold">Set Up Permissions</h1>
           <p className="text-muted-foreground">
             To get the most out of this application, please allow us access to your spreadsheets.
-            Our application will only read and add to the workbooks you select -- no deletions will be made.
+            Our application will only read and add to the workbooks you select -- no deletions or modifications will be made.
           </p>
         </div>
 

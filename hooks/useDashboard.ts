@@ -58,9 +58,12 @@ export function useDashboard(initialData?: UserPreferences) {
   const [outputUrl, setOutputUrl] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState('')
-  const [permissions, setPermissions] = useState({
-    google: false,
-    microsoft: false
+  const [permissions, setPermissions] = useState<{
+    google: boolean | null;
+    microsoft: boolean | null;
+  }>({
+    google: null,
+    microsoft: null
   })
   const [urlPermissionError, setUrlPermissionError] = useState<string | null>(null)
   const [urlValidationError, setUrlValidationError] = useState<string | null>(null)
@@ -181,8 +184,8 @@ export function useDashboard(initialData?: UserPreferences) {
 
         // Initialize permissions from profile
         const updatedPermissions = {
-          google: !!profile.google_permissions_set,
-          microsoft: !!profile.microsoft_permissions_set
+          google: Boolean(profile.google_permissions_set),
+          microsoft: Boolean(profile.microsoft_permissions_set)
         };
 
         // Check for expired tokens

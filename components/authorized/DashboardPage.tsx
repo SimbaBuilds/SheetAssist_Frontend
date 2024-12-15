@@ -666,7 +666,7 @@ export default function DashboardPage() {
                     htmlFor="dontShowAgain"
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                   >
-                    Don&apos;t show this warning again
+                    Don't show this warning again
                   </label>
                 </div>
               </AlertDialogDescription>
