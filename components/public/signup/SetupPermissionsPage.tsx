@@ -45,13 +45,15 @@ export function SetupPermissionsPage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-md">
       <div className="bg-background rounded-lg shadow-lg p-6 space-y-6">
-        <div className="space-y-2 text-center">
+        <div className="space-y-4 text-center">
           <h1 className="text-2xl font-bold">Set Up Permissions</h1>
-          <p className="text-muted-foreground">
-            Allow us access to your spreadsheets to get the most out of this application. < br/>
-            Our application will only read and add to the workbooks you select -- no deletions or
-            modifications will be made.
-          </p>
+          <div className="bg-primary/10 border-2 border-primary rounded-lg p-4">
+            <p className="text-primary font-medium leading-relaxed">
+              Allow us access to your spreadsheets to get the most out of this application. <br/>
+              Our application will only read and add to the workbooks you select -- no deletions or
+              modifications will be made to your files.
+            </p>
+          </div>
         </div>
 
         <div className="space-y-4">
