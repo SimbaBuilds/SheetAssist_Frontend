@@ -111,7 +111,9 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
             <CardTitle>Connected Services</CardTitle>
             <CardDescription>
               Please accept all permissions to get the most out of this application. 
-              < br/>Changes to your sheets will only be additive.  No deletions or modifications will be made to your files or their contents.
+              < br/>Changes to your sheets will only be additive; no deletions or modifications will be made to your files or their contents.
+              < br/>Verification for this app is pending.
+
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
