@@ -23,31 +23,29 @@ export default function LandingPage() {
 
       {/* Example Use Cases Section */}
       <div className="container mx-auto px-4 py-20">
-        <h2 className="text-3xl font-bold text-center mb-12">Example Use Cases</h2>
+        <h2 className="text-3xl font-bold text-center mb-12">What does it do?</h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
 
 
 
           <Card>
             <CardHeader>
-              <CardTitle>Document Merge</CardTitle>
+              <CardTitle>Merges Spreadsheets</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Combine multiple spreadsheets into a single, organized document. 
-                Smart matching of headers and columns for consistent formatting.
+                Combines multiple spreadsheets with smart matching of headers and columns.
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Image to Spreadsheet</CardTitle>
+              <CardTitle>Extracts Data from Images</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Extract text and data from images, screenshots, or scanned documents. 
-                Automatically organize extracted data into structured spreadsheets.
+                Extracts text and data from images. 
               </p>
             </CardContent>
           </Card>
@@ -55,40 +53,38 @@ export default function LandingPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>PDF to Spreadsheet</CardTitle>
+              <CardTitle>Extracts Data from PDFs</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Convert complex PDF tables and documents into  formatted spreadsheets. 
-                Maintain formatting and data accuracy with smart column detection.
+                Processes scanned documents with vision enabled AI.
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Data Cleanup</CardTitle>
+              <CardTitle>Cleans and Sorts Data</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Automatically standardize dates, numbers, and text formats. 
-                Remove duplicates and fix inconsistencies across your data.
+                Cleans, sorts and standardizes data with natural language commands. 
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Format Conversion</CardTitle>
+              <CardTitle>Converts Formats</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Seamlessly convert between different file formats including Excel, CSV, and PDF. 
+                Seamlessly converts between different file formats including Excel, CSV, Text, and PDF. 
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          {/* <Card>
             <CardHeader>
               <CardTitle>Batch Processing</CardTitle>
             </CardHeader>
@@ -98,7 +94,7 @@ export default function LandingPage() {
                 Perfect for large-scale data processing and organization.
               </p>
             </CardContent>
-          </Card>
+          </Card> */}
         </div>
       </div>
 
