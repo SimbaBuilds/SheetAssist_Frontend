@@ -1,3 +1,8 @@
+export const MAX_FILES = 5
+export const MAX_FILE_SIZE = 40 * 1024 * 1024 // 40MB
+export const MAX_QUERY_LENGTH = 500
+
+
 export const MIME_TYPES = {
   // Documents
   TEXT: 'text/plain',

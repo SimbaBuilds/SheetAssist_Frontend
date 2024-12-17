@@ -7,7 +7,7 @@ import { useDashboard } from '@/hooks/useDashboard'
 import { useSetupPermissions } from '@/hooks/useSetupPermissions'
 import { PlusIcon } from '@heroicons/react/24/outline'
 import type { DownloadFileType, SheetTitleKey } from '@/types/dashboard'
-import { DOWNLOAD_FILE_TYPES, ACCEPTED_FILE_EXTENSIONS } from '@/constants/file-types'
+import { DOWNLOAD_FILE_TYPES, ACCEPTED_FILE_EXTENSIONS, MAX_FILES, MAX_FILE_SIZE, MAX_QUERY_LENGTH } from '@/constants/file-types'
 import { ProcessingResultDialog } from '@/components/authorized/ProcessingResultDialog'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -40,9 +40,7 @@ import { useRouter } from 'next/navigation'
 
 
 
-const MAX_FILES = 5
-const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
-const MAX_QUERY_LENGTH = 500
+
 
 const EXAMPLE_QUERIES = [
   "Add this to the sheet",

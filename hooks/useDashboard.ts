@@ -3,13 +3,11 @@ import { useAuth } from '@/hooks/useAuth'
 import { processQuery, downloadFile, getDocumentTitle } from '@/services/python_backend'
 import { createClient } from '@/utils/supabase/client'
 import type { DownloadFileType, DashboardInitialData, OutputPreferences, ProcessedQueryResult, SheetTitleKey, InputUrl, OnlineSheet } from '@/types/dashboard'
-import { ACCEPTED_FILE_TYPES } from '@/constants/file-types'
+import { ACCEPTED_FILE_TYPES, MAX_FILES, MAX_FILE_SIZE } from '@/constants/file-types'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/use-toast'
 import { useFilePicker } from '@/hooks/useFilePicker'
 
-const MAX_FILES = 10
-const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 
 type UserPreferences = DashboardInitialData
 
@@ -109,7 +107,7 @@ export function useDashboard(initialData?: UserPreferences) {
       setIsInitializing(true)
       try {
         // Fetch all initial data in parallel
-        const [profileResult, usageResult, accessTokensResult] = await Promise.all([
+        const [profileResult, usageResult] = await Promise.all([
           supabase
             .from('user_profile')
             .select('google_permissions_set, microsoft_permissions_set, allow_sheet_modification, show_sheet_modification_warning')
@@ -120,10 +118,6 @@ export function useDashboard(initialData?: UserPreferences) {
             .select('recent_sheets')
             .eq('user_id', user.id)
             .single(),
-          supabase
-            .from('user_documents_access')
-            .select('provider, expires_at, access_token, refresh_token')
-            .eq('user_id', user.id)
         ]);
 
         // Handle profile data
@@ -136,46 +130,10 @@ export function useDashboard(initialData?: UserPreferences) {
           } = profileResult.data;
 
           // Initialize permissions from profile
-          const updatedPermissions = {
+          setPermissions({
             google: google_permissions_set,
             microsoft: microsoft_permissions_set
-          };
-
-          // Check for expired tokens
-          const now = new Date().toISOString();
-          const expiredProviders = accessTokensResult.data?.filter(token => {
-            // Check if token exists and is expired
-            if (!token.access_token || !token.refresh_token) {
-              return true; // Consider missing tokens as expired
-            }
-            return token.expires_at < now;
-          }).map(token => token.provider as 'google' | 'microsoft') || [];
-
-          // If we found expired tokens, update the permissions
-          if (expiredProviders.length > 0) {
-            console.log('[useDashboard] Found expired tokens for providers:', expiredProviders);
-
-            // Create update object for user_profile
-            const updateData: { [key: string]: boolean } = {};
-            expiredProviders.forEach(provider => {
-              const permissionField = `${provider}_permissions_set` as const;
-              updateData[permissionField] = false;
-              updatedPermissions[provider] = false;
-            });
-
-            // Update the database
-            const { error: updateError } = await supabase
-              .from('user_profile')
-              .update(updateData)
-              .eq('id', user.id);
-
-            if (updateError) {
-              console.error('[useDashboard] Error updating permissions:', updateError);
-            }
-          }
-
-          // Set permissions state after checking for expired tokens
-          setPermissions(updatedPermissions);
+          });
           
           setAllowSheetModification(allow_sheet_modification ?? false);
           setShowSheetModificationWarningPreference(show_sheet_modification_warning ?? true);
