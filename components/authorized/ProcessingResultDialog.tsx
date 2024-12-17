@@ -1,6 +1,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { ProcessedQueryResult } from '@/types/dashboard'
-import { Loader2 } from "lucide-react"
+import { Loader2, XCircle } from "lucide-react"
+import { Button } from '@/components/ui/button'
+import { useState } from 'react'
 
 interface ProcessingResultDialogProps {
   result: ProcessedQueryResult | null
@@ -9,6 +11,7 @@ interface ProcessingResultDialogProps {
   outputType: 'download' | 'online' | null
   isLoading?: boolean
   destinationTitle?: string
+  onCancel?: () => void
 }
 
 export function ProcessingResultDialog({
@@ -17,8 +20,21 @@ export function ProcessingResultDialog({
   onClose,
   outputType,
   isLoading = false,
-  destinationTitle
+  destinationTitle,
+  onCancel
 }: ProcessingResultDialogProps) {
+  const [isCanceling, setIsCanceling] = useState(false)
+
+  const handleCancel = async () => {
+    if (!onCancel || isCanceling) return
+    setIsCanceling(true)
+    try {
+      await onCancel()
+    } finally {
+      setIsCanceling(false)
+    }
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
@@ -34,6 +50,26 @@ export function ProcessingResultDialog({
             <div className="flex flex-col items-center justify-center py-8 space-y-4">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <p className="text-center text-sm text-gray-600">Processing your request...</p>
+              {onCancel && (
+                <Button 
+                  variant="outline" 
+                  onClick={handleCancel}
+                  className="mt-4"
+                  disabled={isCanceling}
+                >
+                  {isCanceling ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Canceling...
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="mr-2 h-4 w-4" />
+                      Cancel Request
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
           )}
 

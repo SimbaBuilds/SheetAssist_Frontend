@@ -81,7 +81,6 @@ export function useDashboard(initialData?: UserPreferences) {
   const [processedResult, setProcessedResult] = useState<ProcessedQueryResult | null>(null)
   const [showResultDialog, setShowResultDialog] = useState(false)
   const [allowSheetModification, setAllowSheetModification] = useState(false)
-  const [showModificationWarning, setShowModificationWarning] = useState(false)
   const [showSheetModificationWarningPreference, setShowSheetModificationWarningPreference] = useState(true)
   const [documentTitles, setDocumentTitles] = useState<DocumentTitleMap>({})
   const [availableSheets, setAvailableSheets] = useState<{ [url: string]: string[] }>({})
@@ -97,6 +96,7 @@ export function useDashboard(initialData?: UserPreferences) {
   const { toast } = useToast()
   const { verifyFileAccess, storeFilePermission, launchPicker } = useFilePicker()
   const [isInitializing, setIsInitializing] = useState(true)
+  const [abortController, setAbortController] = useState<AbortController | null>(null)
 
   const supabase = createClient()
 
@@ -702,25 +702,59 @@ export function useDashboard(initialData?: UserPreferences) {
     const newUrls = urls.filter((_, i) => i !== index)
     setUrls(newUrls.length ? newUrls : ['']) // Keep at least one URL field
   }
+  const handleCancel = async () => {
+    if (abortController) {
+      console.log('Cancelling request...');
+      abortController.abort();
+      setAbortController(null);
+      setIsProcessing(false);
+      setShowResultDialog(false);
+      setProcessedResult(null);
+      setError('Request was canceled');
+      
+      // Log the cancellation
+      if (user?.id) {
+        try {
+          await supabase.from('request_log').insert({
+            user_id: user.id,
+            query,
+            file_names: files?.map(f => f.name) || [],
+            doc_names: selectedUrlPairs.map(url => url.url),
+            status: 'canceled',
+            success: false
+          });
+        } catch (error) {
+          console.error('Error logging cancellation:', error);
+        }
+      }
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setOutputTypeError(null)
+    e.preventDefault();
+    setError('');
+    setOutputTypeError(null);
+
+    // Clean up any existing abort controller
+    if (abortController) {
+      abortController.abort();
+      setAbortController(null);
+    }
 
     // Validate output preferences
     if (!outputType) {
-      setOutputTypeError('Please select an output preference')
-      return
+      setOutputTypeError('Please select an output preference');
+      return;
     }
 
     if (outputType === 'download' && !downloadFileType) {
-      setOutputTypeError('Please select a file type')
-      return
+      setOutputTypeError('Please select a file type');
+      return;
     }
 
     if (outputType === 'online' && !outputUrl.trim()) {
-      setOutputTypeError('Please enter a destination URL')
-      return
+      setOutputTypeError('Please enter a destination URL');
+      return;
     }
 
     // Validate destination URL if output type is 'online'
@@ -730,15 +764,13 @@ export function useDashboard(initialData?: UserPreferences) {
       }
     }
 
-    // Only show warning on submit if conditions are met
-    if (outputType === 'online' && allowSheetModification && showSheetModificationWarningPreference) {
-      setShowModificationWarning(true)
-      return // Stop here and wait for user acknowledgment
-    }
+    // Create new AbortController for this request
+    const controller = new AbortController();
+    setAbortController(controller);
 
-    // If we get here, either no warning needed or warning was acknowledged
-    console.log('Proceeding with submission')
-    setIsProcessing(true)
+    // Proceed with submission
+    console.log('Starting submission...');
+    setIsProcessing(true);
 
     try {
       // Create output preferences object with sheet name
@@ -750,7 +782,7 @@ export function useDashboard(initialData?: UserPreferences) {
           sheet_name: selectedOutputSheet ?? undefined
         }),
         ...(outputType === 'download' && { format: downloadFileType })
-      }
+      };
 
       // Process the query using selectedUrlPairs directly
       try {
@@ -758,58 +790,69 @@ export function useDashboard(initialData?: UserPreferences) {
           query,
           selectedUrlPairs,
           files,
-          outputPreferences
-        )
+          outputPreferences,
+          controller.signal
+        );
         
-        // Store the result and show dialog
-        setProcessedResult(result)
-        setShowResultDialog(true)
+        // Only update states if the request wasn't cancelled
+        if (!controller.signal.aborted) {
+          setProcessedResult(result);
+          setShowResultDialog(true);
 
-        if (result.result.error) {
-          setError(result.result.error)
-          // Log error
-          await supabase
-            .from('error_log')
-            .insert({
-              user_id: user?.id,
-              message: result.result.error,
-              error_code: 'QUERY_PROCESSING_ERROR',
-              resolved: false,
-              original_query: result.result.original_query
-            })
-          return
-        }
+          if (result.result.error) {
+            setError(result.result.error);
+            // Log error
+            await supabase
+              .from('error_log')
+              .insert({
+                user_id: user?.id,
+                message: result.result.error,
+                error_code: 'QUERY_PROCESSING_ERROR',
+                resolved: false,
+                original_query: result.result.original_query
+              });
+            return;
+          }
 
-        // Handle download if needed
-        if (outputType === 'download' && result.status === 'success' && result.files?.[0]) {
-          try {
-            await downloadFile(result.files[0])
-          } catch (downloadError) {
-            if (!handleAuthError(downloadError)) {
-              console.error('Error downloading file:', downloadError)
-              setError('Failed to download the result file')
-              
-              // Log download error
-              await supabase
-                .from('error_log')
-                .insert({
-                  user_id: user?.id,
-                  message: downloadError instanceof Error ? downloadError.message : 'Download failed',
-                  error_code: 'DOWNLOAD_ERROR',
-                  resolved: false,
-                  original_query: result.result.original_query
-                })
+          // Handle download if needed
+          if (outputType === 'download' && result.status === 'success' && result.files?.[0]) {
+            try {
+              await downloadFile(result.files[0]);
+            } catch (downloadError) {
+              if (!handleAuthError(downloadError)) {
+                console.error('Error downloading file:', downloadError);
+                setError('Failed to download the result file');
+                
+                // Log download error
+                await supabase
+                  .from('error_log')
+                  .insert({
+                    user_id: user?.id,
+                    message: downloadError instanceof Error ? downloadError.message : 'Download failed',
+                    error_code: 'DOWNLOAD_ERROR',
+                    resolved: false,
+                    original_query: result.result.original_query
+                  });
+              }
             }
           }
         }
       } catch (queryError) {
+        if (queryError instanceof Error && queryError.name === 'AbortError') {
+          console.log('Request was cancelled by user');
+          return;
+        }
         if (!handleAuthError(queryError)) {
           throw queryError;
         }
       }
     } catch (error) {
-      console.error('Error processing query:', error)
-      setError('An error occurred while processing your request')
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('Request was cancelled');
+        return;
+      }
+      console.error('Error processing query:', error);
+      setError('An error occurred while processing your request');
       
       if (error instanceof Error) {
         await supabase
@@ -819,126 +862,14 @@ export function useDashboard(initialData?: UserPreferences) {
             message: error.message,
             error_code: 'UNKNOWN_ERROR',
             resolved: false,
-          })
+          });
       }
     } finally {
-      setIsProcessing(false)
+      // Only clean up if the component is still mounted
+      setIsProcessing(false);
+      setAbortController(null);
     }
-  }
-
-  const handleWarningAcknowledgment = async (dontShowAgain: boolean) => {
-    console.log('[useDashboard] Handling warning acknowledgment:', {
-      dontShowAgain,
-      currentWarningPreference: showSheetModificationWarningPreference
-    })
-    
-    setShowModificationWarning(false)
-    
-    if (dontShowAgain) {
-      console.log('[useDashboard] Updating warning preference in database')
-      const { error } = await supabase
-        .from('user_profile')
-        .update({ show_sheet_modification_warning: false })
-        .eq('id', user?.id)
-
-      if (error) {
-        console.error('[useDashboard] Error updating warning preference:', error)
-      } else {
-        console.log('[useDashboard] Successfully updated warning preference')
-        setShowSheetModificationWarningPreference(false)
-      }
-    }
-  }
-
-  const continueSubmitAfterWarning = async () => {
-    setShowModificationWarning(false)
-    setIsProcessing(true)
-
-    try {
-      // Create output preferences object with sheet name
-      const outputPreferences: OutputPreferences = {
-        type: outputType ?? 'download',
-        ...(outputType === 'online' && { 
-          destination_url: outputUrl,
-          modify_existing: allowSheetModification,
-          sheet_name: selectedOutputSheet ?? undefined
-        }),
-        ...(outputType === 'download' && { format: downloadFileType })
-      }
-
-      // Process the query using selectedUrlPairs directly
-      try {
-        const result = await processQuery(
-          query,
-          selectedUrlPairs,
-          files,
-          outputPreferences
-        )
-        
-        // Store the result and show dialog
-        setProcessedResult(result)
-        setShowResultDialog(true)
-
-        if (result.result.error) {
-          setError(result.result.error)
-          // Log error
-          await supabase
-            .from('error_log')
-            .insert({
-              user_id: user?.id,
-              message: result.result.error,
-              error_code: 'QUERY_PROCESSING_ERROR',
-              resolved: false,
-              original_query: result.result.original_query
-            })
-          return
-        }
-
-        // Handle download if needed
-        if (outputType === 'download' && result.status === 'success' && result.files?.[0]) {
-          try {
-            await downloadFile(result.files[0])
-          } catch (downloadError) {
-            if (!handleAuthError(downloadError)) {
-              console.error('Error downloading file:', downloadError)
-              setError('Failed to download the result file')
-              
-              // Log download error
-              await supabase
-                .from('error_log')
-                .insert({
-                  user_id: user?.id,
-                  message: downloadError instanceof Error ? downloadError.message : 'Download failed',
-                  error_code: 'DOWNLOAD_ERROR',
-                  resolved: false,
-                  original_query: result.result.original_query
-                })
-            }
-          }
-        }
-      } catch (queryError) {
-        if (!handleAuthError(queryError)) {
-          throw queryError;
-        }
-      }
-    } catch (error) {
-      console.error('Error processing query:', error)
-      setError('An error occurred while processing your request')
-      
-      if (error instanceof Error) {
-        await supabase
-          .from('error_log')
-          .insert({
-            user_id: user?.id,
-            message: error.message,
-            error_code: 'UNKNOWN_ERROR',
-            resolved: false,
-          })
-      }
-    } finally {
-      setIsProcessing(false)
-    }
-  }
+  };
 
   const handleQueryChange = (value: string) => {
     setQuery(value);
@@ -1011,14 +942,14 @@ export function useDashboard(initialData?: UserPreferences) {
     processedResult,
     showResultDialog,
     allowSheetModification,
-    showModificationWarning,
-    showSheetModificationWarningPreference,
     destinationUrlError,
     isLoadingTitles,
     availableSheets,
     showSheetSelector,
     selectedUrl,
     permissions,
+    selectedUrlPairs,
+    selectedOutputSheet,
     setShowPermissionsPrompt,
     setFiles,
     setQuery,
@@ -1029,7 +960,6 @@ export function useDashboard(initialData?: UserPreferences) {
     setOutputTypeError,
     setShowResultDialog,
     setAllowSheetModification,
-    setShowModificationWarning,
     setShowSheetSelector,
     handleSheetSelection,
     handleFileChange,
@@ -1039,17 +969,14 @@ export function useDashboard(initialData?: UserPreferences) {
     addUrlField,
     removeUrlField,
     handleOutputUrlChange,
-    handleWarningAcknowledgment,
-    continueSubmitAfterWarning,
     handleQueryChange,
     handleDownloadFormatChange,
     isRetrievingData,
     formatTitleKey,
     formatDisplayTitle,
-    selectedUrlPairs,
-    selectedOutputSheet,
     removeSelectedUrlPair,
     isUpdating,
     updateSheetModificationPreference,
+    handleCancel,
   } as const;
 }

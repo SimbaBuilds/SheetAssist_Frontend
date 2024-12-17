@@ -41,7 +41,8 @@ export const processQuery = async (
   query: string,
   webUrls: InputUrl[] = [],
   files?: File[],
-  outputPreferences?: OutputPreferences
+  outputPreferences?: OutputPreferences,
+  signal?: AbortSignal
 ): Promise<ProcessedQueryResult> => {
   const startTime = Date.now();
   const supabase = createClient();
@@ -80,6 +81,13 @@ export const processQuery = async (
   }
 
   try {
+    // Add signal event listener to detect when abort is triggered
+    if (signal) {
+      signal.addEventListener('abort', () => {
+        console.log('Request aborted by user');
+      });
+    }
+
     const response: AxiosResponse<ProcessedQueryResult> = await api.post(
       '/process_query',
       formData,
@@ -87,6 +95,8 @@ export const processQuery = async (
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+        ...(signal && { signal }), // Only add signal if it exists
+        timeout: 300000, // 5 minutes
       }
     );
 
@@ -111,6 +121,25 @@ export const processQuery = async (
 
     return response.data;
   } catch (error) {
+    // Check if the error is from axios
+    if (error && typeof error === 'object' && 'code' in error) {
+      // Handle specific axios error codes
+      if (error.code === 'ERR_CANCELED') {
+        console.log('Request was cancelled by user');
+        const processingTime = Date.now() - startTime;
+        await supabase.from('request_log').insert({
+          user_id: userId,
+          query,
+          file_names: files?.map(f => f.name) || [],
+          doc_names: webUrls.map(url => url.url),
+          processing_time_ms: processingTime,
+          status: 'cancelled',
+          success: false
+        });
+        throw new Error('AbortError');
+      }
+    }
+    
     console.error('Error processing query:', error);
     
     // Update user usage statistics for failed request
@@ -124,7 +153,7 @@ export const processQuery = async (
       file_names: files?.map(f => f.name) || [],
       doc_names: webUrls.map(url => url.url),
       processing_time_ms: processingTime,
-      status: 'error',
+      status: error instanceof Error ? error.name : 'error',
       success: false
     });
 

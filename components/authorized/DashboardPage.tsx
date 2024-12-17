@@ -10,18 +10,6 @@ import type { DownloadFileType, SheetTitleKey } from '@/types/dashboard'
 import { DOWNLOAD_FILE_TYPES, ACCEPTED_FILE_EXTENSIONS, MAX_FILES, MAX_FILE_SIZE, MAX_QUERY_LENGTH } from '@/constants/file-types'
 import { ProcessingResultDialog } from '@/components/authorized/ProcessingResultDialog'
 import { Badge } from '@/components/ui/badge'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Checkbox } from "@/components/ui/checkbox"
-import { useState } from 'react'
 import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { InfoIcon } from 'lucide-react'
@@ -37,10 +25,6 @@ import {
 } from "@/components/ui/popover"
 import { SheetSelector } from '@/components/SheetSelector'
 import { useRouter } from 'next/navigation'
-
-
-
-
 
 const EXAMPLE_QUERIES = [
   "Add this to the sheet",
@@ -63,8 +47,6 @@ const EXAMPLE_QUERIES = [
   "Filter and count items sold per category in the product sales sheet, summarizing by month"
 ]
 
-
-
 export default function DashboardPage() {
   const {
     urls,
@@ -74,7 +56,6 @@ export default function DashboardPage() {
     outputType,
     outputUrl,
     isProcessing,
-    showPermissionsPrompt,
     urlPermissionError,
     urlValidationError,
     recentUrls,
@@ -85,24 +66,18 @@ export default function DashboardPage() {
     processedResult,
     showResultDialog,
     allowSheetModification,
-    showModificationWarning,
     destinationUrlError,
-    isLoadingTitles,
     availableSheets,
     showSheetSelector,
     selectedUrl,
-    permissions,
     selectedUrlPairs,
     selectedOutputSheet,
-    setShowPermissionsPrompt,
     setFiles,
     setQuery,
     setOutputType,
     setDownloadFileType,
     setOutputTypeError,
     setShowResultDialog,
-    setAllowSheetModification,
-    setShowModificationWarning,
     setShowSheetSelector,
     handleSheetSelection,
     handleFileChange,
@@ -110,23 +85,17 @@ export default function DashboardPage() {
     handleUrlFocus,
     handleSubmit,
     handleOutputUrlChange,
-    handleWarningAcknowledgment,
-    continueSubmitAfterWarning,
     formatTitleKey,
     formatDisplayTitle,    
     isRetrievingData,
     removeSelectedUrlPair,
     updateSheetModificationPreference,
+    handleCancel,
     isUpdating,
     isInitializing,
   } = useDashboard()
 
-  const {
-    handleGoogleSetup,
-    handleMicrosoftSetup,
-  } = useSetupPermissions()
 
-  const [dontShowAgain, setDontShowAgain] = useState(false)
   const router = useRouter()
 
   return (
@@ -138,70 +107,6 @@ export default function DashboardPage() {
         </div>
       ) : (
         <>
-          {/* {showPermissionsPrompt && (
-            <div className="mb-8 p-4 border rounded-lg bg-yellow-50">
-              <div className="space-y-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-semibold">Set Up Integrations</h3>
-                    <p className="text-sm text-gray-600">
-                      Connect your accounts to work with your spreadsheets.
-                    </p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowPermissionsPrompt(false)}
-                  >
-                    Dismiss
-                  </Button>
-                </div>
-                
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <div className="flex-1 p-4 border rounded bg-white">
-                    <div className="flex items-center justify-between mb-2">
-                      <div>
-                        <h4 className="font-medium">Google Integration</h4>
-                        <p className="text-sm text-gray-500">Google Sheets</p>
-                      </div>
-                      {permissions.google ? (
-                        <span className="text-green-600 text-sm">✓ Connected</span>
-                      ) : (
-                        <Button
-                          size="sm"
-                          onClick={handleGoogleSetup}
-                        >
-                          Connect Google
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex-1 p-4 border rounded bg-white">
-                    <div className="flex items-center justify-between mb-2">
-                      <div>
-                        <h4 className="font-medium">Microsoft Integration</h4>
-                        <p className="text-sm text-gray-500">Excel Online</p>
-                      </div>
-                      {permissions.microsoft ? (
-                        <span className="text-green-600 text-sm">✓ Connected</span>
-                      ) : (
-                        <Button
-                          size="sm"
-                          onClick={handleMicrosoftSetup}
-                        >
-                          Connect Microsoft
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )} */}
-
-          {/* <h1 className="text-2xl font-bold mb-8">AI File Processing</h1> */}
-          
           <form onSubmit={(e) => {
             e.preventDefault();
             const hasFiles = files.length > 0;
@@ -631,56 +536,8 @@ export default function DashboardPage() {
             outputType={outputType}
             isLoading={isProcessing}
             destinationTitle={outputUrl ? documentTitles[outputUrl] : undefined}
+            onCancel={handleCancel}
           />
-
-          {showModificationWarning && (
-            <AlertDialog 
-              open={showModificationWarning} 
-              onOpenChange={(open) => {
-                console.log('[DashboardPage] Modification warning dialog state changed:', {
-                  previousState: showModificationWarning,
-                  newState: open
-                })
-                setShowModificationWarning(open)
-              }}
-            >
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Warning: Direct Sheet Modification</AlertDialogTitle>
-                  <AlertDialogDescription className="space-y-4">
-                    <p>
-                      You have sheet modification enabled. This application will append to the sheet you selected 
-                      instead of creating a new sheet in the workbook.
-                    </p>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="dontShowAgain"
-                        checked={dontShowAgain}
-                        onCheckedChange={(checked: boolean | 'indeterminate') => setDontShowAgain(checked as boolean)}
-                      />
-                      <label
-                        htmlFor="dontShowAgain"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        Don't show this warning again
-                      </label>
-                    </div>
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={() => {
-                      handleWarningAcknowledgment(dontShowAgain)
-                      continueSubmitAfterWarning()
-                    }}
-                  >
-                    Continue
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
         </>
       )}
     </div>
