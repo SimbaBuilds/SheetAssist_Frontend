@@ -398,7 +398,7 @@ export function useDashboard(initialData?: UserPreferences) {
     // Only proceed with document title fetching if we have permissions
     const workbook = await fetchDocumentTitles(value);
     if (!workbook?.success) {
-      setError('Unable to access the document. Please check the URL and your permissions.');
+      setError('Unable to access the document. Please check the URL and the permissions in your account settings.');
       return false;
     }
 
