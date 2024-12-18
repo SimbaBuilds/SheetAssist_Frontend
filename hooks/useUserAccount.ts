@@ -175,7 +175,7 @@ export function useUserAccount({
   const updateSheetModificationPreference = async (allow: boolean) => {
     try {
       console.log('[useUserAccount] Updating sheet modification preference:', {
-        currentValue: userProfile.allow_sheet_modification,
+        currentValue: userProfile.direct_sheet_modification,
         newValue: allow
       })
       
@@ -183,8 +183,7 @@ export function useUserAccount({
       const { error } = await supabase
         .from('user_profile')
         .update({ 
-          allow_sheet_modification: allow,
-          show_sheet_modification_warning: true
+          direct_sheet_modification: allow,
         })
         .eq('id', user.id)
 
@@ -194,8 +193,7 @@ export function useUserAccount({
       
       setUserProfile(prev => ({ 
         ...prev, 
-        allow_sheet_modification: allow,
-        show_sheet_modification_warning: true
+        direct_sheet_modification: allow,
       }))
       
       toast({

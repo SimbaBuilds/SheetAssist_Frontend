@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import { processQuery, downloadFile, getDocumentTitle } from '@/services/python_backend'
+import {processQuery} from '@/services_endpoints/process_query'
+import {downloadFile} from '@/services_endpoints/download_file'
+import {getDocumentTitle} from '@/services_endpoints/get_document_title'
 import { createClient } from '@/utils/supabase/client'
 import type { DownloadFileType, DashboardInitialData, OutputPreferences, ProcessedQueryResult, SheetTitleKey, InputUrl, OnlineSheet } from '@/types/dashboard'
 import { ACCEPTED_FILE_TYPES, MAX_FILES, MAX_FILE_SIZE } from '@/constants/file-types'
@@ -81,7 +83,6 @@ export function useDashboard(initialData?: UserPreferences) {
   const [processedResult, setProcessedResult] = useState<ProcessedQueryResult | null>(null)
   const [showResultDialog, setShowResultDialog] = useState(false)
   const [allowSheetModification, setAllowSheetModification] = useState(false)
-  const [showSheetModificationWarningPreference, setShowSheetModificationWarningPreference] = useState(true)
   const [documentTitles, setDocumentTitles] = useState<DocumentTitleMap>({})
   const [availableSheets, setAvailableSheets] = useState<{ [url: string]: string[] }>({})
   const [showSheetSelector, setShowSheetSelector] = useState(false)
@@ -110,7 +111,7 @@ export function useDashboard(initialData?: UserPreferences) {
         const [profileResult, usageResult] = await Promise.all([
           supabase
             .from('user_profile')
-            .select('google_permissions_set, microsoft_permissions_set, allow_sheet_modification, show_sheet_modification_warning')
+            .select('google_permissions_set, microsoft_permissions_set, direct_sheet_modification')
             .eq('id', user.id)
             .single(),
           supabase
@@ -125,8 +126,7 @@ export function useDashboard(initialData?: UserPreferences) {
           const { 
             google_permissions_set,
             microsoft_permissions_set,
-            allow_sheet_modification,
-            show_sheet_modification_warning 
+            direct_sheet_modification,
           } = profileResult.data;
 
           // Initialize permissions from profile
@@ -135,8 +135,7 @@ export function useDashboard(initialData?: UserPreferences) {
             microsoft: microsoft_permissions_set
           });
           
-          setAllowSheetModification(allow_sheet_modification ?? false);
-          setShowSheetModificationWarningPreference(show_sheet_modification_warning ?? true);
+          setAllowSheetModification(direct_sheet_modification ?? false);
         }
 
         // Handle usage data (recent sheets)
@@ -176,8 +175,7 @@ export function useDashboard(initialData?: UserPreferences) {
   useEffect(() => {
     if (initialData) {
       console.log('[useDashboard] Initializing with data:', {
-        allowSheetModification: initialData.allow_sheet_modification,
-        showWarningPreference: initialData.show_sheet_modification_warning
+        allowSheetModification: initialData.direct_sheet_modification,
       })
       
       // Set any saved preferences from the database
@@ -894,8 +892,7 @@ export function useDashboard(initialData?: UserPreferences) {
       const { error } = await supabase
         .from('user_profile')
         .update({ 
-          allow_sheet_modification: allow,
-          show_sheet_modification_warning: true
+          direct_sheet_modification: allow,
         })
         .eq('id', user?.id)
 
@@ -904,7 +901,6 @@ export function useDashboard(initialData?: UserPreferences) {
       console.log('[useDashboard] Successfully updated sheet modification preference')
       
       setAllowSheetModification(allow)
-      setShowSheetModificationWarningPreference(true)
       
       toast({
         title: "Success",

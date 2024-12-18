@@ -277,10 +277,10 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
                   </p>
                 </div>
                 <Switch
-                  checked={currentProfile?.allow_sheet_modification ?? false}
+                  checked={currentProfile?.direct_sheet_modification ?? false}
                   onCheckedChange={(checked) => {
                     console.log('[UserAccountPage] Sheet modification toggle changed:', {
-                      previousValue: currentProfile?.allow_sheet_modification,
+                      previousValue: currentProfile?.direct_sheet_modification,
                       newValue: checked
                     })
                     updateSheetModificationPreference(checked)

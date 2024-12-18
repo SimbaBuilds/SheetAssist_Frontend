@@ -51,5 +51,4 @@ export const DOWNLOAD_FILE_TYPES = [
   { value: 'xlsx', label: 'Excel (.xlsx)' },
   { value: 'docx', label: 'Word (.docx)' },
   { value: 'txt', label: 'Text (.txt)' },
-  { value: 'pdf', label: 'PDF (.pdf)' },
 ] as const 

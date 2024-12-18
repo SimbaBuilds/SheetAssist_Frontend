@@ -12,6 +12,8 @@ interface ProcessingResultDialogProps {
   isLoading?: boolean
   destinationTitle?: string
   onCancel?: () => void
+  modifyExisting?: boolean
+  destinationDocName?: string
 }
 
 export function ProcessingResultDialog({
@@ -21,7 +23,9 @@ export function ProcessingResultDialog({
   outputType,
   isLoading = false,
   destinationTitle,
-  onCancel
+  onCancel,
+  modifyExisting = false,
+  destinationDocName,
 }: ProcessingResultDialogProps) {
   const [isCanceling, setIsCanceling] = useState(false)
 
@@ -49,7 +53,7 @@ export function ProcessingResultDialog({
           {isLoading && (
             <div className="flex flex-col items-center justify-center py-8 space-y-4">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-center text-sm text-gray-600">Processing your request...</p>
+              <p className="text-center text-sm text-gray-600">Processing your request.  This could take a minute or two...</p>
               {onCancel && (
                 <Button 
                   variant="outline" 
@@ -84,7 +88,9 @@ export function ProcessingResultDialog({
               <div className="text-green-600">
                 {outputType === 'download' 
                   ? result.message 
-                  : `Data successfully uploaded to ${destinationTitle || 'destination'}`}
+                  : modifyExisting
+                    ? `Data successfully uploaded to ${destinationTitle || 'destination'}`
+                    : `Data successfully uploaded to new sheet in ${destinationDocName || 'destination workbook'}`}
               </div>
               
               {/* Show code output if any */}

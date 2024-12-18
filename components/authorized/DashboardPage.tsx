@@ -27,24 +27,24 @@ import { SheetSelector } from '@/components/SheetSelector'
 import { useRouter } from 'next/navigation'
 
 const EXAMPLE_QUERIES = [
-  "Add this to the sheet",
-  "Add this pdf to the word doc",
-  "Convert this pdf to a sheet with headers product, units sold, and revenue.",
-  "Remove all rows where the 'Status' column is marked as 'Inactive'.",
-  "Create a performance summary by combining employee evaluation scores from each department sheet",
-  "Filter rows where the 'Email' column contains '.edu' and export them to a new sheet",
-  "Extract all unpaid invoices from the finance sheet",
-  "Remove duplicate entries based on the 'Employee ID' column", 
-  "Merge rows by ID",
-  "Combine these into one document",
-  "Populate the student sheet with phone numbers from the household contacts sheet",
-  "Match client ID from the contract sheet to populate missing addresses in the billing sheet",
-  "Highlight rows where the 'Sales' column exceeds $10,000.", 
-  "Convert this directory of legal case PDFs into a single document with descriptive headers",
-  "Sort the spreadsheet by the 'Date' column in descending order.", 
-  "Add new clients from this CSV to the existing CRM sheet, avoiding duplicates by matching email addresses",
-  "Extract contact information for all vendors and group by service type from the procurement sheet",
-  "Filter and count items sold per category in the product sales sheet, summarizing by month"
+  "add this to the sheet",
+  "add these to the sheet",
+  "convert this pdf to a sheet with headers product, units sold, and revenue.",
+  "remove all rows where the Status column is marked as Inactive.",
+  "create a performance summary by combining employee evaluation scores from each department sheet",
+  "filter rows where the Email column contains .edu and export them to a new sheet",
+  "extract all unpaid invoices from the finance sheet",
+  "remove duplicate entries based on the Employee ID column", 
+  "merge by id",
+  "combine these into one document",
+  "populate the student sheet with phone numbers from the household contacts sheet",
+  "match client ID from the contract sheet to populate missing addresses in the billing sheet",
+  "highlight rows where the Sales column exceeds $1000.", 
+  "convert this directory of legal case PDFs into a single document with descriptive headers",
+  "sort the spreadsheet by the Date column in descending order.", 
+  "add new clients from this CSV to the existing CRM sheet, avoiding duplicates by matching email addresses",
+  "extract contact information for all vendors and group by service type from the procurement sheet",
+  "filter and count items sold per category in the product sales sheet, summarizing by month"
 ]
 
 export default function DashboardPage() {
@@ -535,7 +535,17 @@ export default function DashboardPage() {
             onClose={() => setShowResultDialog(false)}
             outputType={outputType}
             isLoading={isProcessing}
-            destinationTitle={outputUrl ? documentTitles[outputUrl] : undefined}
+            destinationTitle={(() => {
+              if (!outputUrl || !selectedOutputSheet) return undefined;
+              const titleKey = formatTitleKey(outputUrl, selectedOutputSheet);
+              return documentTitles[titleKey];
+            })()}
+            destinationDocName={(() => {
+              if (!outputUrl || !selectedOutputSheet) return undefined;
+              const titleKey = formatTitleKey(outputUrl, selectedOutputSheet);
+              return documentTitles[titleKey]?.split(' - ')?.[0];
+            })()}
+            modifyExisting={allowSheetModification}
             onCancel={handleCancel}
           />
         </>

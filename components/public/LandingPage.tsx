@@ -13,7 +13,6 @@ export default function LandingPage() {
         <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto mb-12">
           AI tool for your spreadsheets, pdfs, text documents, and images. 
           Delivers consistent, reliable results.
-          Handles large files with accuracy and persistence.
           Integrates with Google and Microsoft services. 
         </p>
         <Button size="lg" asChild>
@@ -45,7 +44,7 @@ export default function LandingPage() {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Extracts text and data from images. 
+                Extracts text and data from images and updates your spreadsheets.
               </p>
             </CardContent>
           </Card>

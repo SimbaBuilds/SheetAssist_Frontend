@@ -25,8 +25,7 @@ export interface UserProfile {
   google_permissions_set: boolean
   microsoft_permissions_set: boolean
   plan: PlanType
-  allow_sheet_modification: boolean
-  show_sheet_modification_warning: boolean
+  direct_sheet_modification: boolean
 }
 
 // user_usage table

@@ -8,8 +8,7 @@ export interface DashboardInitialData {
   output_type?: 'download' | 'online' | null;
   last_query?: string;
   recent_sheets?: OnlineSheet[];
-  allow_sheet_modification?: boolean;
-  show_sheet_modification_warning?: boolean;
+  direct_sheet_modification?: boolean;
 }
 
 export interface OutputPreferences {

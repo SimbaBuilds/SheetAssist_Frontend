@@ -1,4 +1,4 @@
-import { Axios, AxiosResponse } from 'axios';
+import { AxiosResponse } from 'axios';
 import api from './api';
 import { OutputPreferences, FileMetadata, QueryRequest, ProcessedQueryResult, FileInfo, Workbook, InputUrl } from '@/types/dashboard';
 import { AcceptedMimeType } from '@/constants/file-types';
@@ -161,41 +161,5 @@ export const processQuery = async (
   }
 };
 
-// Download function
-export const downloadFile = async (fileInfo: FileInfo): Promise<void> => {
-  try {
-    const response = await api.get(`/download`, {
-      params: {
-        file_path: fileInfo.file_path
-      },
-      responseType: 'blob'
-    });
 
-    // Create blob URL and trigger download
-    const blob = new Blob([response.data], { type: fileInfo.media_type });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileInfo.filename;
-    document.body.appendChild(a);
-    a.click();
 
-    // Cleanup
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-  } catch (error) {
-    console.error('Error downloading file:', error);
-    throw error;
-  }
-};
-
-// Function to get document titles from URLs
-export const getDocumentTitle = async (url: string): Promise<Workbook> => {
-  try {
-    const response: AxiosResponse<Workbook> = await api.post('/get_document_title', { url });
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching document titles:', error);
-    throw error;
-  }
-};
