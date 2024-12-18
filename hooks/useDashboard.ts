@@ -9,6 +9,7 @@ import { ACCEPTED_FILE_TYPES, MAX_FILES, MAX_FILE_SIZE } from '@/constants/file-
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/use-toast'
 import { useFilePicker } from '@/hooks/useFilePicker'
+import { processDataVisualization } from '@/services_endpoints/data_visualization'
 
 
 type UserPreferences = DashboardInitialData
@@ -20,6 +21,17 @@ interface FileError {
 
 interface DocumentTitleMap {
   [key: string]: string;  // key will be JSON.stringify(SheetTitleKey)
+}
+
+export interface VisualizationInput {
+  url?: string;
+  sheet_name?: string | null;
+  file?: File;
+}
+
+export interface VisualizationOptions {
+  color_palette?: string;
+  custom_instructions?: string;
 }
 
 export const formatTitleKey = (url: string, sheet_name: string): string => {
@@ -98,6 +110,19 @@ export function useDashboard(initialData?: UserPreferences) {
   const { verifyFileAccess, storeFilePermission, launchPicker } = useFilePicker()
   const [isInitializing, setIsInitializing] = useState(true)
   const [abortController, setAbortController] = useState<AbortController | null>(null)
+  const [isVisualizationExpanded, setIsVisualizationExpanded] = useState(false)
+  const [visualizationUrl, setVisualizationUrl] = useState('')
+  const [visualizationFile, setVisualizationFile] = useState<File | null>(null)
+  const [visualizationSheet, setVisualizationSheet] = useState<string | null>(null)
+  const [colorPalette, setColorPalette] = useState<string>('')
+  const [customInstructions, setCustomInstructions] = useState<string | undefined>('')
+  const [isVisualizationProcessing, setIsVisualizationProcessing] = useState(false)
+  const [visualizationError, setVisualizationError] = useState('')
+  const [visualizationFileError, setVisualizationFileError] = useState<FileError | null>(null)
+  const [visualizationUrlError, setVisualizationUrlError] = useState<string | null>(null)
+  const [visualizationResult, setVisualizationResult] = useState<string | null>(null)
+  const [showVisualizationSheetSelector, setShowVisualizationSheetSelector] = useState(false)
+  const [visualizationSheets, setVisualizationSheets] = useState<string[]>([])
 
   const supabase = createClient()
 
@@ -918,6 +943,144 @@ export function useDashboard(initialData?: UserPreferences) {
     }
   }
 
+  const validateVisualizationFile = (file: File): string | null => {
+    if (file.size > MAX_FILE_SIZE) {
+      return `File ${file.name} exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit`
+    }
+
+    const fileExtension = `.${file.name.split('.').pop()?.toLowerCase()}`
+    const fileMimeType = file.type.toLowerCase()
+
+    // Only allow .xlsx and .csv files
+    const allowedExtensions = ['.xlsx', '.csv']
+    if (!allowedExtensions.includes(fileExtension)) {
+      return `File type ${fileExtension} is not supported. Please use .xlsx or .csv files.`
+    }
+
+    return null
+  }
+
+  const handleVisualizationFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setVisualizationFileError(null)
+    setVisualizationUrl('') // Clear URL when file is selected
+
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const error = validateVisualizationFile(file)
+    if (error) {
+      setVisualizationFileError({ file, error })
+      return
+    }
+
+    setVisualizationFile(file)
+  }
+
+  const handleVisualizationUrlChange = async (value: string) => {
+    setVisualizationUrlError(null)
+    setVisualizationFile(null) // Clear file when URL is entered
+    setVisualizationUrl(value)
+
+    if (value) {
+      try {
+        const provider = getUrlProvider(value)
+        if (!provider) {
+          setVisualizationUrlError('Please enter a valid Google Sheets or Microsoft Excel Online URL')
+          return
+        }
+
+        // Verify file access
+        const { hasPermission, fileInfo } = await verifyFileAccess(value)
+        
+        if (!fileInfo) {
+          setVisualizationUrlError('Invalid URL format')
+          return
+        }
+
+        if (!hasPermission) {
+          const pickerResult = await launchPicker(fileInfo.provider)
+          if (!pickerResult.success) {
+            setVisualizationUrlError(pickerResult.error || 'Failed to get file permission')
+            return
+          }
+          if (pickerResult.url) {
+            setVisualizationUrl(pickerResult.url)
+          }
+        }
+
+        // Fetch available sheets
+        const response = await fetch(`/api/sheets?url=${encodeURIComponent(value)}`)
+        const data = await response.json()
+
+        if (data.sheets?.length) {
+          setVisualizationSheets(data.sheets)
+          if (data.sheets.length === 1) {
+            setVisualizationSheet(data.sheets[0])
+          } else {
+            setShowVisualizationSheetSelector(true)
+          }
+        }
+
+      } catch (error) {
+        console.error('Error handling URL change:', error)
+        setVisualizationUrlError('Failed to process URL')
+      }
+    }
+  }
+
+  const handleVisualizationSheetSelection = (sheet: string) => {
+    setVisualizationSheet(sheet)
+    setShowVisualizationSheetSelector(false)
+  }
+
+  const handleVisualizationSubmit = async () => {
+    setVisualizationError('')
+    setVisualizationResult(null)
+
+    // Validate input
+    if (!visualizationUrl && !visualizationFile) {
+      setVisualizationError('Please provide either a URL or file')
+      return
+    }
+
+    if (visualizationUrl && !visualizationSheet) {
+      setVisualizationError('Please select a sheet')
+      return
+    }
+
+    setIsVisualizationProcessing(true)
+
+    try {
+      const input: VisualizationInput = visualizationUrl 
+        ? { 
+            url: visualizationUrl, 
+            sheet_name: visualizationSheet || undefined 
+          } 
+        : { file: visualizationFile! }
+
+      const options: VisualizationOptions = {
+        color_palette: colorPalette || undefined,
+        custom_instructions: customInstructions || undefined
+      }
+
+      const result = await processDataVisualization(input, options)
+      setVisualizationResult(result.image_url || null)
+    } catch (error) {
+      console.error('Error processing visualization:', error)
+      setVisualizationError('An error occurred while processing your request')
+    } finally {
+      setIsVisualizationProcessing(false)
+    }
+  }
+
+  const handleVisualizationOptionChange = (value: 'surprise' | 'custom') => {
+    if (value === 'surprise') {
+      setCustomInstructions(undefined);
+    } else if (value === 'custom') {
+      setCustomInstructions('');  // Initialize with empty string for custom mode
+    }
+  };
+
   return {
     isInitializing,
     urls,
@@ -974,5 +1137,28 @@ export function useDashboard(initialData?: UserPreferences) {
     isUpdating,
     updateSheetModificationPreference,
     handleCancel,
+    isVisualizationExpanded,
+    visualizationUrl,
+    visualizationFile,
+    visualizationSheet,
+    colorPalette,
+    customInstructions,
+    isVisualizationProcessing,
+    visualizationError,
+    visualizationFileError,
+    visualizationUrlError,
+    visualizationResult,
+    showVisualizationSheetSelector,
+    visualizationSheets,
+    setIsVisualizationExpanded,
+    setVisualizationUrl,
+    setColorPalette,
+    setCustomInstructions,
+    setShowVisualizationSheetSelector,
+    handleVisualizationFileChange,
+    handleVisualizationUrlChange,
+    handleVisualizationSheetSelection,
+    handleVisualizationSubmit,
+    handleVisualizationOptionChange,
   } as const;
 }

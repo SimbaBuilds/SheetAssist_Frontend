@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/popover"
 import { SheetSelector } from '@/components/SheetSelector'
 import { useRouter } from 'next/navigation'
+import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
 
 const EXAMPLE_QUERIES = [
   "add this to the sheet",
@@ -46,6 +47,13 @@ const EXAMPLE_QUERIES = [
   "extract contact information for all vendors and group by service type from the procurement sheet",
   "filter and count items sold per category in the product sales sheet, summarizing by month"
 ]
+
+const MATPLOTLIB_COLORS = [
+  'blue', 'green', 'red', 'cyan', 'magenta', 'yellow', 'black',
+  'tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan',
+  'dodgerblue', 'forestgreen', 'crimson', 'mediumpurple', 'darkorange', 'orchid',
+  // Add more matplotlib colors as needed
+] as const
 
 export default function DashboardPage() {
   const {
@@ -93,8 +101,30 @@ export default function DashboardPage() {
     handleCancel,
     isUpdating,
     isInitializing,
+    isVisualizationExpanded,
+    visualizationUrl,
+    visualizationFile,
+    visualizationSheet,
+    colorPalette,
+    customInstructions,
+    isVisualizationProcessing,
+    visualizationError,
+    visualizationFileError,
+    visualizationUrlError,
+    visualizationResult,
+    showVisualizationSheetSelector,
+    visualizationSheets,
+    setIsVisualizationExpanded,
+    setVisualizationUrl,
+    setColorPalette,
+    setCustomInstructions,
+    setShowVisualizationSheetSelector,
+    handleVisualizationFileChange,
+    handleVisualizationUrlChange,
+    handleVisualizationSheetSelection,
+    handleVisualizationSubmit,
+    handleVisualizationOptionChange,
   } = useDashboard()
-
 
   const router = useRouter()
 
@@ -548,6 +578,158 @@ export default function DashboardPage() {
             modifyExisting={allowSheetModification}
             onCancel={handleCancel}
           />
+
+          {/* Data Visualization Section */}
+          <div className="mt-8 border rounded-lg overflow-hidden">
+            <button
+              onClick={() => setIsVisualizationExpanded(!isVisualizationExpanded)}
+              className="w-full p-4 flex justify-between items-center bg-gray-50 hover:bg-gray-100"
+            >
+              <span className="font-medium">Visualize Your Data</span>
+              {isVisualizationExpanded ? (
+                <ChevronUpIcon className="h-5 w-5" />
+              ) : (
+                <ChevronDownIcon className="h-5 w-5" />
+              )}
+            </button>
+
+            {isVisualizationExpanded && (
+              <div className="p-4 space-y-6">
+                {/* Input Fields */}
+                <div className="space-y-4">
+                  {/* URL Input */}
+                  <div>
+                    <Label htmlFor="viz-url">Sheet URL</Label>
+                    <Input
+                      id="viz-url"
+                      type="text"
+                      value={visualizationUrl}
+                      onChange={(e) => handleVisualizationUrlChange(e.target.value)}
+                      placeholder="Paste Google Sheet or Excel Online URL"
+                      className={visualizationUrlError ? 'border-red-500' : ''}
+                      disabled={!!visualizationFile}
+                    />
+                    {visualizationUrlError && (
+                      <p className="text-sm text-red-500 mt-1">{visualizationUrlError}</p>
+                    )}
+                  </div>
+
+                  {/* File Input */}
+                  <div>
+                    <Label htmlFor="viz-file">
+                      Or Upload File (.xlsx, .csv)
+                    </Label>
+                    <Input
+                      id="viz-file"
+                      type="file"
+                      onChange={handleVisualizationFileChange}
+                      accept=".xlsx,.csv"
+                      className={visualizationFileError ? 'border-red-500' : ''}
+                      disabled={!!visualizationUrl}
+                    />
+                    {visualizationFileError && (
+                      <p className="text-sm text-red-500 mt-1">{visualizationFileError.error}</p>
+                    )}
+                  </div>
+
+                  {/* Color Palette Selection */}
+                  <div>
+                    <Label htmlFor="color-palette">Color Palette</Label>
+                    <select
+                      id="color-palette"
+                      value={colorPalette}
+                      onChange={(e) => setColorPalette(e.target.value)}
+                      className="w-full mt-1 p-2 border rounded-md"
+                    >
+                      <option value="">Select a color...</option>
+                      {MATPLOTLIB_COLORS.map((color) => (
+                        <option key={color} value={color}>
+                          {color.charAt(0).toUpperCase() + color.slice(1)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Visualization Options */}
+                  <div className="space-y-4">
+                    <RadioGroup 
+                      value={customInstructions === undefined ? 'surprise' : 'custom'}
+                      onValueChange={handleVisualizationOptionChange}
+                      className="space-y-2"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="surprise" id="surprise" />
+                        <Label htmlFor="surprise">Surprise Me</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="custom" id="custom" />
+                        <Label htmlFor="custom">Give Custom Instructions</Label>
+                      </div>
+                    </RadioGroup>
+
+                    {customInstructions !== undefined && (
+                      <div className="pl-6">
+                        <textarea
+                          value={customInstructions}
+                          onChange={(e) => setCustomInstructions(e.target.value)}
+                          placeholder="Custom instructions here..."
+                          className="w-full p-2 border rounded-md"
+                          rows={3}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Sheet Selector Dialog */}
+                <SheetSelector
+                  url={visualizationUrl}
+                  sheets={visualizationSheets}
+                  onSelect={handleVisualizationSheetSelection}
+                  onClose={() => setShowVisualizationSheetSelector(false)}
+                  open={showVisualizationSheetSelector}
+                />
+
+                {/* Error Display */}
+                {visualizationError && (
+                  <div className="text-red-500 text-sm">{visualizationError}</div>
+                )}
+
+                {/* Submit Button */}
+                <Button
+                  onClick={handleVisualizationSubmit}
+                  disabled={isVisualizationProcessing || (!visualizationUrl && !visualizationFile)}
+                  className="w-full"
+                >
+                  {isVisualizationProcessing ? 'Processing...' : 'Generate Visualization'}
+                </Button>
+
+                {/* Result Display */}
+                {visualizationResult && (
+                  <div className="relative group">
+                    <img
+                      src={visualizationResult}
+                      alt="Data Visualization"
+                      className="w-full rounded-lg"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          const link = document.createElement('a')
+                          link.href = visualizationResult
+                          link.download = 'visualization.png'
+                          link.click()
+                        }}
+                      >
+                        Download
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </>
       )}
     </div>
