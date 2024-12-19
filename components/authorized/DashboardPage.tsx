@@ -50,11 +50,33 @@ const EXAMPLE_QUERIES = [
 ]
 
 const MATPLOTLIB_COLORS = [
-  'blue', 'green', 'red', 'cyan', 'magenta', 'yellow', 'black',
-  'tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan',
+  // Basic colors
+  'blue', 'red', 'cyan', 'magenta', 'yellow', 'black',
+  
+  // Tab colors
+  'tab:blue', 'tab:orange', 'tab:green', 'tab:purple', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan',
+  
+  // Additional colors
   'dodgerblue', 'forestgreen', 'crimson', 'mediumpurple', 'darkorange', 'orchid',
-  // Add more matplotlib colors as needed
+  'indigo', 'teal', 'maroon'
 ] as const
+
+function convertTabColor(color: string): string {
+  // Convert tab: colors to their hex equivalents
+  const tabColors: Record<string, string> = {
+    'tab:blue': '#1f77b4',
+    'tab:orange': '#ff7f0e',
+    'tab:green': '#2ca02c',
+    'tab:red': '#d62728',
+    'tab:purple': '#9467bd',
+    'tab:brown': '#8c564b',
+    'tab:pink': '#e377c2',
+    'tab:gray': '#7f7f7f',
+    'tab:olive': '#bcbd22',
+    'tab:cyan': '#17becf',
+  }
+  return tabColors[color] || color
+}
 
 export default function DashboardPage() {
   const {
@@ -641,9 +663,16 @@ export default function DashboardPage() {
             </button>
 
             {isVisualizationExpanded && (
-              <div className="p-4 space-y-6">
-                {/* Input Fields */}
+              <div className="p-4 space-y-8">
+                {/* Step 1: Input Selection */}
                 <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full border border-primary text-primary text-sm font-medium">
+                      1
+                    </span>
+                    <h3 className="font-medium">Select Your Data Source</h3>
+                  </div>
+
                   {/* URL Input */}
                   <div>
                     <Label htmlFor="viz-url">Sheet URL</Label>
@@ -722,11 +751,18 @@ export default function DashboardPage() {
                     )}
                   </div>
 
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">Or</span>
+                    </div>
+                  </div>
+
                   {/* File Input */}
                   <div>
-                    <Label htmlFor="viz-file">
-                      Or Upload File (.xlsx, .csv)
-                    </Label>
+                    <Label htmlFor="viz-file">Upload File (.xlsx, .csv)</Label>
                     <Input
                       id="viz-file"
                       type="file"
@@ -739,54 +775,93 @@ export default function DashboardPage() {
                       <p className="text-sm text-red-500 mt-1">{visualizationFileError.error}</p>
                     )}
                   </div>
+                </div>
 
-                  {/* Color Palette Selection */}
+                {/* Step 2: Color Selection */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full border border-primary text-primary text-sm font-medium">
+                      2
+                    </span>
+                    <h3 className="font-medium">Choose Color Theme</h3>
+                  </div>
+
                   <div>
-                    <Label htmlFor="color-palette">Color Palette</Label>
-                    <select
-                      id="color-palette"
+                    <div className="flex justify-between items-center mb-2">
+                      <Label>Select Primary Color</Label>
+                      {colorPalette && (
+                        <span className="text-sm text-muted-foreground">
+                          Selected: {colorPalette.replace('tab:', '').charAt(0).toUpperCase() + colorPalette.replace('tab:', '').slice(1)}
+                        </span>
+                      )}
+                    </div>
+                    <RadioGroup
                       value={colorPalette}
-                      onChange={(e) => setColorPalette(e.target.value)}
-                      className="w-full mt-1 p-2 border rounded-md"
+                      onValueChange={setColorPalette}
+                      className="grid grid-cols-6 sm:grid-cols-8 gap-0.5 mt-2 max-w-[280px]"
                     >
-                      <option value="">Select a color...</option>
                       {MATPLOTLIB_COLORS.map((color) => (
-                        <option key={color} value={color}>
-                          {color.charAt(0).toUpperCase() + color.slice(1)}
-                        </option>
+                        <div key={color} className="relative group">
+                          <RadioGroupItem
+                            value={color}
+                            id={`color-${color}`}
+                            className="sr-only peer"
+                          />
+                          <Label
+                            htmlFor={`color-${color}`}
+                            className="block w-8 h-8 cursor-pointer border border-border peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-primary hover:opacity-90 transition-all"
+                            style={{ 
+                              backgroundColor: color.startsWith('tab:') ? convertTabColor(color) : color,
+                            }}
+                          >
+                            <span className="sr-only">{color}</span>
+                          </Label>
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-10">
+                            <div className="bg-secondary text-secondary-foreground text-xs px-2 py-1 rounded whitespace-nowrap">
+                              {color.replace('tab:', '').charAt(0).toUpperCase() + color.replace('tab:', '').slice(1)}
+                            </div>
+                          </div>
+                        </div>
                       ))}
-                    </select>
-                  </div>
-
-                  {/* Visualization Options */}
-                  <div className="space-y-4">
-                    <RadioGroup 
-                      value={customInstructions === undefined ? 'surprise' : 'custom'}
-                      onValueChange={handleVisualizationOptionChange}
-                      className="space-y-2"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="surprise" id="surprise" />
-                        <Label htmlFor="surprise">Surprise Me</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="custom" id="custom" />
-                        <Label htmlFor="custom">Give Custom Instructions</Label>
-                      </div>
                     </RadioGroup>
-
-                    {customInstructions !== undefined && (
-                      <div className="pl-6">
-                        <textarea
-                          value={customInstructions}
-                          onChange={(e) => setCustomInstructions(e.target.value)}
-                          placeholder="Custom instructions here...(e.g. chart types, axes titles, labels, etc.)"
-                          className="w-full p-2 border rounded-md"
-                          rows={3}
-                        />
-                      </div>
-                    )}
                   </div>
+                </div>
+
+                {/* Step 3: Visualization Options */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full border border-primary text-primary text-sm font-medium">
+                      3
+                    </span>
+                    <h3 className="font-medium">Choose Visualization Style</h3>
+                  </div>
+
+                  <RadioGroup 
+                    value={customInstructions === undefined ? 'surprise' : 'custom'}
+                    onValueChange={handleVisualizationOptionChange}
+                    className="space-y-2"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="surprise" id="surprise" />
+                      <Label htmlFor="surprise">Surprise Me</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="custom" id="custom" />
+                      <Label htmlFor="custom">Give Custom Instructions</Label>
+                    </div>
+                  </RadioGroup>
+
+                  {customInstructions !== undefined && (
+                    <div className="pl-6">
+                      <textarea
+                        value={customInstructions}
+                        onChange={(e) => setCustomInstructions(e.target.value)}
+                        placeholder="E.g. 'Create a bar chart showing sales by region', 'Make a line graph of temperature trends'"
+                        className="w-full p-2 border rounded-md"
+                        rows={3}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Sheet Selector Dialog */}
@@ -800,21 +875,25 @@ export default function DashboardPage() {
 
                 {/* Error Display */}
                 {visualizationError && (
-                  <div className="text-red-500 text-sm">{visualizationError}</div>
+                  <div className="text-red-500 text-sm mt-4">{visualizationError}</div>
                 )}
 
                 {/* Submit Button */}
                 <Button
                   onClick={handleVisualizationSubmit}
-                  disabled={isVisualizationProcessing || (!visualizationUrl && !visualizationFile)}
-                  className="w-full"
+                  disabled={
+                    isVisualizationProcessing || 
+                    (!selectedVisualizationPair && !visualizationFile) ||
+                    !colorPalette
+                  }
+                  className="w-full mt-6"
                 >
                   {isVisualizationProcessing ? 'Processing...' : 'Generate Visualization'}
                 </Button>
 
                 {/* Result Display */}
                 {visualizationResult && (
-                  <div className="relative group">
+                  <div className="relative group mt-6">
                     <img
                       src={visualizationResult}
                       alt="Data Visualization"
