@@ -667,7 +667,7 @@ export default function DashboardPage() {
                 {/* Step 1: Input Selection */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 mb-4">
-                    <span className="flex items-center justify-center w-10 h-6 rounded-full border border-primary text-primary text-sm font-medium">
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full border-2 border-primary text-primary text-sm font-medium">
                       1
                     </span>
                     <h3 className="font-medium">Select Your Data Source</h3>
@@ -780,7 +780,7 @@ export default function DashboardPage() {
                 {/* Step 2: Color Selection */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 mb-4">
-                    <span className="flex items-center justify-center w-10 h-6 rounded-full border border-primary text-primary text-sm font-medium">
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full border-2 border-primary text-primary text-sm font-medium">
                       2
                     </span>
                     <h3 className="font-medium">Choose Color Theme</h3>
@@ -809,7 +809,7 @@ export default function DashboardPage() {
                           />
                           <Label
                             htmlFor={`color-${color}`}
-                            className="block w-8 h-8 cursor-pointer border border-border peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-primary hover:opacity-90 transition-all"
+                            className="block w-8 h-8 cursor-pointer border border-border rounded-md peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-primary hover:opacity-90 transition-all"
                             style={{ 
                               backgroundColor: color.startsWith('tab:') ? convertTabColor(color) : color,
                             }}
@@ -830,7 +830,7 @@ export default function DashboardPage() {
                 {/* Step 3: Visualization Options */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 mb-4">
-                    <span className="flex items-center justify-center w-10 h-6 rounded-full border border-primary text-primary text-sm font-medium">
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full border-2 border-primary text-primary text-sm font-medium">
                       3
                     </span>
                     <h3 className="font-medium">Choose Visualization Style</h3>
