@@ -155,11 +155,11 @@ export function useFilePicker() {
     const fileInfo = extractFileInfo(url)
 
     if (!fileInfo) {
-      console.log('[useFilePicker] Invalid URL format');
+      console.log('[useFilePicker] Invalid URL');
       return {
         hasPermission: false,
         fileInfo: null,
-        error: 'Invalid URL format'
+        error: 'Invalid URL'
       }
     }
 

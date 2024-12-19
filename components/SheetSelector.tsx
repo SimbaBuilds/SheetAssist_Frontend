@@ -13,9 +13,12 @@ interface SheetSelectorProps {
   onSelect: (url: string, sheet: string) => void;
   onClose: () => void;
   open: boolean;
+  workbookCache?: { [url: string]: { doc_name: string, sheet_names: string[] } };
 }
 
-export function SheetSelector({ url, sheets, onSelect, onClose, open }: SheetSelectorProps) {
+export function SheetSelector({ url, sheets, onSelect, onClose, open, workbookCache }: SheetSelectorProps) {
+  const docName = workbookCache?.[url]?.doc_name;
+  
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent 
@@ -23,9 +26,14 @@ export function SheetSelector({ url, sheets, onSelect, onClose, open }: SheetSel
         aria-describedby="sheet-selector-description"
       >
         <DialogHeader>
-          <DialogTitle>Select a Sheet</DialogTitle>
+          <DialogTitle>
+            {docName ? `Select a Sheet from ${docName}` : 'Select a Sheet'}
+          </DialogTitle>
         </DialogHeader>
-        <div id="sheet-selector-description" className="text-sm text-muted-foreground mb-4">
+        <div 
+          id="sheet-selector-description" 
+          className="text-sm text-muted-foreground mb-4"
+        >
           Choose which sheet you would like to work with from this document.
         </div>
         <div className="grid gap-4 py-4">

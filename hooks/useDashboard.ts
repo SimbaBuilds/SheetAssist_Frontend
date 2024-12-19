@@ -5,11 +5,21 @@ import {downloadFile} from '@/services_endpoints/download_file'
 import {getDocumentTitle} from '@/services_endpoints/get_document_title'
 import { createClient } from '@/utils/supabase/client'
 import type { DownloadFileType, DashboardInitialData, OutputPreferences, ProcessedQueryResult, SheetTitleKey, InputUrl, OnlineSheet } from '@/types/dashboard'
-import { ACCEPTED_FILE_TYPES, MAX_FILES, MAX_FILE_SIZE } from '@/constants/file-types'
+import { MAX_FILES } from '@/constants/file-types'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/use-toast'
 import { useFilePicker } from '@/hooks/useFilePicker'
-import { processDataVisualization } from '@/services_endpoints/data_visualization'
+import { useDataVisualization } from '@/hooks/useDataVisualization'
+import {
+  getUrlProvider,
+  checkUrlPermissions,
+  formatTitleKey,
+  formatDisplayTitle,
+  validateFile,
+  handleAuthError,
+  handleUrlValidation,
+  fetchAndHandleSheets
+} from '@/utils/dashboard-utils'
 
 
 type UserPreferences = DashboardInitialData
@@ -23,50 +33,9 @@ interface DocumentTitleMap {
   [key: string]: string;  // key will be JSON.stringify(SheetTitleKey)
 }
 
-export interface VisualizationInput {
-  url?: string;
-  sheet_name?: string | null;
-  file?: File;
-}
+type SetSelectedOutputSheet = (sheet: string | null) => void;
 
-export interface VisualizationOptions {
-  color_palette?: string;
-  custom_instructions?: string;
-}
 
-export const formatTitleKey = (url: string, sheet_name: string): string => {
-  if (!sheet_name) {
-    console.warn('Attempted to create title key without sheet name:', { url });
-    return '';
-  }
-  return JSON.stringify({ url, sheet_name } as SheetTitleKey);
-};
-
-export const formatDisplayTitle = (doc_name: string, sheet_name?: string): string => {
-  if (sheet_name) {
-    return `${doc_name} - ${sheet_name}`;
-  }
-  return doc_name;
-}
-
-const getUrlProvider = (url: string): 'google' | 'microsoft' | null => {
-  if (url.includes('google.com') || url.includes('docs.google.com') || url.includes('sheets.google.com')) {
-    return 'google';
-  }
-  if (url.includes('onedrive.live.com') || url.includes('live.com') || url.includes('sharepoint.com')) {
-    return 'microsoft';
-  }
-  return null;
-};
-
-const checkUrlPermissions = (url: string, permissions: { google: boolean | null; microsoft: boolean | null }) => {
-  const provider = getUrlProvider(url);
-  if (!provider) return { hasPermission: false, provider: null };
-  return { 
-    hasPermission: !!permissions[provider], 
-    provider 
-  };
-};
 
 export function useDashboard(initialData?: UserPreferences) {
   const { user } = useAuth()
@@ -103,26 +72,21 @@ export function useDashboard(initialData?: UserPreferences) {
   const [isLoadingTitles, setIsLoadingTitles] = useState(true)
   const [workbookCache, setWorkbookCache] = useState<{ [url: string]: { doc_name: string, sheet_names: string[] } }>({})
   const [isRetrievingData, setIsRetrievingData] = useState(false)
+  const [isRetrievingDestinationData, setIsRetrievingDestinationData] = useState(false)
   const [selectedUrlPairs, setSelectedUrlPairs] = useState<InputUrl[]>([])
   const [selectedOutputSheet, setSelectedOutputSheet] = useState<string | null>(null)
   const [isUpdating, setIsUpdating] = useState(false)
   const { toast } = useToast()
-  const { verifyFileAccess, storeFilePermission, launchPicker } = useFilePicker()
+  const { verifyFileAccess, launchPicker } = useFilePicker()
   const [isInitializing, setIsInitializing] = useState(true)
   const [abortController, setAbortController] = useState<AbortController | null>(null)
-  const [isVisualizationExpanded, setIsVisualizationExpanded] = useState(false)
-  const [visualizationUrl, setVisualizationUrl] = useState('')
-  const [visualizationFile, setVisualizationFile] = useState<File | null>(null)
-  const [visualizationSheet, setVisualizationSheet] = useState<string | null>(null)
-  const [colorPalette, setColorPalette] = useState<string>('')
-  const [customInstructions, setCustomInstructions] = useState<string | undefined>('')
-  const [isVisualizationProcessing, setIsVisualizationProcessing] = useState(false)
-  const [visualizationError, setVisualizationError] = useState('')
-  const [visualizationFileError, setVisualizationFileError] = useState<FileError | null>(null)
-  const [visualizationUrlError, setVisualizationUrlError] = useState<string | null>(null)
-  const [visualizationResult, setVisualizationResult] = useState<string | null>(null)
-  const [showVisualizationSheetSelector, setShowVisualizationSheetSelector] = useState(false)
-  const [visualizationSheets, setVisualizationSheets] = useState<string[]>([])
+  const [isDestinationUrlProcessing, setIsDestinationUrlProcessing] = useState(false)
+  const [isLoadingDestinationTitles, setIsLoadingDestinationTitles] = useState(false)
+  const [destinationSheets, setDestinationSheets] = useState<string[]>([])
+  const [showDestinationSheetSelector, setShowDestinationSheetSelector] = useState(false)
+  const [destinationUrls, setDestinationUrls] = useState<string[]>([''])
+  const [selectedDestinationPair, setSelectedDestinationPair] = useState<InputUrl | null>(null)
+ 
 
   const supabase = createClient()
 
@@ -215,32 +179,6 @@ export function useDashboard(initialData?: UserPreferences) {
       }
     }
   }, [initialData])
-
-  const validateFile = (file: File): string | null => {
-    // Check file size
-    if (file.size > MAX_FILE_SIZE) {
-      return `File ${file.name} exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit`
-    }
-
-    // Check file type
-    const fileExtension = `.${file.name.split('.').pop()?.toLowerCase()}`
-    const fileMimeType = file.type.toLowerCase()
-
-    // Find matching file type definition
-    const matchingType = [...ACCEPTED_FILE_TYPES.documents, ...ACCEPTED_FILE_TYPES.images]
-      .find(type => type.extension === fileExtension || type.mimeType === fileMimeType)
-
-    if (!matchingType) {
-      return `File type ${fileExtension} (${fileMimeType}) is not supported`
-    }
-
-    // Ensure we're using the correct MIME type from our definitions
-    if (file.type !== matchingType.mimeType) {
-      console.warn(`File ${file.name} has type ${file.type} but expected ${matchingType.mimeType}`)
-    }
-
-    return null
-  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || [])
@@ -390,46 +328,6 @@ export function useDashboard(initialData?: UserPreferences) {
     }
   };
 
-  const validateUrl = async (value: string, isDestination = false): Promise<boolean> => {
-    const setError = isDestination ? setDestinationUrlError : setUrlValidationError;
-    setError(null);
-
-    if (!value) {
-      setError('Please enter a URL');
-      return false;
-    }
-
-    // Basic URL validation
-    try {
-      new URL(value);
-    } catch {
-      setError('Please enter a valid URL starting with http:// or https://');
-      return false;
-    }
-
-    // Check provider and permissions
-    const provider = getUrlProvider(value);
-    if (!provider) {
-      setError('Please enter a valid Google Sheets or Microsoft Excel Online URL');
-      return false;
-    }
-
-    // Early permissions check
-    if (!permissions[provider]) {
-      setError(`Please set up or reconnect your ${provider === 'google' ? 'Google' : 'Microsoft'} account in your account settings`);
-      return false;
-    }
-
-    // Only proceed with document title fetching if we have permissions
-    const workbook = await fetchDocumentTitles(value);
-    if (!workbook?.success) {
-      setError('Unable to access the document. Please check the URL and the permissions in your account settings.');
-      return false;
-    }
-
-    return true;
-  };
-
   const handleUrlChange = async (index: number, value: string, fromDropdown = false) => {
     setUrlPermissionError(null);
     setUrlValidationError(null);
@@ -439,107 +337,77 @@ export function useDashboard(initialData?: UserPreferences) {
     newUrls[index] = value;
     setUrls(newUrls);
 
-    if (value) {
-      // If selection is from dropdown, use existing logic
-      if (fromDropdown) {
-        const titleKey = value;  // value is the title key when from dropdown
-        if (documentTitles[titleKey]) {
-          try {
-            const { url, sheet_name } = JSON.parse(titleKey);
-            
-            // Check permissions before adding
-            const { hasPermission, provider } = checkUrlPermissions(url, permissions);
-            if (!hasPermission) {
-              const providerName = provider === 'google' ? 'Google' : 'Microsoft';
-              setUrlValidationError(`Please set up your ${providerName} permissions before adding this document`);
-              router.push(`/auth/setup-permissions?provider=${provider}`);
-              return;
-            }
+    if (!value) return;
 
-            const newPair: InputUrl = { url, sheet_name };
+    // Handle dropdown selection
+    if (fromDropdown) {
+      const titleKey = value;
+      if (documentTitles[titleKey]) {
+        try {
+          const { url, sheet_name } = JSON.parse(titleKey);
+          const newPair: InputUrl = { url, sheet_name };
+          setSelectedUrlPairs(prev => [...prev, newPair]);
+          setUrls(['']);
+          return;
+        } catch (error) {
+          console.error('Error parsing title key:', error);
+        }
+      }
+    }
+
+    setIsRetrievingData(true);
+    try {
+      // Use the utility function for URL validation
+      const isValid = await handleUrlValidation(
+        value,
+        verifyFileAccess,
+        launchPicker,
+        setUrlValidationError
+      );
+
+      if (!isValid) return;
+
+      // Set the selected URL for sheet selection
+      setSelectedUrl(value);
+
+      // Fetch document title and handle sheet selection
+      const workbook = await getDocumentTitle(value);
+      if (workbook?.success) {
+        // Cache workbook data
+        setWorkbookCache(prev => ({
+          ...prev,
+          [value]: {
+            doc_name: workbook.doc_name,
+            sheet_names: workbook.sheet_names ?? []
+          }
+        }));
+
+        // Update available sheets for this URL
+        const sheetNames = workbook.sheet_names ?? [];
+        if (sheetNames.length) {
+          setAvailableSheets(prev => ({
+            ...prev,
+            [value]: sheetNames
+          }));
+
+          // If there's only one sheet, select it automatically
+          if (sheetNames.length === 1) {
+            const sheet = sheetNames[0];
+            const newPair: InputUrl = { url: value, sheet_name: sheet };
             setSelectedUrlPairs(prev => [...prev, newPair]);
             setUrls(['']);
-            return;
-          } catch (error) {
-            console.error('Error parsing title key:', error);
+            updateRecentUrls(value, sheet, workbook.doc_name);
+          } else {
+            // Show sheet selector for multiple sheets
+            setShowSheetSelector(true);
           }
         }
       }
-
-      // Early permissions check
-      const provider = getUrlProvider(value);
-      if (provider) {
-        const { hasPermission } = checkUrlPermissions(value, permissions);
-        if (!hasPermission) {
-          const providerName = provider === 'google' ? 'Google' : 'Microsoft';
-          setUrlValidationError(`Please set up your ${providerName} permissions before adding this document`);
-          router.push(`/auth/setup-permissions?provider=${provider}`);
-          return;
-        }
-      }
-
-      setIsRetrievingData(true);
-      try {
-        // Only proceed with file picker and title fetching if we have permissions
-        if (provider && permissions[provider]) {
-          // Verify file access
-          const { hasPermission, fileInfo, error } = await verifyFileAccess(value);
-          
-          if (!fileInfo) {
-            setUrlValidationError('Invalid URL format');
-            return;
-          }
-
-          if (!hasPermission) {
-            // Launch the file picker when permission is not found
-            const pickerResult = await launchPicker(fileInfo.provider);
-            
-            if (!pickerResult.success) {
-              setUrlPermissionError(pickerResult.error || 'Failed to get file permission');
-              return;
-            }
-            
-            // If picker was successful, continue with URL validation
-            if (pickerResult.url) {
-              value = pickerResult.url; // Use the URL from the picker
-            }
-          }
-
-          // Continue with existing URL validation and processing
-          if (!(await validateUrl(value))) {
-            return;
-          }
-
-          // Fetch document title and handle sheet selection
-          const workbook = await fetchDocumentTitles(value);
-          if (workbook?.success) {
-            const sheetNames = workbook.sheet_names ?? [];
-            
-            setWorkbookCache(prev => ({
-              ...prev,
-              [value]: {
-                doc_name: workbook.doc_name,
-                sheet_names: sheetNames
-              }
-            }));
-            
-            if (sheetNames.length === 1) {
-              const newPair: InputUrl = { url: value, sheet_name: sheetNames[0] };
-              setSelectedUrlPairs(prev => [...prev, newPair]);
-              setUrls(['']);
-              await updateRecentUrls(value, sheetNames[0], workbook.doc_name);
-            } else if (sheetNames.length > 1) {
-              setSelectedUrl(value);
-              setShowSheetSelector(true);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error handling URL change:', error);
-        setError('Failed to process URL');
-      } finally {
-        setIsRetrievingData(false);
-      }
+    } catch (error) {
+      console.error('Error handling URL change:', error);
+      setError('Failed to process URL');
+    } finally {
+      setIsRetrievingData(false);
     }
   };
 
@@ -547,79 +415,102 @@ export function useDashboard(initialData?: UserPreferences) {
     setOutputUrl(value);
     setOutputTypeError(null);
     setDestinationUrlError(null);
+    setDestinationUrls([value]);  // Update like main input
     
-    if (value) {
-      // Handle dropdown selection
-      if (fromDropdown) {
-        const titleKey = value;  // value is the title key when from dropdown
-        if (documentTitles[titleKey]) {
-          try {
-            const { url, sheet_name } = JSON.parse(titleKey);
-            setOutputUrl(url);
-            setSelectedOutputSheet(sheet_name);
-            return;
-          } catch (error) {
-            console.error('Error parsing title key:', error);
-          }
+    console.log('Before URL change - Cache:', workbookCache);
+    
+    if (!value) return;
+
+    if (fromDropdown) {
+      const titleKey = value;
+      if (documentTitles[titleKey]) {
+        try {
+          const { url, sheet_name } = JSON.parse(titleKey);
+          setSelectedDestinationPair({ url, sheet_name });
+          setDestinationUrls(['']);  // Clear input like main
+          return;
+        } catch (error) {
+          console.error('Error parsing title key:', error);
         }
       }
+    }
 
-      setIsRetrievingData(true);
-      try {
-        // Verify file access
-        const { hasPermission, fileInfo, error } = await verifyFileAccess(value)
+    setIsDestinationUrlProcessing(true);
+    try {
+      const isValid = await handleUrlValidation(
+        value,
+        verifyFileAccess,
+        launchPicker,
+        setDestinationUrlError
+      );
+
+      if (!isValid) {
+        setOutputUrl('');
+        setIsDestinationUrlProcessing(false);
+        return;
+      }
+
+      const workbook = await getDocumentTitle(value);
+      if (workbook?.success) {
+        console.log('Workbook response:', workbook);
         
-        if (!fileInfo) {
-          setDestinationUrlError('Invalid URL format')
-          return
-        }
-
-        if (!hasPermission) {
-          // Launch the file picker when permission is not found
-          const pickerResult = await launchPicker(fileInfo.provider)
-          
-          if (!pickerResult.success) {
-            setDestinationUrlError(pickerResult.error || 'Failed to get file permission')
-            return
-          }
-          
-          // If picker was successful, continue with URL validation
-          if (pickerResult.url) {
-            value = pickerResult.url // Use the URL from the picker
-          }
-        }
-
-        // Continue with existing validation and processing
-        if (!(await validateUrl(value, true))) {
-          return
-        }
-
-        // Fetch document title and handle sheet selection
-        const workbook = await fetchDocumentTitles(value);
-        if (workbook?.success) {
-          const sheetNames = workbook.sheet_names ?? [];
-          
-          setWorkbookCache(prev => ({
+        setWorkbookCache(prev => {
+          const newCache = {
             ...prev,
             [value]: {
               doc_name: workbook.doc_name,
-              sheet_names: sheetNames
+              sheet_names: workbook.sheet_names ?? []
             }
-          }));
+          };
+          console.log('Updated cache:', newCache);
+          return newCache;
+        });
+        
+        const sheetNames = workbook.sheet_names ?? [];
+        
+        setDestinationSheets(sheetNames);
+
+        if (sheetNames.length === 1) {
+          const sheet = sheetNames[0];
+          setSelectedOutputSheet(sheet);
           
-          if (sheetNames.length === 1) {
-            setSelectedOutputSheet(sheetNames[0]);
-            await updateRecentUrls(value, sheetNames[0], workbook.doc_name);
-          } else if (sheetNames.length > 1) {
-            setSelectedUrl(value);
-            setShowSheetSelector(true);
-          }
+          const titleKey = formatTitleKey(value, sheet);
+          const displayTitle = formatDisplayTitle(workbook.doc_name, sheet);
+          
+          setDocumentTitles(prev => ({
+            ...prev,
+            [titleKey]: displayTitle
+          }));
+
+          await updateRecentUrls(value, sheet, workbook.doc_name);
+        } else if (sheetNames.length > 1) {
+          setShowDestinationSheetSelector(true);
         }
-      } catch (error) {
-        console.error('Error handling destination URL change:', error);
-        setDestinationUrlError('Failed to retrieve document data');
-      } finally {
-        setIsRetrievingData(false);
+      }
+    } catch (error) {
+      console.error('Error in handleOutputUrlChange:', error);
+      setDestinationUrlError('Failed to process URL');
+      setOutputUrl('');
+    } finally {
+      setIsDestinationUrlProcessing(false);
+    }
+  };
+
+  const handleDestinationSheetSelection = async (url: string, sheet: string) => {
+    setShowDestinationSheetSelector(false);
+    setSelectedDestinationPair({ url, sheet_name: sheet });
+    setDestinationUrls(['']);  // Clear input like main
+
+    if (url && sheet) {
+      const cachedWorkbook = workbookCache[url];
+      if (cachedWorkbook) {
+        const titleKey = formatTitleKey(url, sheet);
+        const displayTitle = formatDisplayTitle(cachedWorkbook.doc_name, sheet);
+        setDocumentTitles(prev => ({
+          ...prev,
+          [titleKey]: displayTitle
+        }));
+        await updateRecentUrls(url, sheet, cachedWorkbook.doc_name);
       }
     }
   };
@@ -627,15 +518,6 @@ export function useDashboard(initialData?: UserPreferences) {
   const handleSheetSelection = async (url: string, selectedSheet: string) => {
     if (!url || !selectedSheet) {
       console.error('Missing required data for sheet selection:', { url, selectedSheet });
-      return;
-    }
-
-    // Check permissions before proceeding
-    const { hasPermission, provider } = checkUrlPermissions(url, permissions);
-    if (!hasPermission) {
-      const providerName = provider === 'google' ? 'Google' : 'Microsoft';
-      setError(`Please set up your ${providerName} permissions before adding this document`);
-      router.push(`/auth/setup-permissions?provider=${provider}`);
       return;
     }
 
@@ -649,17 +531,12 @@ export function useDashboard(initialData?: UserPreferences) {
         throw new Error('Workbook information not found in cache');
       }
 
-      // Verify the selected sheet exists in the workbook
-      if (!cachedWorkbook.sheet_names.includes(selectedSheet)) {
-        throw new Error(`Selected sheet "${selectedSheet}" not found in workbook sheets: ${cachedWorkbook.sheet_names.join(', ')}`);
-      }
-
-      // Add to selected pairs
+      // Create new URL pair with selected sheet
       const newPair: InputUrl = { url, sheet_name: selectedSheet };
       setSelectedUrlPairs(prev => [...prev, newPair]);
       setUrls(['']); // Reset URL input field
 
-      // Create title key and display title using cached workbook data
+      // Create title key and display title
       const titleKey = formatTitleKey(url, selectedSheet);
       const displayTitle = formatDisplayTitle(cachedWorkbook.doc_name, selectedSheet);
       
@@ -669,7 +546,7 @@ export function useDashboard(initialData?: UserPreferences) {
         [titleKey]: displayTitle
       }));
 
-      // Update recent URLs in database with cached workbook data
+      // Update recent URLs
       await updateRecentUrls(
         url,
         selectedSheet,
@@ -715,16 +592,7 @@ export function useDashboard(initialData?: UserPreferences) {
       }
     }
   };
-  const addUrlField = () => {
-    if (urls.length < MAX_FILES) {
-      setUrls([...urls, ''])
-    }
-  }
 
-  const removeUrlField = (index: number) => {
-    const newUrls = urls.filter((_, i) => i !== index)
-    setUrls(newUrls.length ? newUrls : ['']) // Keep at least one URL field
-  }
   const handleCancel = async () => {
     if (abortController) {
       console.log('Cancelling request...');
@@ -782,9 +650,13 @@ export function useDashboard(initialData?: UserPreferences) {
 
     // Validate destination URL if output type is 'online'
     if (outputType === 'online') {
-      if (!(await validateUrl(outputUrl, true))) {
-        return;
-      }
+      const isValid = await handleUrlValidation(
+        outputUrl,
+        verifyFileAccess,
+        launchPicker,
+        setDestinationUrlError
+      );
+      if (!isValid) return;
     }
 
     // Create new AbortController for this request
@@ -943,144 +815,6 @@ export function useDashboard(initialData?: UserPreferences) {
     }
   }
 
-  const validateVisualizationFile = (file: File): string | null => {
-    if (file.size > MAX_FILE_SIZE) {
-      return `File ${file.name} exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit`
-    }
-
-    const fileExtension = `.${file.name.split('.').pop()?.toLowerCase()}`
-    const fileMimeType = file.type.toLowerCase()
-
-    // Only allow .xlsx and .csv files
-    const allowedExtensions = ['.xlsx', '.csv']
-    if (!allowedExtensions.includes(fileExtension)) {
-      return `File type ${fileExtension} is not supported. Please use .xlsx or .csv files.`
-    }
-
-    return null
-  }
-
-  const handleVisualizationFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setVisualizationFileError(null)
-    setVisualizationUrl('') // Clear URL when file is selected
-
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    const error = validateVisualizationFile(file)
-    if (error) {
-      setVisualizationFileError({ file, error })
-      return
-    }
-
-    setVisualizationFile(file)
-  }
-
-  const handleVisualizationUrlChange = async (value: string) => {
-    setVisualizationUrlError(null)
-    setVisualizationFile(null) // Clear file when URL is entered
-    setVisualizationUrl(value)
-
-    if (value) {
-      try {
-        const provider = getUrlProvider(value)
-        if (!provider) {
-          setVisualizationUrlError('Please enter a valid Google Sheets or Microsoft Excel Online URL')
-          return
-        }
-
-        // Verify file access
-        const { hasPermission, fileInfo } = await verifyFileAccess(value)
-        
-        if (!fileInfo) {
-          setVisualizationUrlError('Invalid URL format')
-          return
-        }
-
-        if (!hasPermission) {
-          const pickerResult = await launchPicker(fileInfo.provider)
-          if (!pickerResult.success) {
-            setVisualizationUrlError(pickerResult.error || 'Failed to get file permission')
-            return
-          }
-          if (pickerResult.url) {
-            setVisualizationUrl(pickerResult.url)
-          }
-        }
-
-        // Fetch available sheets
-        const response = await fetch(`/api/sheets?url=${encodeURIComponent(value)}`)
-        const data = await response.json()
-
-        if (data.sheets?.length) {
-          setVisualizationSheets(data.sheets)
-          if (data.sheets.length === 1) {
-            setVisualizationSheet(data.sheets[0])
-          } else {
-            setShowVisualizationSheetSelector(true)
-          }
-        }
-
-      } catch (error) {
-        console.error('Error handling URL change:', error)
-        setVisualizationUrlError('Failed to process URL')
-      }
-    }
-  }
-
-  const handleVisualizationSheetSelection = (sheet: string) => {
-    setVisualizationSheet(sheet)
-    setShowVisualizationSheetSelector(false)
-  }
-
-  const handleVisualizationSubmit = async () => {
-    setVisualizationError('')
-    setVisualizationResult(null)
-
-    // Validate input
-    if (!visualizationUrl && !visualizationFile) {
-      setVisualizationError('Please provide either a URL or file')
-      return
-    }
-
-    if (visualizationUrl && !visualizationSheet) {
-      setVisualizationError('Please select a sheet')
-      return
-    }
-
-    setIsVisualizationProcessing(true)
-
-    try {
-      const input: VisualizationInput = visualizationUrl 
-        ? { 
-            url: visualizationUrl, 
-            sheet_name: visualizationSheet || undefined 
-          } 
-        : { file: visualizationFile! }
-
-      const options: VisualizationOptions = {
-        color_palette: colorPalette || undefined,
-        custom_instructions: customInstructions || undefined
-      }
-
-      const result = await processDataVisualization(input, options)
-      setVisualizationResult(result.image_url || null)
-    } catch (error) {
-      console.error('Error processing visualization:', error)
-      setVisualizationError('An error occurred while processing your request')
-    } finally {
-      setIsVisualizationProcessing(false)
-    }
-  }
-
-  const handleVisualizationOptionChange = (value: 'surprise' | 'custom') => {
-    if (value === 'surprise') {
-      setCustomInstructions(undefined);
-    } else if (value === 'custom') {
-      setCustomInstructions('');  // Initialize with empty string for custom mode
-    }
-  };
-
   return {
     isInitializing,
     urls,
@@ -1095,6 +829,7 @@ export function useDashboard(initialData?: UserPreferences) {
     urlValidationError,
     recentUrls,
     documentTitles,
+    setDocumentTitles,
     downloadFileType,
     fileErrors,
     outputTypeError,
@@ -1109,12 +844,12 @@ export function useDashboard(initialData?: UserPreferences) {
     permissions,
     selectedUrlPairs,
     selectedOutputSheet,
+    setSelectedOutputSheet,
     setShowPermissionsPrompt,
     setFiles,
     setQuery,
     setOutputType,
     setOutputUrl,
-    setError,
     setDownloadFileType,
     setOutputTypeError,
     setShowResultDialog,
@@ -1125,40 +860,27 @@ export function useDashboard(initialData?: UserPreferences) {
     handleUrlChange,
     handleUrlFocus,
     handleSubmit,
-    addUrlField,
-    removeUrlField,
     handleOutputUrlChange,
     handleQueryChange,
     handleDownloadFormatChange,
     isRetrievingData,
+    isRetrievingDestinationData,
     formatTitleKey,
     formatDisplayTitle,
     removeSelectedUrlPair,
     isUpdating,
     updateSheetModificationPreference,
     handleCancel,
-    isVisualizationExpanded,
-    visualizationUrl,
-    visualizationFile,
-    visualizationSheet,
-    colorPalette,
-    customInstructions,
-    isVisualizationProcessing,
-    visualizationError,
-    visualizationFileError,
-    visualizationUrlError,
-    visualizationResult,
-    showVisualizationSheetSelector,
-    visualizationSheets,
-    setIsVisualizationExpanded,
-    setVisualizationUrl,
-    setColorPalette,
-    setCustomInstructions,
-    setShowVisualizationSheetSelector,
-    handleVisualizationFileChange,
-    handleVisualizationUrlChange,
-    handleVisualizationSheetSelection,
-    handleVisualizationSubmit,
-    handleVisualizationOptionChange,
+    isDestinationUrlProcessing,
+    isLoadingDestinationTitles,
+    destinationSheets,
+    showDestinationSheetSelector,
+    setShowDestinationSheetSelector,
+    handleDestinationSheetSelection,
+    workbookCache,
+    setWorkbookCache,
+    destinationUrls,
+    selectedDestinationPair,
+    setSelectedDestinationPair,
   } as const;
 }

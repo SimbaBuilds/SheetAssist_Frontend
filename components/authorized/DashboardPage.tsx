@@ -26,6 +26,7 @@ import {
 import { SheetSelector } from '@/components/SheetSelector'
 import { useRouter } from 'next/navigation'
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
+import { useDataVisualization } from '@/hooks/useDataVisualization'
 
 const EXAMPLE_QUERIES = [
   "add this to the sheet",
@@ -57,6 +58,7 @@ const MATPLOTLIB_COLORS = [
 
 export default function DashboardPage() {
   const {
+    isInitializing,
     urls,
     query,
     files,
@@ -68,6 +70,7 @@ export default function DashboardPage() {
     urlValidationError,
     recentUrls,
     documentTitles,
+    setDocumentTitles,
     downloadFileType,
     fileErrors,
     outputTypeError,
@@ -83,6 +86,7 @@ export default function DashboardPage() {
     setFiles,
     setQuery,
     setOutputType,
+    setOutputUrl,
     setDownloadFileType,
     setOutputTypeError,
     setShowResultDialog,
@@ -97,14 +101,27 @@ export default function DashboardPage() {
     formatDisplayTitle,    
     isRetrievingData,
     removeSelectedUrlPair,
+    isUpdating,
     updateSheetModificationPreference,
     handleCancel,
-    isUpdating,
-    isInitializing,
+    isDestinationUrlProcessing,
+    isRetrievingDestinationData,
+    destinationSheets,
+    showDestinationSheetSelector,
+    setShowDestinationSheetSelector,
+    handleDestinationSheetSelection,
+    workbookCache,
+    setWorkbookCache,
+    setSelectedOutputSheet,
+    destinationUrls,
+    selectedDestinationPair,
+    setSelectedDestinationPair,
+  } = useDashboard()
+
+  const {
     isVisualizationExpanded,
     visualizationUrl,
     visualizationFile,
-    visualizationSheet,
     colorPalette,
     customInstructions,
     isVisualizationProcessing,
@@ -114,17 +131,27 @@ export default function DashboardPage() {
     visualizationResult,
     showVisualizationSheetSelector,
     visualizationSheets,
+    visualizationSheet,
+    isVisualizationUrlProcessing,
+    isRetrievingVisualizationData,
     setIsVisualizationExpanded,
     setVisualizationUrl,
     setColorPalette,
     setCustomInstructions,
     setShowVisualizationSheetSelector,
+    setVisualizationSheet,
     handleVisualizationFileChange,
     handleVisualizationUrlChange,
     handleVisualizationSheetSelection,
     handleVisualizationSubmit,
     handleVisualizationOptionChange,
-  } = useDashboard()
+    visualizationUrls,
+    selectedVisualizationPair,
+    setSelectedVisualizationPair,
+  } = useDataVisualization({ 
+    documentTitles,
+    setDocumentTitles
+  })
 
   const router = useRouter()
 
@@ -451,11 +478,12 @@ export default function DashboardPage() {
                         <Input
                           id="destination"
                           type="text"
-                          value={outputUrl}
+                          value={destinationUrls[0]}
                           onChange={(e) => handleOutputUrlChange(e.target.value)}
                           onFocus={handleUrlFocus}
                           placeholder="Paste Google Sheet or Excel Online URL here or select from recent documents"
                           className={`${destinationUrlError ? 'border-red-500' : ''}`}
+                          disabled={isDestinationUrlProcessing || isRetrievingDestinationData}
                         />
                         <Popover>
                           <PopoverTrigger asChild>
@@ -463,6 +491,7 @@ export default function DashboardPage() {
                               variant="outline"
                               className="px-2"
                               type="button"
+                              disabled={isDestinationUrlProcessing || isRetrievingDestinationData}
                             >
                               Recent
                             </Button>
@@ -494,13 +523,30 @@ export default function DashboardPage() {
                     <div className="text-sm text-red-500">{destinationUrlError}</div>
                   )}
 
-                  {/* Show selected output sheet if available */}
-                  {selectedOutputSheet && outputUrl && (
-                    <div className="text-sm text-gray-600">
-                      Destination Sheet: {(() => {
-                        const titleKey = formatTitleKey(outputUrl, selectedOutputSheet);
-                        return documentTitles[titleKey] || `${outputUrl} - ${selectedOutputSheet}`;
-                      })()}
+                  {selectedDestinationPair && (
+                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded-md mt-2">
+                      <span className="text-sm truncate flex-1">
+                        {(() => {
+                          if (!selectedDestinationPair.url || !selectedDestinationPair.sheet_name) return 'Loading...';
+                          const titleKey = formatTitleKey(selectedDestinationPair.url, selectedDestinationPair.sheet_name);
+                          return documentTitles[titleKey] || 'Loading...';
+                        })()}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedDestinationPair(null);
+                          setSelectedOutputSheet(null);
+                          setOutputUrl('');
+                        }}
+                        className="ml-2"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="18" y1="6" x2="6" y2="18"></line>
+                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                      </Button>
                     </div>
                   )}
 
@@ -521,10 +567,6 @@ export default function DashboardPage() {
                         id="appendToSheet"
                         checked={allowSheetModification}
                         onCheckedChange={(checked) => {
-                          console.log('[DashboardPage] Sheet modification toggle changed:', {
-                            previousValue: allowSheetModification,
-                            newValue: checked
-                          })
                           updateSheetModificationPreference(checked)
                         }}
                         disabled={isProcessing || isUpdating}
@@ -585,7 +627,12 @@ export default function DashboardPage() {
               onClick={() => setIsVisualizationExpanded(!isVisualizationExpanded)}
               className="w-full p-4 flex justify-between items-center bg-gray-50 hover:bg-gray-100"
             >
-              <span className="font-medium">Visualize Your Data</span>
+              <span className="font-medium">Visualize Your Data <svg className="w-5 h-5 inline" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="1" y="5" width="6" height="13" rx="1" fill="#00BFFF"/>
+                <rect x="7" y="1" width="6" height="17" rx="1" fill="#FF1493"/>
+                <rect x="13" y="7" width="6" height="11" rx="1" fill="#32CD32"/>
+                <rect x="19" y="3" width="6" height="15" rx="1" fill="#FFD700"/>
+              </svg></span>
               {isVisualizationExpanded ? (
                 <ChevronUpIcon className="h-5 w-5" />
               ) : (
@@ -600,17 +647,78 @@ export default function DashboardPage() {
                   {/* URL Input */}
                   <div>
                     <Label htmlFor="viz-url">Sheet URL</Label>
-                    <Input
-                      id="viz-url"
-                      type="text"
-                      value={visualizationUrl}
-                      onChange={(e) => handleVisualizationUrlChange(e.target.value)}
-                      placeholder="Paste Google Sheet or Excel Online URL"
-                      className={visualizationUrlError ? 'border-red-500' : ''}
-                      disabled={!!visualizationFile}
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        id="viz-url"
+                        type="text"
+                        value={visualizationUrls[0]}
+                        onChange={(e) => handleVisualizationUrlChange(e.target.value)}
+                        placeholder="Paste Google Sheet or Excel Online URL"
+                        className={visualizationUrlError ? 'border-red-500' : ''}
+                        disabled={!!visualizationFile || isVisualizationUrlProcessing || isRetrievingVisualizationData}
+                      />
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="px-2"
+                            type="button"
+                            disabled={!!visualizationFile || isVisualizationUrlProcessing || isRetrievingVisualizationData}
+                          >
+                            Recent
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="p-0" align="end">
+                          <Command>
+                            <CommandGroup>
+                              {recentUrls.map((sheet, index) => {
+                                const titleKey = sheet.sheet_name ? formatTitleKey(sheet.url, sheet.sheet_name) : '';
+                                const displayTitle = titleKey && documentTitles[titleKey] 
+                                  ? documentTitles[titleKey] 
+                                  : formatDisplayTitle(sheet.doc_name, sheet.sheet_name || '');
+                                return (
+                                  <CommandItem
+                                    key={index}
+                                    onSelect={() => handleVisualizationUrlChange(titleKey, true)}
+                                  >
+                                    {displayTitle}
+                                  </CommandItem>
+                                );
+                              })}
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
                     {visualizationUrlError && (
                       <p className="text-sm text-red-500 mt-1">{visualizationUrlError}</p>
+                    )}
+                    
+                    {selectedVisualizationPair && (
+                      <div className="flex items-center justify-between p-2 bg-gray-50 rounded-md mt-2">
+                        <span className="text-sm truncate flex-1">
+                          {(() => {
+                            if (!selectedVisualizationPair.url || !selectedVisualizationPair.sheet_name) return 'Loading...';
+                            const titleKey = formatTitleKey(selectedVisualizationPair.url, selectedVisualizationPair.sheet_name);
+                            return documentTitles[titleKey] || 'Loading...';
+                          })()}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedVisualizationPair(null);
+                            setVisualizationSheet(null);
+                            setVisualizationUrl('');
+                          }}
+                          className="ml-2"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                          </svg>
+                        </Button>
+                      </div>
                     )}
                   </div>
 
@@ -672,7 +780,7 @@ export default function DashboardPage() {
                         <textarea
                           value={customInstructions}
                           onChange={(e) => setCustomInstructions(e.target.value)}
-                          placeholder="Custom instructions here..."
+                          placeholder="Custom instructions here...(e.g. chart types, axes titles, labels, etc.)"
                           className="w-full p-2 border rounded-md"
                           rows={3}
                         />
@@ -730,6 +838,14 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
+
+          <SheetSelector
+            url={outputUrl}
+            sheets={destinationSheets}
+            onSelect={handleDestinationSheetSelection}
+            onClose={() => setShowDestinationSheetSelector(false)}
+            open={showDestinationSheetSelector}
+          />
         </>
       )}
     </div>
