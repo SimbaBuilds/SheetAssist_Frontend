@@ -1,13 +1,14 @@
 import { AxiosResponse } from 'axios'
 import api from './api'
 import { createClient } from '@/utils/supabase/client'
-import type { VisualizationInput, VisualizationOptions } from '@/hooks/useDataVisualization'
-
-interface VisualizationResponse {
-  status: 'success' | 'error'
-  image_url?: string
-  error?: string
-}
+import { AcceptedMimeType } from '@/constants/file-types'
+import { 
+  VisualizationOptions, 
+  VisualizationResult, 
+  FileMetadata,
+  VisualizationRequest,
+  InputUrl,
+} from '@/types/dashboard'
 
 // Helper function to update user visualization usage statistics
 async function updateVisualizationUsage(userId: string, success: boolean) {
@@ -25,7 +26,7 @@ async function updateVisualizationUsage(userId: string, success: boolean) {
   }
 
   const updateData = {
-    visualizations_this_month: (usageData.visualizations_this_month || 0) + (success ? 1 : 0),
+    visualizations_this_month: (usageData?.visualizations_this_month || 0) + (success ? 1 : 0),
   }
 
   await supabase
@@ -35,10 +36,11 @@ async function updateVisualizationUsage(userId: string, success: boolean) {
 }
 
 export const processDataVisualization = async (
-  input: VisualizationInput,
   options: VisualizationOptions,
+  webUrls: InputUrl[] = [],
+  files?: File[],
   signal?: AbortSignal
-): Promise<VisualizationResponse> => {
+): Promise<VisualizationResult> => {
   const startTime = Date.now()
   const supabase = createClient()
   const user = await supabase.auth.getUser()
@@ -50,18 +52,29 @@ export const processDataVisualization = async (
 
   const formData = new FormData()
 
-  // Add input data
-  if (input.url) {
-    formData.append('url', input.url)
-    if (input.sheet_name) {
-      formData.append('sheet_name', input.sheet_name)
-    }
-  } else if (input.file) {
-    formData.append('file', input.file)
-  }
+  // Create files metadata array with index only if files exist
+  const filesMetadata: FileMetadata[] = files?.map((file, index) => ({
+    name: file.name,
+    type: file.type as AcceptedMimeType,
+    extension: `.${file.name.split('.').pop()?.toLowerCase() || ''}`,
+    size: file.size,
+    index
+  })) ?? []
 
-  // Add visualization options
-  formData.append('options', JSON.stringify(options))
+  // Part 1: JSON payload with metadata
+  const jsonData: VisualizationRequest = {
+    input_urls: webUrls,
+    files_metadata: filesMetadata,
+    options
+  }
+  formData.append('json_data', JSON.stringify(jsonData))
+
+  // Part 2: Append files only if they exist
+  if (files?.length) {
+    files.forEach((file) => {
+      formData.append('files', file)
+    })
+  }
 
   try {
     if (signal) {
@@ -70,7 +83,7 @@ export const processDataVisualization = async (
       })
     }
 
-    const response: AxiosResponse<VisualizationResponse> = await api.post(
+    const response: AxiosResponse<VisualizationResult> = await api.post(
       '/visualize_data',
       formData,
       {
@@ -85,17 +98,16 @@ export const processDataVisualization = async (
     // Update usage statistics
     await updateVisualizationUsage(userId, response.data.status === 'success')
 
-    // Log the visualization request
+    // Log the visualization request in request_log instead of visualization_log
     const processingTime = Date.now() - startTime
-    await supabase.from('visualization_log').insert({
+    await supabase.from('request_log').insert({
       user_id: userId,
-      input_type: input.url ? 'url' : 'file',
-      input_name: input.url || input.file?.name,
+      query: `visualization_${options.chart_type}`, // Add chart type to query for better tracking
+      doc_names: webUrls.map(url => url.url),
+      file_names: files?.map(f => f.name) || [],
       processing_time_ms: processingTime,
       status: response.data.status,
-      success: response.data.status === 'success',
-      color_palette: options.color_palette,
-      has_custom_instructions: !!options.custom_instructions
+      success: response.data.status === 'success'
     })
 
     return response.data
@@ -105,10 +117,11 @@ export const processDataVisualization = async (
       if (error.code === 'ERR_CANCELED') {
         console.log('Request was cancelled by user')
         const processingTime = Date.now() - startTime
-        await supabase.from('visualization_log').insert({
+        await supabase.from('request_log').insert({
           user_id: userId,
-          input_type: input.url ? 'url' : 'file',
-          input_name: input.url || input.file?.name,
+          query: `visualization_cancelled`,
+          doc_names: webUrls.map(url => url.url),
+          file_names: files?.map(f => f.name) || [],
           processing_time_ms: processingTime,
           status: 'cancelled',
           success: false
@@ -121,13 +134,13 @@ export const processDataVisualization = async (
     
     // Update usage statistics for failed request
     await updateVisualizationUsage(userId, false)
-    
     // Log failed request
     const processingTime = Date.now() - startTime
-    await supabase.from('visualization_log').insert({
+    await supabase.from('request_log').insert({
       user_id: userId,
-      input_type: input.url ? 'url' : 'file',
-      input_name: input.url || input.file?.name,
+      query: `visualization_error`, // Updated to be more specific
+      doc_names: webUrls.map(url => url.url),
+      file_names: files?.map(f => f.name) || [],
       processing_time_ms: processingTime,
       status: error instanceof Error ? error.name : 'error',
       success: false

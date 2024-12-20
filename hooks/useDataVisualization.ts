@@ -7,30 +7,17 @@ import { useAuth } from '@/hooks/useAuth'
 import { 
   validateVisualizationFile,
   formatTitleKey,
-  formatDisplayTitle ,
+  formatDisplayTitle,
   handleUrlValidation,
 } from '@/utils/dashboard-utils'
-
-
-export interface VisualizationInput {
-  url?: string;
-  sheet_name?: string | null;
-  file?: File;
-}
-
-export interface VisualizationOptions {
-  color_palette?: string;
-  custom_instructions?: string;
-}
+import type { 
+  VisualizationOptions,
+  InputUrl
+} from '@/types/dashboard'
 
 interface FileError {
   file: File;
   error: string;
-}
-
-interface InputUrl {
-  url: string;
-  sheet_name: string;
 }
 
 interface UseDataVisualizationProps {
@@ -57,6 +44,8 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
   const [visualizationUrls, setVisualizationUrls] = useState<string[]>(['']);
   const [selectedVisualizationPair, setSelectedVisualizationPair] = useState<InputUrl | null>(null);
   const [isVisualizationUrlProcessing, setIsVisualizationUrlProcessing] = useState(false)
+  const [showVisualizationDialog, setShowVisualizationDialog] = useState(false)
+  const [visualizationAbortController, setVisualizationAbortController] = useState<AbortController | null>(null)
 
   const { user } = useAuth()
   const supabase = createClient()
@@ -252,11 +241,39 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
     }
   };
 
+  const handleVisualizationCancel = async () => {
+    if (visualizationAbortController) {
+      console.log('Cancelling visualization request...')
+      visualizationAbortController.abort()
+      setVisualizationAbortController(null)
+      setIsVisualizationProcessing(false)
+      setShowVisualizationDialog(false)
+      setVisualizationError('Request was canceled')
+      
+      // Log the cancellation
+      const user = await supabase.auth.getUser()
+      const userId = user.data.user?.id
+      if (userId) {
+        try {
+          await supabase.from('request_log').insert({
+            user_id: userId,
+            query: 'visualization_cancelled',
+            doc_names: selectedVisualizationPair ? [selectedVisualizationPair.url] : [],
+            file_names: visualizationFile ? [visualizationFile.name] : [],
+            status: 'canceled',
+            success: false
+          })
+        } catch (error) {
+          console.error('Error logging cancellation:', error)
+        }
+      }
+    }
+  }
+
   const handleVisualizationSubmit = async () => {
     setVisualizationError('')
     setVisualizationResult(null)
 
-    // Validate input
     if (!selectedVisualizationPair?.url && !visualizationFile) {
       setVisualizationError('Please provide either a URL or file')
       return
@@ -267,28 +284,60 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
       return
     }
 
+    // Clean up any existing abort controller
+    if (visualizationAbortController) {
+      visualizationAbortController.abort()
+      setVisualizationAbortController(null)
+    }
+
+    // Create new AbortController
+    const controller = new AbortController()
+    setVisualizationAbortController(controller)
+
     setIsVisualizationProcessing(true)
+    setShowVisualizationDialog(true)
 
     try {
-      const input: VisualizationInput = selectedVisualizationPair
-        ? { 
-            url: selectedVisualizationPair.url, 
-            sheet_name: selectedVisualizationPair.sheet_name 
-          } 
-        : { file: visualizationFile! }
-
       const options: VisualizationOptions = {
+        chart_type: 'auto',
         color_palette: colorPalette || undefined,
         custom_instructions: customInstructions || undefined
       }
 
-      const result = await processDataVisualization(input, options)
-      setVisualizationResult(result.image_url || null)
+      const webUrls = selectedVisualizationPair 
+        ? [{ 
+            url: selectedVisualizationPair.url, 
+            sheet_name: selectedVisualizationPair.sheet_name 
+          }] 
+        : []
+      
+      const files = visualizationFile ? [visualizationFile] : undefined
+
+      const result = await processDataVisualization(
+        options,
+        webUrls,
+        files,
+        controller.signal
+      )
+      
+      // Only update if request wasn't cancelled
+      if (!controller.signal.aborted) {
+        setVisualizationResult(result.image_data || null)
+      }
     } catch (error) {
+      if (error instanceof Error && error.message === 'AbortError') {
+        console.log('Request was cancelled')
+        return
+      }
       console.error('Error processing visualization:', error)
       setVisualizationError('An error occurred while processing your request')
     } finally {
-      setIsVisualizationProcessing(false)
+      // Only clean up if not aborted
+      if (!controller.signal.aborted) {
+        setIsVisualizationProcessing(false)
+        setShowVisualizationDialog(false)
+        setVisualizationAbortController(null)
+      }
     }
   }
 
@@ -330,5 +379,8 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
     visualizationUrls,
     selectedVisualizationPair,
     setSelectedVisualizationPair,
+    showVisualizationDialog,
+    setShowVisualizationDialog,
+    handleVisualizationCancel,
   } as const
 }

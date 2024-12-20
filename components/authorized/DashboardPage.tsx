@@ -27,6 +27,7 @@ import { SheetSelector } from '@/components/SheetSelector'
 import { useRouter } from 'next/navigation'
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
 import { useDataVisualization } from '@/hooks/useDataVisualization'
+import { GeneratingVisualizationDialog } from '@/components/authorized/GeneratingVisualizationDialog'
 
 const EXAMPLE_QUERIES = [
   "add this to the sheet",
@@ -170,6 +171,9 @@ export default function DashboardPage() {
     visualizationUrls,
     selectedVisualizationPair,
     setSelectedVisualizationPair,
+    showVisualizationDialog,
+    setShowVisualizationDialog,
+    handleVisualizationCancel,
   } = useDataVisualization({ 
     documentTitles,
     setDocumentTitles
@@ -890,6 +894,13 @@ export default function DashboardPage() {
                 >
                   {isVisualizationProcessing ? 'Processing...' : 'Generate Visualization'}
                 </Button>
+
+                {/* Add this before the visualization result display */}
+                <GeneratingVisualizationDialog
+                  isOpen={showVisualizationDialog}
+                  onClose={() => setShowVisualizationDialog(false)}
+                  onCancel={handleVisualizationCancel}
+                />
 
                 {/* Result Display */}
                 {visualizationResult && (

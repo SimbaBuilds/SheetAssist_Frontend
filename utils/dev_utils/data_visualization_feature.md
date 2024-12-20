@@ -9,6 +9,6 @@ Front end requirements:
 
 3. Under the color palette selection, the user should have the options “Surprise Me” or “give custom instructions”.  Surprise Me will immediately send a data visualization request to the backend with form data: (1)url or file (2) color palette selection.  Give custom instructions should have an input text field where the user can specify instructions about the type and style of visualization they want produced.  On submit for this option, form data will be the same but with the custom instructions included.   
 
-4. The response from the backend will contain the image.  I want this image displayed on the Dashboard Page.  The image should have a download button display on hover. 
+4. The response from the backend will contain the image.  I want this image displayed on the Dashboard Page.  The image should have a download button display on hover.  When the download button is clicked, the file should download to the user's machine.
 
 

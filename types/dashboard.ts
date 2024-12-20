@@ -98,3 +98,24 @@ export interface SheetTitleKey {
 export interface DocumentTitleMap {
   [key: string]: string;  // key will be JSON.stringify(SheetTitleKey)
 }
+
+export interface VisualizationRequest {
+  input_urls?: InputUrl[]
+  files_metadata?: FileMetadata[]
+  options: VisualizationOptions
+}
+
+export interface VisualizationOptions {
+  chart_type: string
+  color_palette?: string
+  custom_instructions?: string
+  // Add other visualization-specific options
+}
+
+export interface VisualizationResult {
+  status: 'success' | 'error'
+  image_file_path?: string
+  image_data?: string // base64 encoded image data
+  error?: string
+  message?: string
+}
