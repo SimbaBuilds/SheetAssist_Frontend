@@ -12,13 +12,13 @@ import {
 } from '@/utils/dashboard-utils'
 
 
-interface VisualizationInput {
+export interface VisualizationInput {
   url?: string;
   sheet_name?: string | null;
   file?: File;
 }
 
-interface VisualizationOptions {
+export interface VisualizationOptions {
   color_palette?: string;
   custom_instructions?: string;
 }

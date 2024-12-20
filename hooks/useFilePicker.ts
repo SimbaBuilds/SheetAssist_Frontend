@@ -1,6 +1,6 @@
 import { createClient } from '@/utils/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
-import { FilePermissions } from '@/types/supabase_tables'
+import { FilePermissions, UserDocumentsAccess } from '@/types/supabase_tables'
 import { useRouter } from 'next/navigation'
 import { toast } from '@/components/ui/use-toast'
 
@@ -145,32 +145,133 @@ export function useFilePicker() {
     }
   }
 
+  // Refresh access token
+  async function refreshAccessToken(
+    provider: 'google' | 'microsoft',
+    userId: string,
+    supabase: any
+  ): Promise<{ success: boolean; access_token?: string }> {
+    console.log(`[refreshAccessToken] Attempting to refresh ${provider} token for user ${userId}`);
+    
+    try {
+      // Get current tokens
+      const { data: tokenData, error: fetchError } = await supabase
+        .from('user_documents_access')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('provider', provider)
+        .single();
+
+      if (fetchError || !tokenData) {
+        console.error(`[refreshAccessToken] Error fetching tokens:`, fetchError);
+        return { success: false };
+      }
+
+      const refreshToken = tokenData.refresh_token;
+      
+      // Key changes for Google token refresh
+      if (provider === 'google') {
+        const params = new URLSearchParams({
+          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
+          client_secret: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_SECRET!,
+          refresh_token: refreshToken,
+          grant_type: 'refresh_token',
+        });
+
+        const response = await fetch('https://oauth2.googleapis.com/token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': `Basic ${Buffer.from(`${process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}:${process.env.NEXT_PUBLIC_GOOGLE_CLIENT_SECRET}`).toString('base64')}`
+          },
+          body: params.toString(),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          console.error('[refreshAccessToken] Google refresh failed:', data);
+          if (data.error === 'invalid_grant') {
+            // Handle invalid refresh token
+            console.error('[refreshAccessToken] Invalid refresh token, user needs to reauthorize');
+            return { success: false };
+          }
+          throw new Error(data.error_description || 'Failed to refresh token');
+        }
+
+        // Update tokens in database - Note Google doesn't return a new refresh token
+        const { error: updateError } = await supabase
+          .from('user_documents_access')
+          .update({
+            access_token: data.access_token,
+            expires_at: new Date(Date.now() + data.expires_in * 1000).toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', userId)
+          .eq('provider', provider);
+
+        if (updateError) {
+          console.error(`[refreshAccessToken] Error updating tokens:`, updateError);
+          return { success: false };
+        }
+
+        return { success: true, access_token: data.access_token };
+      }
+      return { success: false };
+      // Existing Microsoft token refresh logic
+      // ... rest of the code ...
+    } catch (error) {
+      console.error(`[refreshAccessToken] Unexpected error:`, error);
+      return { success: false };
+    }
+  }
+
   // Main function to handle URL verification
   async function verifyFileAccess(url: string): Promise<{
     hasPermission: boolean
     fileInfo: FileInfo | null
     error?: string
   }> {
-    console.log('[useFilePicker] Starting file access verification for URL:', url);
+    console.log('[verifyFileAccess] Starting file access verification for URL:', url);
     const fileInfo = extractFileInfo(url)
 
-    if (!fileInfo) {
-      console.log('[useFilePicker] Invalid URL');
+    if (!fileInfo || !user?.id) {
+      console.log('[verifyFileAccess] Invalid URL or no user ID');
       return {
         hasPermission: false,
         fileInfo: null,
-        error: 'Invalid URL'
+        error: 'Invalid URL or user not authenticated'
       }
     }
 
     try {
-      console.log('[useFilePicker] Checking access token for provider:', fileInfo.provider);
-      const { data: accessData, error: tokenError } = await supabase
+      // First attempt to get access token
+      let { data: accessData, error: tokenError } = await supabase
         .from('user_documents_access')
-        .select('access_token')
-        .eq('user_id', user?.id)
+        .select('*')
+        .eq('user_id', user.id)
         .eq('provider', fileInfo.provider)
-        .single()
+        .single();
+
+      // If token exists but might be expired, try refreshing
+      if (accessData && new Date(accessData.expires_at) < new Date()) {
+        console.log('[verifyFileAccess] Token expired, attempting refresh');
+        const refreshResult = await refreshAccessToken(fileInfo.provider, user.id, supabase);
+        
+        if (refreshResult.success && refreshResult.access_token) {
+          accessData.access_token = refreshResult.access_token;
+        } else {
+          return handleAuthError(
+            new Error('Token refresh failed'),
+            fileInfo.provider,
+            {
+              hasPermission: false,
+              fileInfo: null,
+              error: 'Authentication expired'
+            }
+          );
+        }
+      }
 
       if (tokenError || !accessData?.access_token) {
         return handleAuthError(
@@ -295,15 +396,35 @@ export function useFilePicker() {
     try {
       await loadGooglePickerApi()
 
-      // Get fresh access token
-      const { data, error: tokenError } = await supabase
+      // Get access token with potential refresh
+      let { data: accessData, error: tokenError } = await supabase
         .from('user_documents_access')
-        .select('access_token')
+        .select('*')
         .eq('user_id', user?.id)
         .eq('provider', 'google')
-        .single()
+        .single();
 
-      if (tokenError || !data?.access_token) {
+      if (accessData && new Date(accessData.expires_at) < new Date()) {
+        console.log('[openGooglePicker] Token expired, attempting refresh');
+        const refreshResult = await refreshAccessToken('google', user?.id!, supabase);
+        
+        if (refreshResult.success && refreshResult.access_token) {
+          accessData.access_token = refreshResult.access_token;
+        } else {
+          return handleAuthError(
+            new Error('Token refresh failed'),
+            'google',
+            {
+              fileId: '',
+              url: '',
+              success: false,
+              error: 'Authentication expired'
+            }
+          );
+        }
+      }
+
+      if (tokenError || !accessData?.access_token) {
         return handleAuthError(
           tokenError || new Error('No access token found'),
           'google',
@@ -316,7 +437,7 @@ export function useFilePicker() {
         );
       }
 
-      const access_token = data.access_token
+      const access_token = accessData.access_token
 
       const picker = new window.google.picker.PickerBuilder()
         .addView(window.google.picker.ViewId.SPREADSHEETS)
@@ -386,16 +507,35 @@ export function useFilePicker() {
     console.log('[openMicrosoftPicker] Starting Microsoft picker initialization');
     
     try {
-      // Get fresh access token
-      console.log('[openMicrosoftPicker] Fetching access token');
-      const { data, error: tokenError } = await supabase
+      // Get access token with potential refresh
+      let { data: accessData, error: tokenError } = await supabase
         .from('user_documents_access')
-        .select('access_token')
+        .select('*')
         .eq('user_id', user?.id)
         .eq('provider', 'microsoft')
-        .single()
+        .single();
 
-      if (tokenError || !data?.access_token) {
+      if (accessData && new Date(accessData.expires_at) < new Date()) {
+        console.log('[openMicrosoftPicker] Token expired, attempting refresh');
+        const refreshResult = await refreshAccessToken('microsoft', user?.id!, supabase);
+        
+        if (refreshResult.success && refreshResult.access_token) {
+          accessData.access_token = refreshResult.access_token;
+        } else {
+          return handleAuthError(
+            new Error('Token refresh failed'),
+            'microsoft',
+            {
+              fileId: '',
+              url: '',
+              success: false,
+              error: 'Authentication expired'
+            }
+          );
+        }
+      }
+
+      if (tokenError || !accessData?.access_token) {
         console.error('[openMicrosoftPicker] Token error:', tokenError);
         return handleAuthError(
           tokenError || new Error('No access token found'),
@@ -409,7 +549,7 @@ export function useFilePicker() {
         );
       }
 
-      const access_token = data.access_token
+      const access_token = accessData.access_token
       console.log('[openMicrosoftPicker] Access token retrieved successfully');
 
       // Load OneDrive picker if not already loaded

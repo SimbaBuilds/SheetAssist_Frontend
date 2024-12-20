@@ -505,7 +505,7 @@ export default function DashboardPage() {
                           onFocus={handleUrlFocus}
                           placeholder="Paste Google Sheet or Excel Online URL here or select from recent documents"
                           className={`${destinationUrlError ? 'border-red-500' : ''}`}
-                          disabled={isDestinationUrlProcessing || isRetrievingDestinationData}
+                          disabled={isDestinationUrlProcessing || isRetrievingDestinationData || !!selectedDestinationPair}
                         />
                         <Popover>
                           <PopoverTrigger asChild>
@@ -513,7 +513,7 @@ export default function DashboardPage() {
                               variant="outline"
                               className="px-2"
                               type="button"
-                              disabled={isDestinationUrlProcessing || isRetrievingDestinationData}
+                              disabled={isDestinationUrlProcessing || isRetrievingDestinationData || !!selectedDestinationPair}
                             >
                               Recent
                             </Button>

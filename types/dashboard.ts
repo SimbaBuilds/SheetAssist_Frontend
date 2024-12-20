@@ -12,12 +12,11 @@ export interface DashboardInitialData {
 }
 
 export interface OutputPreferences {
-  type: 'download' | 'online'
-  destination_url?: string
-  format?: DownloadFileType
-  modify_existing?: boolean
-  sheet_name?: string
-
+  type: 'download' | 'online';
+  destination_url?: string;
+  format?: DownloadFileType;
+  modify_existing?: boolean;
+  sheet_name?: string | null;
 }
 
 export interface FileMetadata {

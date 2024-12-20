@@ -412,22 +412,23 @@ export function useDashboard(initialData?: UserPreferences) {
   };
 
   const handleOutputUrlChange = async (value: string, fromDropdown = false) => {
+    // Clear any previous errors
     setOutputUrl(value);
     setOutputTypeError(null);
     setDestinationUrlError(null);
-    setDestinationUrls([value]);  // Update like main input
-    
-    console.log('Before URL change - Cache:', workbookCache);
-    
+    setDestinationUrls([value]);
+
     if (!value) return;
 
+    // Handle dropdown selection
     if (fromDropdown) {
       const titleKey = value;
       if (documentTitles[titleKey]) {
         try {
           const { url, sheet_name } = JSON.parse(titleKey);
           setSelectedDestinationPair({ url, sheet_name });
-          setDestinationUrls(['']);  // Clear input like main
+          setDestinationUrls(['']);  // Clear input
+          setOutputUrl('');  // Clear the output URL when a sheet is selected
           return;
         } catch (error) {
           console.error('Error parsing title key:', error);
@@ -643,13 +644,14 @@ export function useDashboard(initialData?: UserPreferences) {
       return;
     }
 
-    if (outputType === 'online' && !outputUrl.trim()) {
-      setOutputTypeError('Please enter a destination URL');
+    // Modified validation for online output type
+    if (outputType === 'online' && !selectedDestinationPair && !outputUrl.trim()) {
+      setOutputTypeError('Please enter a destination URL or select a sheet');
       return;
     }
 
-    // Validate destination URL if output type is 'online'
-    if (outputType === 'online') {
+    // Only validate destination URL if there's no selected destination pair
+    if (outputType === 'online' && !selectedDestinationPair && outputUrl.trim()) {
       const isValid = await handleUrlValidation(
         outputUrl,
         verifyFileAccess,
@@ -668,15 +670,16 @@ export function useDashboard(initialData?: UserPreferences) {
     setIsProcessing(true);
 
     try {
-      // Create output preferences object with sheet name
+      // Create output preferences object with correct sheet information
       const outputPreferences: OutputPreferences = {
         type: outputType ?? 'download',
-        ...(outputType === 'online' && { 
-          destination_url: outputUrl,
+        ...(outputType === 'download' && { format: downloadFileType }),
+        ...(outputType === 'online' && {
+          destination_url: selectedDestinationPair?.url ?? outputUrl,
           modify_existing: allowSheetModification,
-          sheet_name: selectedOutputSheet ?? undefined
-        }),
-        ...(outputType === 'download' && { format: downloadFileType })
+          // Use the sheet name from selectedDestinationPair if available
+          sheet_name: selectedDestinationPair?.sheet_name ?? selectedOutputSheet
+        })
       };
 
       // Process the query using selectedUrlPairs directly

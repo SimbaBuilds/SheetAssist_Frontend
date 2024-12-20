@@ -1,7 +1,7 @@
 import { AxiosResponse } from 'axios'
 import api from './api'
 import { createClient } from '@/utils/supabase/client'
-import type { VisualizationInput, VisualizationOptions } from '@/hooks/useDashboard'
+import type { VisualizationInput, VisualizationOptions } from '@/hooks/useDataVisualization'
 
 interface VisualizationResponse {
   status: 'success' | 'error'
