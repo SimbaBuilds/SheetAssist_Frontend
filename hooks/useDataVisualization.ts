@@ -1,3 +1,5 @@
+import type { SeabornSequentialPalette } from '@/types/dashboard'
+
 import { useState } from 'react'
 import { useFilePicker } from '@/hooks/useFilePicker'
 import { processDataVisualization } from '@/services_endpoints/data_visualization'
@@ -12,12 +14,19 @@ import {
 } from '@/utils/dashboard-utils'
 import type { 
   VisualizationOptions,
-  InputUrl
+  InputUrl,
+  VisualizationResult,
 } from '@/types/dashboard'
 
 interface FileError {
   file: File;
   error: string;
+}
+
+interface SequentialPalette {
+  name: string;
+  description: string;
+  preview: string[];
 }
 
 interface UseDataVisualizationProps {
@@ -31,14 +40,14 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
   const [visualizationUrl, setVisualizationUrl] = useState('')
   const [visualizationFile, setVisualizationFile] = useState<File | null>(null)
   const [visualizationSheet, setVisualizationSheet] = useState<string | null>(null)
-  const [colorPalette, setColorPalette] = useState<string>('')
+  const [colorPalette, setColorPalette] = useState<SeabornSequentialPalette | ''>('')
   const [customInstructions, setCustomInstructions] = useState<string | undefined>()
   const [isVisualizationProcessing, setIsVisualizationProcessing] = useState(false)
   const [isRetrievingVisualizationData, setIsRetrievingVisualizationData] = useState(false)
   const [visualizationError, setVisualizationError] = useState('')
   const [visualizationFileError, setVisualizationFileError] = useState<FileError | null>(null)
   const [visualizationUrlError, setVisualizationUrlError] = useState<string | null>(null)
-  const [visualizationResult, setVisualizationResult] = useState<string | null>(null)
+  const [visualizationResult, setVisualizationResult] = useState<VisualizationResult | null>(null)
   const [showVisualizationSheetSelector, setShowVisualizationSheetSelector] = useState(false)
   const [visualizationSheets, setVisualizationSheets] = useState<string[]>([])
   const [visualizationUrls, setVisualizationUrls] = useState<string[]>(['']);
@@ -46,6 +55,7 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
   const [isVisualizationUrlProcessing, setIsVisualizationUrlProcessing] = useState(false)
   const [showVisualizationDialog, setShowVisualizationDialog] = useState(false)
   const [visualizationAbortController, setVisualizationAbortController] = useState<AbortController | null>(null)
+  const [selectedPaletteType, setSelectedPaletteType] = useState<'sequential'>('sequential');
 
   const { user } = useAuth()
   const supabase = createClient()
@@ -279,8 +289,8 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
       return
     }
 
-    if (selectedVisualizationPair?.url && !selectedVisualizationPair.sheet_name) {
-      setVisualizationError('Please select a sheet')
+    if (!colorPalette) {
+      setVisualizationError('Please select a color palette')
       return
     }
 
@@ -320,9 +330,18 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
         controller.signal
       )
       
+      // Add debugging
+      console.log('Visualization result type:', typeof result.image_data)
+      console.log('Visualization result length:', result.image_data?.length)
+      console.log('Visualization result preview:', result.image_data?.substring(0, 100))
+      
       // Only update if request wasn't cancelled
       if (!controller.signal.aborted) {
-        setVisualizationResult(result.image_data || null)
+        if (!result.image_data) {
+          setVisualizationError('No image data received from server')
+          return
+        }
+        setVisualizationResult(result)
       }
     } catch (error) {
       if (error instanceof Error && error.message === 'AbortError') {

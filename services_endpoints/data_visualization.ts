@@ -95,6 +95,11 @@ export const processDataVisualization = async (
       }
     )
 
+    // Add data URI prefix if not present
+    if (response.data.image_data && !response.data.image_data.startsWith('data:image/')) {
+      response.data.image_data = `data:image/png;base64,${response.data.image_data}`
+    }
+
     // Update usage statistics
     await updateVisualizationUsage(userId, response.data.status === 'success')
 

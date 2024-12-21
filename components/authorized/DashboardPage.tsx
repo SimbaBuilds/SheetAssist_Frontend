@@ -28,56 +28,27 @@ import { useRouter } from 'next/navigation'
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
 import { useDataVisualization } from '@/hooks/useDataVisualization'
 import { GeneratingVisualizationDialog } from '@/components/authorized/GeneratingVisualizationDialog'
+import { SEABORN_SEQUENTIAL_PALETTES, SeabornSequentialPalette } from '@/types/dashboard'
 
-const EXAMPLE_QUERIES = [
+export const EXAMPLE_QUERIES = [
   "add this to the sheet",
-  "add these to the sheet",
   "convert this pdf to a sheet with headers product, units sold, and revenue.",
-  "remove all rows where the Status column is marked as Inactive.",
+  "remove all rows where the status column is marked as Inactive.",
+  "add these to the sheet",
   "create a performance summary by combining employee evaluation scores from each department sheet",
-  "filter rows where the Email column contains .edu and export them to a new sheet",
+  "combine these",
+  "filter rows where the email column contains .edu and export them to a new sheet",
   "extract all unpaid invoices from the finance sheet",
-  "remove duplicate entries based on the Employee ID column", 
+  "remove duplicate entries based on the employee id column", 
   "merge by id",
   "combine these into one document",
   "populate the student sheet with phone numbers from the household contacts sheet",
-  "match client ID from the contract sheet to populate missing addresses in the billing sheet",
-  "highlight rows where the Sales column exceeds $1000.", 
+  "match client id from the contract sheet to populate missing addresses in the billing sheet",
+  "highlight rows where the sales column exceeds $1000.", 
   "convert this directory of legal case PDFs into a single document with descriptive headers",
-  "sort the spreadsheet by the Date column in descending order.", 
-  "add new clients from this CSV to the existing CRM sheet, avoiding duplicates by matching email addresses",
-  "extract contact information for all vendors and group by service type from the procurement sheet",
-  "filter and count items sold per category in the product sales sheet, summarizing by month"
+  "sort the spreadsheet by the date column in descending order.", 
+  "extract contact information for all vendors and group by service type from the procurement sheet"
 ]
-
-const MATPLOTLIB_COLORS = [
-  // Basic colors
-  'blue', 'red', 'cyan', 'magenta', 'yellow', 'black',
-  
-  // Tab colors
-  'tab:blue', 'tab:orange', 'tab:green', 'tab:purple', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan',
-  
-  // Additional colors
-  'dodgerblue', 'forestgreen', 'crimson', 'mediumpurple', 'darkorange', 'orchid',
-  'indigo', 'teal', 'maroon'
-] as const
-
-function convertTabColor(color: string): string {
-  // Convert tab: colors to their hex equivalents
-  const tabColors: Record<string, string> = {
-    'tab:blue': '#1f77b4',
-    'tab:orange': '#ff7f0e',
-    'tab:green': '#2ca02c',
-    'tab:red': '#d62728',
-    'tab:purple': '#9467bd',
-    'tab:brown': '#8c564b',
-    'tab:pink': '#e377c2',
-    'tab:gray': '#7f7f7f',
-    'tab:olive': '#bcbd22',
-    'tab:cyan': '#17becf',
-  }
-  return tabColors[color] || color
-}
 
 export default function DashboardPage() {
   const {
@@ -787,44 +758,48 @@ export default function DashboardPage() {
                     <span className="flex items-center justify-center w-6 h-6 rounded-full border-2 border-primary text-primary text-sm font-medium">
                       2
                     </span>
-                    <h3 className="font-medium">Choose Color Theme</h3>
+                    <h3 className="font-medium">Choose Color Palette</h3>
                   </div>
 
                   <div>
                     <div className="flex justify-between items-center mb-2">
-                      <Label>Select Primary Color</Label>
+                      <Label>Select Color Palette</Label>
                       {colorPalette && (
                         <span className="text-sm text-muted-foreground">
-                          Selected: {colorPalette.replace('tab:', '').charAt(0).toUpperCase() + colorPalette.replace('tab:', '').slice(1)}
+                          Selected: {SEABORN_SEQUENTIAL_PALETTES[colorPalette as SeabornSequentialPalette]?.name}
                         </span>
                       )}
                     </div>
                     <RadioGroup
                       value={colorPalette}
-                      onValueChange={setColorPalette}
-                      className="grid grid-cols-6 sm:grid-cols-8 gap-0.5 mt-2 max-w-[280px]"
+                      onValueChange={(value: string) => setColorPalette(value as SeabornSequentialPalette | '')}
+                      className="grid grid-cols-1 gap-3 mt-2"
                     >
-                      {MATPLOTLIB_COLORS.map((color) => (
-                        <div key={color} className="relative group">
+                      {Object.entries(SEABORN_SEQUENTIAL_PALETTES).map(([key, palette]) => (
+                        <div key={key} className="relative">
                           <RadioGroupItem
-                            value={color}
-                            id={`color-${color}`}
+                            value={key}
+                            id={`palette-${key}`}
                             className="sr-only peer"
                           />
                           <Label
-                            htmlFor={`color-${color}`}
-                            className="block w-8 h-8 cursor-pointer border border-border rounded-md peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-primary hover:opacity-90 transition-all"
-                            style={{ 
-                              backgroundColor: color.startsWith('tab:') ? convertTabColor(color) : color,
-                            }}
+                            htmlFor={`palette-${key}`}
+                            className="flex flex-col space-y-1.5 p-3 rounded-lg border-2 cursor-pointer peer-data-[state=checked]:border-primary hover:bg-accent transition-all"
                           >
-                            <span className="sr-only">{color}</span>
-                          </Label>
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-10">
-                            <div className="bg-secondary text-secondary-foreground text-xs px-2 py-1 rounded whitespace-nowrap">
-                              {color.replace('tab:', '').charAt(0).toUpperCase() + color.replace('tab:', '').slice(1)}
+                            <div className="flex justify-between items-center">
+                              <span className="font-medium">{palette.name}</span>
+                              <span className="text-sm text-muted-foreground">{palette.description}</span>
                             </div>
-                          </div>
+                            <div className="flex h-8 rounded-md overflow-hidden">
+                              {palette.preview.map((color, i) => (
+                                <div
+                                  key={i}
+                                  className="flex-1"
+                                  style={{ backgroundColor: color }}
+                                />
+                              ))}
+                            </div>
+                          </Label>
                         </div>
                       ))}
                     </RadioGroup>
@@ -860,7 +835,7 @@ export default function DashboardPage() {
                       <textarea
                         value={customInstructions}
                         onChange={(e) => setCustomInstructions(e.target.value)}
-                        placeholder="E.g. 'Create a bar chart showing sales by region', 'Make a line graph of temperature trends'"
+                        placeholder="e.g. chart type(s), titles, labels, styling, bar/line thickness, etc..."
                         className="w-full p-2 border rounded-md"
                         rows={3}
                       />
@@ -906,7 +881,9 @@ export default function DashboardPage() {
                 {visualizationResult && (
                   <div className="relative group mt-6">
                     <img
-                      src={visualizationResult}
+                      src={visualizationResult.image_data?.startsWith('data:image/') 
+                        ? visualizationResult.image_data 
+                        : `data:image/png;base64,${visualizationResult.image_data}`}
                       alt="Data Visualization"
                       className="w-full rounded-lg"
                     />
@@ -915,8 +892,10 @@ export default function DashboardPage() {
                         variant="secondary"
                         onClick={() => {
                           const link = document.createElement('a')
-                          link.href = visualizationResult
-                          link.download = 'visualization.png'
+                          link.href = visualizationResult.image_data?.startsWith('data:image/') 
+                            ? visualizationResult.image_data 
+                            : `data:image/png;base64,${visualizationResult.image_data}`
+                          link.download = visualizationResult.generated_image_name || 'visualization.png'
                           link.click()
                         }}
                       >

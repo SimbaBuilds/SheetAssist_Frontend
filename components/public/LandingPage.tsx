@@ -1,10 +1,31 @@
 "use client"
 
+import { useEffect, useRef } from 'react';
+import Typed from 'typed.js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PLAN_REQUEST_LIMITS, PLAN_IMAGE_LIMITS, VIS_GEN_LIMITS } from '@/constants/pricing';
 import Link from 'next/link';
+import { EXAMPLE_QUERIES } from '@/components/authorized/DashboardPage';
 
 export default function LandingPage() {
+  const typedRef = useRef(null);
+
+  useEffect(() => {
+    const typed = new Typed(typedRef.current, {
+      strings: EXAMPLE_QUERIES,
+      typeSpeed: 40,
+      backSpeed: 10,
+      loop: true,
+      backDelay: 1000, // Pause for 2 seconds after typing is complete
+      loopCount: Infinity,
+    });
+
+    return () => {
+      typed.destroy();
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
       {/* Hero Section */}
@@ -22,11 +43,14 @@ export default function LandingPage() {
 
       {/* Example Use Cases Section */}
       <div className="container mx-auto px-4 py-20">
-        <h2 className="text-3xl font-bold text-center mb-12">What does it do?</h2>
+        <h2 className="text-3xl font-bold text-center mb-12">Capabilities</h2>
+        <div className="h-20 mb-8 flex items-center justify-center">
+          <span 
+            ref={typedRef}
+            className="text-xl md:text-2xl text-primary"
+          />
+        </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-
-
-
           <Card>
             <CardHeader>
               <CardTitle>Merges Spreadsheets</CardTitle>
@@ -83,6 +107,19 @@ export default function LandingPage() {
             </CardContent>
           </Card>
 
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Generates Data Visualizations</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">
+                Generates data visualizations using intuitive styling with or without custom instructions.
+              </p>
+            </CardContent>
+          </Card>
+
+
           {/* <Card>
             <CardHeader>
               <CardTitle>Batch Processing</CardTitle>
@@ -100,7 +137,7 @@ export default function LandingPage() {
       {/* Pricing Section */}
       <div className="container mx-auto px-4 py-20">
         <h2 className="text-3xl font-bold text-center mb-12">Pricing</h2>
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {/* Free Tier */}
           <Card className="relative">
             <CardHeader>
@@ -111,12 +148,16 @@ export default function LandingPage() {
               <ul className="space-y-4">
                 <li className="flex items-center">
                   <CheckIcon className="mr-2" />
-                  <span>10 tasks per month</span>
+                  <span>{PLAN_REQUEST_LIMITS.free} requests per month</span>
                 </li>
-                {/* <li className="flex items-center">
+                <li className="flex items-center">
                   <CheckIcon className="mr-2" />
-                  <span>Basic features</span>
-                </li> */}
+                  <span>{VIS_GEN_LIMITS.free} visualizations per month</span>
+                </li>
+                <li className="flex items-center">
+                  <CheckIcon className="mr-2" />
+                  <span>{PLAN_IMAGE_LIMITS.free} input images per month</span>
+                </li>
               </ul>
               <Button className="w-full mt-6" variant="outline" asChild>
                 <Link href="/login">Get Started</Link>
@@ -124,59 +165,64 @@ export default function LandingPage() {
             </CardContent>
           </Card>
 
-          {/* Base Tier */}
+          {/* Pro Tier */}
           <Card className="relative border-primary">
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-primary text-primary-foreground rounded-full text-sm">
-              Most Popular
-            </div>
             <CardHeader>
-              <CardTitle>Base</CardTitle>
+              <CardTitle>Pro</CardTitle>
               <div className="text-3xl font-bold">$10<span className="text-xl font-normal">/mo</span></div>
             </CardHeader>
             <CardContent>
               <ul className="space-y-4">
                 <li className="flex items-center">
                   <CheckIcon className="mr-2" />
-                  <span>200 tasks per month</span>
+                  <span>{PLAN_REQUEST_LIMITS.pro} requests per month</span>
+                </li>
+                <li className="flex items-center">
+                  <CheckIcon className="mr-2" />
+                  <span>{VIS_GEN_LIMITS.pro} visualizations per month</span>
+                </li>
+                <li className="flex items-center">
+                  <CheckIcon className="mr-2" />
+                  <span>{PLAN_IMAGE_LIMITS.pro} input images per month</span>
                 </li>
                 <li className="flex items-center">
                   <CheckIcon className="mr-2" />
                   <span>Two week free trial</span>
                 </li>
-                {/* <li className="flex items-center">
+                <li className="flex items-center">
                   <CheckIcon className="mr-2" />
-                  <span>All features included</span>
-                </li> */}
+                  <span>Purchase more as you need</span>
+                </li>
               </ul>
               <Button className="w-full mt-6" asChild>
-                <Link href="/login">Start Free Trial</Link>
+                <Link href="/login">Get Started</Link>
               </Button>
             </CardContent>
           </Card>
 
-          {/* Pro Tier */}
+          {/* Business Tier */}
           <Card className="relative">
             <CardHeader>
-              <CardTitle>Pro</CardTitle>
-              <div className="text-3xl font-bold">$20<span className="text-xl font-normal">/mo</span></div>
+              <CardTitle>Business</CardTitle>
+              <div className="text-3xl font-bold">Custom</div>
             </CardHeader>
             <CardContent>
               <ul className="space-y-4">
                 <li className="flex items-center">
                   <CheckIcon className="mr-2" />
-                  <span>1000 tasks per month</span>
+                  <span>Custom volume</span>
                 </li>
-                {/* <li className="flex items-center">
+                <li className="flex items-center">
                   <CheckIcon className="mr-2" />
                   <span>Priority support</span>
-                </li> */}
-                {/* <li className="flex items-center">
+                </li>
+                <li className="flex items-center">
                   <CheckIcon className="mr-2" />
-                  <span>All features included</span>
-                </li> */}
+                  <span>Custom integrations</span>
+                </li>
               </ul>
               <Button className="w-full mt-6" variant="outline" asChild>
-                <Link href="/login">Get Pro</Link>
+                <Link href="/contact">Contact Us</Link>
               </Button>
             </CardContent>
           </Card>
