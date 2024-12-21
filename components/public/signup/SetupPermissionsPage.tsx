@@ -63,7 +63,7 @@ export function SetupPermissionsPage() {
             className="w-full flex items-center gap-2"
           >
             <GoogleIcon />
-            Set up Google Integration
+            Set up Google Sheets Integration
           </Button>
 
           <Button
@@ -72,7 +72,7 @@ export function SetupPermissionsPage() {
             className="w-full flex items-center gap-2"
           >
             <MicrosoftIcon />
-            Set up Microsoft Integration
+            Set up Microsoft Excel Online Integration
           </Button>
 
           <Button

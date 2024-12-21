@@ -122,7 +122,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
           <CardContent className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-medium">Google Integration</h3>
+                <h3 className="font-medium">Google Sheets Integration</h3>
                 <p className="text-sm text-muted-foreground">
                   {profile?.google_permissions_set ?? false ? 'Connected' : 'Not connected'}
                 </p>
@@ -149,7 +149,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
 
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-medium">Microsoft Integration</h3>
+                <h3 className="font-medium">Microsoft Excel Online Integration</h3>
                 <p className="text-sm text-muted-foreground">
                   {profile?.microsoft_permissions_set ?? false ? 'Connected' : 'Not connected'}
                 </p>
