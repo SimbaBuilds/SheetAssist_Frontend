@@ -113,17 +113,18 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
           <CardHeader>
             <CardTitle>Connected Services</CardTitle>
             <CardDescription>
-              Please accept all permissions to get the most out of this application. 
-              < br/>Changes to your sheets will only be additive; no deletions or modifications will be made to your files or their contents.
-              < br/>Verification for this app is pending.
-
+              <p className="text-xs">
+                Please accept all permissions to get the most out of this application. 
+                <br/>Changes to your sheets will only be additive; no deletions or modifications will be made to your files or their contents.
+                <br/>Verification for this app is pending.
+              </p>
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-medium">Google Sheets Integration</h3>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {profile?.google_permissions_set ?? false ? 'Connected' : 'Not connected'}
                 </p>
               </div>
@@ -150,7 +151,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-medium">Microsoft Excel Online Integration</h3>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {profile?.microsoft_permissions_set ?? false ? 'Connected' : 'Not connected'}
                 </p>
               </div>
@@ -176,28 +177,6 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
           </CardContent>
         </Card>
 
-        {/* Usage Statistics
-        <Card>
-          <CardHeader>
-            <CardTitle>Usage Statistics</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <h3 className="font-medium">Monthly Requests</h3>
-                <p className="text-2xl font-bold">
-                  {requestsThisMonth}
-                  <span className="text-muted-foreground text-lg">
-                    /{requestLimit}
-                  </span>
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  Requests available this month
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card> */}
 
         {/* Requests, Image, and Visualization Usage */}
         <Card>
@@ -207,7 +186,10 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
           <CardContent>
             <div className="space-y-4">
               <div>
-                <Label>Total Requests This Month</Label>
+                <Label>Data Processing Requests This Month</Label>
+                <p className="text-xs text-muted-foreground mt-1 mb-3">
+                  Any time you submit a request in the main part of the dashboard
+                </p>
                 <div className="mt-2 flex items-center justify-between">
                   <div className="text-sm">
                     {requestsThisMonth} / {requestLimit}
@@ -225,7 +207,10 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
               </div>
               
               <div className="mt-4">
-                <Label>Images Processed This Month</Label>
+                <Label>Input Images Processed This Month</Label>
+                <p className="text-xs text-muted-foreground mt-1 mb-3">
+                  This includes any png and jpeg images as well as image-like scanned document pages contained in pdfs
+                </p>
                 <div className="mt-2 flex items-center justify-between">
                   <div className="text-sm">
                     {imagesThisMonth} / {imageLimit}
@@ -244,6 +229,9 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
               
               <div className="mt-4">
                 <Label>Visualizations Generated This Month</Label>
+                <p className="text-xs text-muted-foreground mt-1 mb-3">
+                  Any time you click "Generate Visualization"
+                </p>
                 <div className="mt-2 flex items-center justify-between">
                   <div className="text-sm">
                     {visualizationsThisMonth} / {visLimit}
@@ -291,7 +279,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-medium">Append to Existing Sheet</h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     When enabled, this application will append to the sheet that you have selected <br />
                    instead of adding a new sheet to the workbook.
                   </p>

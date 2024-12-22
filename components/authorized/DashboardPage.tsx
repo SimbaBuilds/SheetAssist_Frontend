@@ -29,24 +29,26 @@ import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
 import { useDataVisualization } from '@/hooks/useDataVisualization'
 import { GeneratingVisualizationDialog } from '@/components/authorized/GeneratingVisualizationDialog'
 import { SEABORN_SEQUENTIAL_PALETTES, SeabornSequentialPalette } from '@/types/dashboard'
+import { validateCumulativeFileSize, validateFile } from '@/utils/dashboard-utils'
 
 export const EXAMPLE_QUERIES = [
   "add this to the sheet",
-  "convert this pdf to a sheet with headers product, units sold, and revenue.",
-  "remove all rows where the status column is marked as Inactive.",
+  "convert this pdf to a sheet with headers product, units sold, and revenue",
+  "remove all rows where the status column is marked as inactive",
   "add these to the sheet",
   "create a performance summary by combining employee evaluation scores from each department sheet",
   "combine these",
   "filter rows where the email column contains .edu and export them to a new sheet",
   "extract all unpaid invoices from the finance sheet",
   "remove duplicate entries based on the employee id column", 
-  "merge by id",
+  "merge on id",
   "combine these into one document",
   "populate the student sheet with phone numbers from the household contacts sheet",
   "match client id from the contract sheet to populate missing addresses in the billing sheet",
-  "highlight rows where the sales column exceeds $1000.", 
+  "remove paid invoices",
+  "highlight rows where the sales column exceeds $1000", 
   "convert this directory of legal case PDFs into a single document with descriptive headers",
-  "sort the spreadsheet by the date column in descending order.", 
+  "sort the spreadsheet by the date column in descending order", 
   "extract contact information for all vendors and group by service type from the procurement sheet"
 ]
 
@@ -176,7 +178,7 @@ export default function DashboardPage() {
             {/* File Input */}
             <div>
               <Label htmlFor="files">
-                Upload Files (Max {MAX_FILES} files, Max {MAX_FILE_SIZE / 1024 / 1024}MB each)
+                Upload Files (Max {MAX_FILES} files, Max {MAX_FILE_SIZE / 1024 / 1024}MB total)
               </Label>
               <div className="mt-1 space-y-2">
                 <Input
@@ -233,6 +235,9 @@ export default function DashboardPage() {
                         </li>
                       ))}
                     </ul>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Total size: {(files.reduce((sum, file) => sum + file.size, 0) / 1024 / 1024).toFixed(2)} MB
+                    </p>
                   </div>
                 )}
               </div>

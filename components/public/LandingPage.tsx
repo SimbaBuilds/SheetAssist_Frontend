@@ -53,56 +53,35 @@ export default function LandingPage() {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
           <Card>
             <CardHeader>
-              <CardTitle>Merges Spreadsheets</CardTitle>
+              <CardTitle>Spreadsheet Operations</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Combines multiple spreadsheets with smart matching of headers and columns.
+                Merges, cleans, and sorts spreadsheets with natural language commands.
               </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Extracts Data from Images</CardTitle>
+              <CardTitle>Data Extraction from Images and PDFs</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Extracts text and data from images and updates your spreadsheets.
+                Extracts text and data from PDFs, images, and scanned documents using vision-enabled AI to update your spreadsheets.
               </p>
             </CardContent>
           </Card>
 
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Extracts Data from PDFs</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Processes scanned documents with vision enabled AI.
-              </p>
-            </CardContent>
-          </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Cleans and Sorts Data</CardTitle>
+              <CardTitle>Batch Processing</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Cleans, sorts and standardizes data with natural language commands. 
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Converts Formats</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Seamlessly converts between different file formats including Excel, CSV, Text, and PDF. 
+                Efficiently handles multiple large files with high accuracy and reliability.
               </p>
             </CardContent>
           </Card>
@@ -110,7 +89,7 @@ export default function LandingPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Generates Data Visualizations</CardTitle>
+              <CardTitle>Data Visualization</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
@@ -120,23 +99,12 @@ export default function LandingPage() {
           </Card>
 
 
-          {/* <Card>
-            <CardHeader>
-              <CardTitle>Batch Processing</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Process multiple files simultaneously with consistent results. 
-                Perfect for large-scale data processing and organization.
-              </p>
-            </CardContent>
-          </Card> */}
         </div>
       </div>
 
-      {/* Pricing Section */}
+      {/* Plans Section */}
       <div className="container mx-auto px-4 py-20">
-        <h2 className="text-3xl font-bold text-center mb-12">Pricing</h2>
+        <h2 className="text-3xl font-bold text-center mb-12">Plans</h2>
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {/* Free Tier */}
           <Card className="relative">
@@ -159,7 +127,7 @@ export default function LandingPage() {
                   <span>{PLAN_IMAGE_LIMITS.free} input images per month</span>
                 </li>
               </ul>
-              <Button className="w-full mt-6" variant="outline" asChild>
+              <Button className="w-full mt-6" asChild>
                 <Link href="/login">Get Started</Link>
               </Button>
             </CardContent>
@@ -187,11 +155,7 @@ export default function LandingPage() {
                 </li>
                 <li className="flex items-center">
                   <CheckIcon className="mr-2" />
-                  <span>Two week free trial</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckIcon className="mr-2" />
-                  <span>Purchase more as you need</span>
+                  <span>Pay as you go once limits reached</span>
                 </li>
               </ul>
               <Button className="w-full mt-6" asChild>

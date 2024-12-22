@@ -42,11 +42,6 @@ export const formatDisplayTitle = (doc_name: string, sheet_name?: string): strin
 
 // File validation utilities
 export const validateFile = (file: File): string | null => {
-  // Check file size
-  if (file.size > MAX_FILE_SIZE) {
-    return `File ${file.name} exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit`
-  }
-
   // Check file type
   const fileExtension = `.${file.name.split('.').pop()?.toLowerCase()}`
   const fileMimeType = file.type.toLowerCase()
@@ -75,6 +70,19 @@ export const validateVisualizationFile = (file: File): string | null => {
   }
 
   return null
+}
+
+// Add this new utility function to check cumulative file size
+export const validateCumulativeFileSize = (
+  newFile: File,
+  existingFiles: File[],
+  maxSize: number
+): string | null => {
+  const totalSize = existingFiles.reduce((sum, file) => sum + file.size, 0) + newFile.size;
+  if (totalSize > maxSize) {
+    return `Total file size would exceed ${maxSize / 1024 / 1024}MB limit`
+  }
+  return null;
 }
 
 // Error handling utilities
