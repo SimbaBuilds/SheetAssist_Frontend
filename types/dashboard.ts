@@ -25,6 +25,8 @@ export interface FileMetadata {
   extension: string
   size: number
   index: number
+  file_id?: string
+  page_count?: number
 }
 
 export interface InputUrl {
@@ -62,6 +64,7 @@ export interface ProcessedQueryResult {
   message: string;
   files?: FileInfo[];
   num_images_processed: number;
+  job_id?: string;
 }
 
 // Add FastAPI file response type

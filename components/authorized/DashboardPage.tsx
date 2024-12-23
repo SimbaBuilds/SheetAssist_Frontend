@@ -177,9 +177,21 @@ export default function DashboardPage() {
           }} className="space-y-6">
             {/* File Input */}
             <div>
-              <Label htmlFor="files">
-                Upload Files (Max {MAX_FILES} files, Max {MAX_FILE_SIZE / 1024 / 1024}MB total)
-              </Label>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="files">
+                  Upload Files (Max {MAX_FILES} files, Max {MAX_FILE_SIZE / 1024 / 1024}MB total)
+                </Label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <InfoIcon className="h-4 w-4 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      Supports roughly 50 page PDF of scanned documents
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
               <div className="mt-1 space-y-2">
                 <Input
                   id="files"
@@ -413,7 +425,7 @@ export default function DashboardPage() {
             {/* Output Type Selection */}
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <Label>Output Preferences</Label>
+                <Label>Output Preference</Label>
                 {outputTypeError && (
                   <span className="text-sm text-red-500 flex items-center gap-1">
                     <svg
@@ -817,7 +829,7 @@ export default function DashboardPage() {
                     <span className="flex items-center justify-center w-6 h-6 rounded-full border-2 border-primary text-primary text-sm font-medium">
                       3
                     </span>
-                    <h3 className="font-medium">Choose Visualization Style</h3>
+                    <h3 className="font-medium">Visualization Preferences</h3>
                   </div>
 
                   <RadioGroup 

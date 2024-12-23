@@ -3,6 +3,11 @@ import api from './api';
 import { OutputPreferences, FileMetadata, QueryRequest, ProcessedQueryResult, FileInfo, Workbook, InputUrl } from '@/types/dashboard';
 import { AcceptedMimeType } from '@/constants/file-types';
 import { createClient } from '@/utils/supabase/client';
+import { getDocument, version } from 'pdfjs-dist';
+import { PDFDocumentProxy } from 'pdfjs-dist';
+import { GlobalWorkerOptions } from 'pdfjs-dist';
+
+GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.js`;
 
 // Helper function to update user usage statistics
 async function updateUserUsage(userId: string, success: boolean, numImagesProcessed: number = 0) {
@@ -36,6 +41,22 @@ async function updateUserUsage(userId: string, success: boolean, numImagesProces
     .eq('user_id', userId);
 }
 
+// Add this helper function to get PDF page count
+async function getPDFPageCount(file: File): Promise<number> {
+  try {
+    // Convert File to ArrayBuffer
+    const arrayBuffer = await file.arrayBuffer();
+    // Load the PDF document
+    const pdf = await getDocument({ data: arrayBuffer }).promise;
+    const pageCount = pdf.numPages;
+    pdf.destroy();
+    return pageCount;
+  } catch (error) {
+    console.error('Error getting PDF page count:', error);
+    return 0;
+  }
+}
+
 // Function to process the query
 export const processQuery = async (
   query: string,
@@ -55,14 +76,25 @@ export const processQuery = async (
 
   const formData = new FormData();
   
-  // Create files metadata array with index only if files exist
-  const filesMetadata: FileMetadata[] = files?.map((file, index) => ({
-    name: file.name,
-    type: file.type as AcceptedMimeType,
-    extension: `.${file.name.split('.').pop()?.toLowerCase() || ''}`,
-    size: file.size,
-    index
-  })) ?? [];
+  // Modify the files metadata creation
+  const filesMetadata: FileMetadata[] = await Promise.all(
+    files?.map(async (file, index) => {
+      const metadata: FileMetadata = {
+        name: file.name,
+        type: file.type as AcceptedMimeType,
+        extension: `.${file.name.split('.').pop()?.toLowerCase() || ''}`,
+        size: file.size,
+        index
+      };
+
+      // Add page count for PDF files
+      if (file.type === 'application/pdf') {
+        metadata.page_count = await getPDFPageCount(file);
+      }
+
+      return metadata;
+    }) ?? []
+  );
 
   // Part 1: JSON payload with metadata
   const jsonData: QueryRequest = {
