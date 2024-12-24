@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth'
 import {downloadFile} from '@/services_endpoints/download_file'
 import {getDocumentTitle} from '@/services_endpoints/get_document_title'
 import { createClient } from '@/utils/supabase/client'
-import type { DownloadFileType, DashboardInitialData, OutputPreferences, ProcessedQueryResult, SheetTitleKey, InputUrl, OnlineSheet, BatchProgress } from '@/types/dashboard'
+import type { DownloadFileType, DashboardInitialData, OutputPreferences, QueryResponse, SheetTitleKey, InputUrl, OnlineSheet, BatchProgress } from '@/types/dashboard'
 import { MAX_FILES } from '@/constants/file-types'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/use-toast'
@@ -61,7 +61,7 @@ export function useDashboard(initialData?: UserPreferences) {
   const [downloadFileType, setDownloadFileType] = useState<DownloadFileType>('csv')
   const [fileErrors, setFileErrors] = useState<FileError[]>([])
   const [outputTypeError, setOutputTypeError] = useState<string | null>(null)
-  const [processedResult, setProcessedResult] = useState<ProcessedQueryResult | null>(null)
+  const [processedResult, setProcessedResult] = useState<QueryResponse | null>(null)
   const [showResultDialog, setShowResultDialog] = useState(false)
   const [allowSheetModification, setAllowSheetModification] = useState(false)
   const [documentTitles, setDocumentTitles] = useState<DocumentTitleMap>({})

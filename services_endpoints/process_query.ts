@@ -1,6 +1,6 @@
 import { AxiosResponse } from 'axios';
 import api from './api';
-import { OutputPreferences, FileMetadata, QueryRequest, ProcessedQueryResult, FileInfo, Workbook, InputUrl, BatchProgress } from '@/types/dashboard';
+import { OutputPreferences, FileMetadata, QueryRequest, QueryResponse, FileInfo, Workbook, InputUrl, BatchProgress } from '@/types/dashboard';
 import { AcceptedMimeType } from '@/constants/file-types';
 import { createClient } from '@/utils/supabase/client';
 
@@ -49,44 +49,67 @@ class QueryService {
   private async pollJobStatus(
     jobId: string,
     signal?: AbortSignal
-  ): Promise<ProcessedQueryResult> {
+  ): Promise<QueryResponse> {
     const statusFormData = new FormData();
     statusFormData.append('job_id', jobId);
     let retries = 0;
 
+    // Add timeout tracking
+    const startTime = Date.now();
+    const MAX_TOTAL_TIME = 3600000; // 1 hour max total polling time
+
     while (true) {
+      // Check total elapsed time
+      if (Date.now() - startTime > MAX_TOTAL_TIME) {
+        throw new Error('Maximum polling time exceeded');
+      }
+
       if (signal?.aborted) {
         throw new Error('AbortError');
       }
 
       try {
+        // Use a longer timeout for status checks
         const response = await api.post('/process_query/status', statusFormData, {
           signal,
           timeout: this.POLLING_TIMEOUT,
+          headers: {
+            'Keep-Alive': 'timeout=60', // Add explicit keep-alive header
+            'Connection': 'keep-alive'
+          }
         });
 
         const result = response.data;
-
-        // Reset retries on successful response
         retries = 0;
 
         if (result.status === 'completed' || result.status === 'failed') {
           return result;
         }
 
-        // Add exponential backoff for polling
-        const backoffTime = Math.min(this.POLLING_INTERVAL * Math.pow(1.5, retries), 15000);
+        // Add more granular backoff strategy
+        const backoffTime = Math.min(
+          this.POLLING_INTERVAL * Math.pow(1.5, retries), 
+          15000
+        );
         await new Promise(resolve => setTimeout(resolve, backoffTime));
 
-      } catch (error) {
+      } catch (error: any) {
+        // More specific error handling
+        if (error?.code === 'ECONNABORTED') {
+          retries++;
+          if (retries >= this.MAX_RETRIES) {
+            throw new Error('Connection timeout - max retries exceeded');
+          }
+          // Wait longer between retries on timeout
+          await new Promise(resolve => setTimeout(resolve, this.POLLING_INTERVAL * 2));
+          continue;
+        }
+
+        // For other errors
         retries++;
-        
-        // Handle network errors with retry logic
         if (retries >= this.MAX_RETRIES) {
           throw new Error('Max polling retries exceeded');
         }
-
-        // Wait before retrying
         await new Promise(resolve => setTimeout(resolve, this.POLLING_INTERVAL));
       }
     }
@@ -99,7 +122,7 @@ class QueryService {
     outputPreferences?: OutputPreferences,
     signal?: AbortSignal,
     onProgress?: (progress: BatchProgress) => void
-  ): Promise<ProcessedQueryResult> {
+  ): Promise<QueryResponse> {
     const startTime = Date.now();
     const supabase = createClient();
     const user = await supabase.auth.getUser();
@@ -137,7 +160,7 @@ class QueryService {
     }
 
     try {
-      const response: AxiosResponse<ProcessedQueryResult> = await api.post('/process_query', formData, {
+      const response: AxiosResponse<QueryResponse> = await api.post('/process_query', formData, {
         headers: { 
           'Content-Type': 'multipart/form-data',
           'Keep-Alive': 'timeout=3600',
@@ -149,7 +172,7 @@ class QueryService {
         timeout: this.STANDARD_TIMEOUT,
       });
 
-      const initialResult: ProcessedQueryResult = response.data;
+      const initialResult: QueryResponse = response.data;
 
       // If this is a batch process, update the timeout and handle polling
       if (initialResult.job_id) {
@@ -162,13 +185,18 @@ class QueryService {
           while (true) {
             const result = await this.pollJobStatus(initialResult.job_id, signal);
             
-            if (onProgress && result.num_images_processed !== lastProgress) {
-              lastProgress = result.num_images_processed || 0;
+            // Update progress callback with more information
+            if (onProgress) {
               onProgress({
-                message: result.message,
-                processed: lastProgress,
-                total: result.total_pages || 0
+                message: result.message || 'Processing...',
+                processed: result.num_images_processed || lastProgress,
+                total: result.total_pages || 0,
+                status: result.status
               });
+              
+              if (result.num_images_processed !== undefined) {
+                lastProgress = result.num_images_processed;
+              }
             }
 
             // Add specific handling for different batch processing states

@@ -58,7 +58,7 @@ export interface FileInfo {
   download_url: string;
 }
 
-export interface ProcessedQueryResult {
+export interface QueryResponse {
   result: TruncatedSandboxResult;
   status: 'success' | 'error' | 'processing';
   message: string;
@@ -73,6 +73,7 @@ export interface BatchProgress {
   message: string;
   processed: number;
   total: number;
+  status?: string;
 }
 
 // Add FastAPI file response type

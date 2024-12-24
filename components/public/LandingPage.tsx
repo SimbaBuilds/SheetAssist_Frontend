@@ -81,7 +81,7 @@ export default function LandingPage() {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Efficiently handles multiple large files with high accuracy and reliability.
+                Transfers 50 pages of scanned documents to a spreadsheet in minutes with AI.
               </p>
             </CardContent>
           </Card>
