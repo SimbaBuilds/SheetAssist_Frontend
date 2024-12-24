@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import type { ProcessedQueryResult } from '@/types/dashboard'
+import type { ProcessedQueryResult, BatchProgress } from '@/types/dashboard'
 import { Loader2, XCircle } from "lucide-react"
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
@@ -14,6 +14,7 @@ interface ProcessingResultDialogProps {
   onCancel?: () => void
   modifyExisting?: boolean
   destinationDocName?: string
+  batchProgress?: BatchProgress
 }
 
 export function ProcessingResultDialog({
@@ -26,6 +27,7 @@ export function ProcessingResultDialog({
   onCancel,
   modifyExisting = false,
   destinationDocName,
+  batchProgress,
 }: ProcessingResultDialogProps) {
   const [isCanceling, setIsCanceling] = useState(false)
 
@@ -49,11 +51,20 @@ export function ProcessingResultDialog({
         </DialogHeader>
         
         <div className="space-y-4">
-          {/* Loading state */}
+          {/* Loading state with batch progress */}
           {isLoading && (
             <div className="flex flex-col items-center justify-center py-8 space-y-4">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-center text-sm text-gray-600">Processing your request.  This could take a minute or two...</p>
+              <div className="text-center space-y-2">
+                <p className="text-sm text-gray-600">
+                  {batchProgress?.message || 'Processing your request. This could take a minute or two...'}
+                </p>
+                {batchProgress && batchProgress.processed > 0 && (
+                  <p className="text-sm font-medium">
+                    Pages processed: {batchProgress?.processed}
+                  </p>
+                )}
+              </div>
               {onCancel && (
                 <Button 
                   variant="outline" 

@@ -60,11 +60,17 @@ export interface FileInfo {
 
 export interface ProcessedQueryResult {
   result: TruncatedSandboxResult;
-  status: 'success' | 'error';
+  status: 'success' | 'error' | 'processing';
   message: string;
   files?: FileInfo[];
   num_images_processed: number;
   job_id?: string;
+}
+
+// Add new types for batch processing
+export interface BatchProgress {
+  message: string;
+  processed: number;
 }
 
 // Add FastAPI file response type

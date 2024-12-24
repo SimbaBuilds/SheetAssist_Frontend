@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import {processQuery} from '@/services_endpoints/process_query'
 import {downloadFile} from '@/services_endpoints/download_file'
 import {getDocumentTitle} from '@/services_endpoints/get_document_title'
 import { createClient } from '@/utils/supabase/client'
-import type { DownloadFileType, DashboardInitialData, OutputPreferences, ProcessedQueryResult, SheetTitleKey, InputUrl, OnlineSheet } from '@/types/dashboard'
+import type { DownloadFileType, DashboardInitialData, OutputPreferences, ProcessedQueryResult, SheetTitleKey, InputUrl, OnlineSheet, BatchProgress } from '@/types/dashboard'
 import { MAX_FILES } from '@/constants/file-types'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/use-toast'
@@ -20,6 +19,7 @@ import {
   handleUrlValidation,
   fetchAndHandleSheets
 } from '@/utils/dashboard-utils'
+import { queryService } from '@/services_endpoints/process_query'
 
 
 type UserPreferences = DashboardInitialData
@@ -86,7 +86,7 @@ export function useDashboard(initialData?: UserPreferences) {
   const [showDestinationSheetSelector, setShowDestinationSheetSelector] = useState(false)
   const [destinationUrls, setDestinationUrls] = useState<string[]>([''])
   const [selectedDestinationPair, setSelectedDestinationPair] = useState<InputUrl | null>(null)
- 
+  const [batchProgress, setBatchProgress] = useState<BatchProgress | undefined>()
 
   const supabase = createClient()
 
@@ -664,13 +664,9 @@ export function useDashboard(initialData?: UserPreferences) {
     // Create new AbortController for this request
     const controller = new AbortController();
     setAbortController(controller);
-
-    // Proceed with submission
-    console.log('Starting submission...');
     setIsProcessing(true);
 
     try {
-      // Create output preferences object with correct sheet information
       const outputPreferences: OutputPreferences = {
         type: outputType ?? 'download',
         ...(outputType === 'download' && { format: downloadFileType }),
@@ -682,66 +678,55 @@ export function useDashboard(initialData?: UserPreferences) {
         })
       };
 
-      // Process the query using selectedUrlPairs directly
-      try {
-        const result = await processQuery(
-          query,
-          selectedUrlPairs,
-          files,
-          outputPreferences,
-          controller.signal
-        );
-        
-        // Only update states if the request wasn't cancelled
-        if (!controller.signal.aborted) {
-          setProcessedResult(result);
-          setShowResultDialog(true);
+      const result = await queryService.processQuery(
+        query,
+        selectedUrlPairs,
+        files,
+        outputPreferences,
+        controller.signal,
+        (progress) => setBatchProgress(progress)
+      );
 
-          if (result.result.error) {
-            setError(result.result.error);
-            // Log error
-            await supabase
-              .from('error_log')
-              .insert({
-                user_id: user?.id,
-                message: result.result.error,
-                error_code: 'QUERY_PROCESSING_ERROR',
-                resolved: false,
-                original_query: result.result.original_query
-              });
-            return;
-          }
+      if (!controller.signal.aborted) {
+        setProcessedResult(result);
+        setShowResultDialog(true);
 
-          // Handle download if needed
-          if (outputType === 'download' && result.status === 'success' && result.files?.[0]) {
-            try {
-              await downloadFile(result.files[0]);
-            } catch (downloadError) {
-              if (!handleAuthError(downloadError)) {
-                console.error('Error downloading file:', downloadError);
-                setError('Failed to download the result file');
-                
-                // Log download error
-                await supabase
-                  .from('error_log')
-                  .insert({
-                    user_id: user?.id,
-                    message: downloadError instanceof Error ? downloadError.message : 'Download failed',
-                    error_code: 'DOWNLOAD_ERROR',
-                    resolved: false,
-                    original_query: result.result.original_query
-                  });
-              }
-            }
-          }
-        }
-      } catch (queryError) {
-        if (queryError instanceof Error && queryError.name === 'AbortError') {
-          console.log('Request was cancelled by user');
+        if (result.result.error) {
+          setError(result.result.error);
+          // Log error
+          await supabase
+            .from('error_log')
+            .insert({
+              user_id: user?.id,
+              message: result.result.error,
+              error_code: 'QUERY_PROCESSING_ERROR',
+              resolved: false,
+              original_query: result.result.original_query
+            });
           return;
         }
-        if (!handleAuthError(queryError)) {
-          throw queryError;
+
+        // Handle download if needed
+        if (outputType === 'download' && result.status === 'success' && result.files?.[0]) {
+          try {
+            await downloadFile(result.files[0]);
+          } catch (downloadError) {
+            if (!handleAuthError(downloadError)) {
+              console.error('Error downloading file:', downloadError);
+              setError('Failed to download the result file');
+              
+              // Log download error
+              await supabase
+                .from('error_log')
+                .insert({
+                  user_id: user?.id,
+                  message: downloadError instanceof Error ? downloadError.message : 'Download failed',
+                  error_code: 'DOWNLOAD_ERROR',
+                  resolved: false,
+                  original_query: result.result.original_query
+                });
+            }
+          }
         }
       }
     } catch (error) {
@@ -766,6 +751,7 @@ export function useDashboard(initialData?: UserPreferences) {
       // Only clean up if the component is still mounted
       setIsProcessing(false);
       setAbortController(null);
+      setBatchProgress(undefined);
     }
   };
 
@@ -885,5 +871,6 @@ export function useDashboard(initialData?: UserPreferences) {
     destinationUrls,
     selectedDestinationPair,
     setSelectedDestinationPair,
+    batchProgress,
   } as const;
 }

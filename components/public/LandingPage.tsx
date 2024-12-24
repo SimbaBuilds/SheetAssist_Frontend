@@ -50,14 +50,14 @@ export default function LandingPage() {
             className="text-xl md:text-2xl text-primary"
           />
         </div>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
           <Card>
             <CardHeader>
               <CardTitle>Spreadsheet Operations</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Merges, cleans, and sorts spreadsheets with natural language commands.
+                Merges, cleans, and sorts spreadsheets given natural language commands.
               </p>
             </CardContent>
           </Card>
@@ -68,7 +68,7 @@ export default function LandingPage() {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Extracts text and data from PDFs, images, and scanned documents using vision-enabled AI to update your spreadsheets.
+                Extracts text and data from PDFs, images, and scanned documents to update your spreadsheets using vision-enabled AI.
               </p>
             </CardContent>
           </Card>

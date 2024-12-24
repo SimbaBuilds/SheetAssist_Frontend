@@ -1,6 +1,6 @@
 import { AxiosResponse } from 'axios';
 import api from './api';
-import { OutputPreferences, FileMetadata, QueryRequest, ProcessedQueryResult, FileInfo, Workbook, InputUrl } from '@/types/dashboard';
+import { OutputPreferences, FileMetadata, QueryRequest, ProcessedQueryResult, FileInfo, Workbook, InputUrl, BatchProgress } from '@/types/dashboard';
 import { AcceptedMimeType } from '@/constants/file-types';
 import { createClient } from '@/utils/supabase/client';
 import { getDocument, version } from 'pdfjs-dist';
@@ -57,141 +57,167 @@ async function getPDFPageCount(file: File): Promise<number> {
   }
 }
 
-// Function to process the query
-export const processQuery = async (
-  query: string,
-  webUrls: InputUrl[] = [],
-  files?: File[],
-  outputPreferences?: OutputPreferences,
-  signal?: AbortSignal
-): Promise<ProcessedQueryResult> => {
-  const startTime = Date.now();
-  const supabase = createClient();
-  const user = await supabase.auth.getUser();
-  const userId = user.data.user?.id;
+class QueryService {
+  private readonly POLLING_INTERVAL = 2000; // 2 seconds
 
-  if (!userId) {
-    throw new Error('User not authenticated');
-  }
+  private async pollJobStatus(
+    jobId: string,
+    signal?: AbortSignal
+  ): Promise<ProcessedQueryResult> {
+    const statusFormData = new FormData();
+    statusFormData.append('job_id', jobId);
 
-  const formData = new FormData();
-  
-  // Modify the files metadata creation
-  const filesMetadata: FileMetadata[] = await Promise.all(
-    files?.map(async (file, index) => {
-      const metadata: FileMetadata = {
-        name: file.name,
-        type: file.type as AcceptedMimeType,
-        extension: `.${file.name.split('.').pop()?.toLowerCase() || ''}`,
-        size: file.size,
-        index
-      };
-
-      // Add page count for PDF files
-      if (file.type === 'application/pdf') {
-        metadata.page_count = await getPDFPageCount(file);
+    while (true) {
+      if (signal?.aborted) {
+        throw new Error('AbortError');
       }
 
-      return metadata;
-    }) ?? []
-  );
+      const response = await api.post('/process_query/status', statusFormData, {
+        signal,
+      });
 
-  // Part 1: JSON payload with metadata
-  const jsonData: QueryRequest = {
-    query,
-    input_urls: webUrls,
-    files_metadata: filesMetadata,
-    output_preferences: outputPreferences
-  };
-  formData.append('json_data', JSON.stringify(jsonData));
+      const result = response.data;
 
-  // Part 2: Append files only if they exist
-  if (files?.length) {
-    files.forEach((file, index) => {
-      formData.append('files', file);
-    });
+      if (result.status !== 'processing') {
+        return result;
+      }
+
+      await new Promise(resolve => setTimeout(resolve, this.POLLING_INTERVAL));
+    }
   }
 
-  try {
-    // Add signal event listener to detect when abort is triggered
-    if (signal) {
-      signal.addEventListener('abort', () => {
-        console.log('Request aborted by user');
+  async processQuery(
+    query: string,
+    webUrls: InputUrl[] = [],
+    files?: File[],
+    outputPreferences?: OutputPreferences,
+    signal?: AbortSignal,
+    onProgress?: (progress: BatchProgress) => void
+  ): Promise<ProcessedQueryResult> {
+    const startTime = Date.now();
+    const supabase = createClient();
+    const user = await supabase.auth.getUser();
+    const userId = user.data.user?.id;
+
+    if (!userId) {
+      throw new Error('User not authenticated');
+    }
+
+    const formData = new FormData();
+    
+    // Modify the files metadata creation
+    const filesMetadata: FileMetadata[] = await Promise.all(
+      files?.map(async (file, index) => {
+        const metadata: FileMetadata = {
+          name: file.name,
+          type: file.type as AcceptedMimeType,
+          extension: `.${file.name.split('.').pop()?.toLowerCase() || ''}`,
+          size: file.size,
+          index
+        };
+
+        // Add page count for PDF files
+        if (file.type === 'application/pdf') {
+          metadata.page_count = await getPDFPageCount(file);
+        }
+
+        return metadata;
+      }) ?? []
+    );
+
+    // Part 1: JSON payload with metadata
+    const jsonData: QueryRequest = {
+      query,
+      input_urls: webUrls,
+      files_metadata: filesMetadata,
+      output_preferences: outputPreferences
+    };
+    formData.append('json_data', JSON.stringify(jsonData));
+
+    // Part 2: Append files only if they exist
+    if (files?.length) {
+      files.forEach((file, index) => {
+        formData.append('files', file);
       });
     }
 
-    const response: AxiosResponse<ProcessedQueryResult> = await api.post(
-      '/process_query',
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        ...(signal && { signal }), // Only add signal if it exists
-        timeout: 300000, // 5 minutes
+    try {
+      const response = await api.post('/process_query', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        signal,
+        timeout: 300000,
+      });
+
+      const initialResult = response.data;
+
+      // If this is a standard (non-batch) process, return immediately
+      if (!initialResult.job_id) {
+        return initialResult;
       }
-    );
 
-    // Update user usage statistics
-    await updateUserUsage(
-      userId,
-      response.data.status === 'success',
-      response.data.num_images_processed || 0
-    );
+      // For batch processing, begin polling
+      let lastResult: ProcessedQueryResult;
+      while (true) {
+        lastResult = await this.pollJobStatus(initialResult.job_id, signal);
+        
+        if (onProgress) {
+          onProgress({
+            message: lastResult.message,
+            processed: lastResult.num_images_processed
+          });
+        }
 
-    // Log the request to Supabase
-    const processingTime = Date.now() - startTime;
-    await supabase.from('request_log').insert({
-      user_id: userId,
-      query,
-      file_names: files?.map(f => f.name) || [],
-      doc_names: webUrls.map(url => url.url),
-      processing_time_ms: processingTime,
-      status: response.data.status,
-      success: response.data.status === 'success'
-    });
+        if (lastResult.status !== 'processing') {
+          break;
+        }
 
-    return response.data;
-  } catch (error) {
-    // Check if the error is from axios
-    if (error && typeof error === 'object' && 'code' in error) {
-      // Handle specific axios error codes
-      if (error.code === 'ERR_CANCELED') {
-        console.log('Request was cancelled by user');
-        const processingTime = Date.now() - startTime;
-        await supabase.from('request_log').insert({
-          user_id: userId,
-          query,
-          file_names: files?.map(f => f.name) || [],
-          doc_names: webUrls.map(url => url.url),
-          processing_time_ms: processingTime,
-          status: 'cancelled',
-          success: false
-        });
-        throw new Error('AbortError');
+        await new Promise(resolve => setTimeout(resolve, this.POLLING_INTERVAL));
       }
+
+      return lastResult;
+    } catch (error) {
+      // Check if the error is from axios
+      if (error && typeof error === 'object' && 'code' in error) {
+        // Handle specific axios error codes
+        if (error.code === 'ERR_CANCELED') {
+          console.log('Request was cancelled by user');
+          const processingTime = Date.now() - startTime;
+          await supabase.from('request_log').insert({
+            user_id: userId,
+            query,
+            file_names: files?.map(f => f.name) || [],
+            doc_names: webUrls.map(url => url.url),
+            processing_time_ms: processingTime,
+            status: 'cancelled',
+            success: false
+          });
+          throw new Error('AbortError');
+        }
+      }
+      
+      console.error('Error processing query:', error);
+      
+      // Update user usage statistics for failed request
+      await updateUserUsage(userId, false);
+      
+      // Log failed request
+      const processingTime = Date.now() - startTime;
+      await supabase.from('request_log').insert({
+        user_id: userId,
+        query,
+        file_names: files?.map(f => f.name) || [],
+        doc_names: webUrls.map(url => url.url),
+        processing_time_ms: processingTime,
+        status: error instanceof Error ? error.name : 'error',
+        success: false
+      });
+
+      throw error;
     }
-    
-    console.error('Error processing query:', error);
-    
-    // Update user usage statistics for failed request
-    await updateUserUsage(userId, false);
-    
-    // Log failed request
-    const processingTime = Date.now() - startTime;
-    await supabase.from('request_log').insert({
-      user_id: userId,
-      query,
-      file_names: files?.map(f => f.name) || [],
-      doc_names: webUrls.map(url => url.url),
-      processing_time_ms: processingTime,
-      status: error instanceof Error ? error.name : 'error',
-      success: false
-    });
-
-    throw error;
   }
-};
+}
+
+export const queryService = new QueryService();
 
 
 
