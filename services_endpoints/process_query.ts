@@ -3,11 +3,6 @@ import api from './api';
 import { OutputPreferences, FileMetadata, QueryRequest, ProcessedQueryResult, FileInfo, Workbook, InputUrl, BatchProgress } from '@/types/dashboard';
 import { AcceptedMimeType } from '@/constants/file-types';
 import { createClient } from '@/utils/supabase/client';
-import { getDocument, version } from 'pdfjs-dist';
-import { PDFDocumentProxy } from 'pdfjs-dist';
-import { GlobalWorkerOptions } from 'pdfjs-dist';
-
-GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${version}/pdf.worker.min.js`;
 
 // Helper function to update user usage statistics
 async function updateUserUsage(userId: string, success: boolean, numImagesProcessed: number = 0) {
@@ -41,24 +36,15 @@ async function updateUserUsage(userId: string, success: boolean, numImagesProces
     .eq('user_id', userId);
 }
 
-// Add this helper function to get PDF page count
-async function getPDFPageCount(file: File): Promise<number> {
-  try {
-    // Convert File to ArrayBuffer
-    const arrayBuffer = await file.arrayBuffer();
-    // Load the PDF document
-    const pdf = await getDocument({ data: arrayBuffer }).promise;
-    const pageCount = pdf.numPages;
-    pdf.destroy();
-    return pageCount;
-  } catch (error) {
-    console.error('Error getting PDF page count:', error);
-    return 0;
-  }
-}
-
 class QueryService {
-  private readonly POLLING_INTERVAL = 2000; // 2 seconds
+  // Increase polling interval to reduce server load
+  private readonly POLLING_INTERVAL = 5000; // 5 seconds
+  private readonly MAX_RETRIES = 3;
+  
+  // Add new timeout constants
+  private readonly BATCH_TIMEOUT = 3600000; // 1 hour for batch processes
+  private readonly STANDARD_TIMEOUT = 600000; // Increase to 10 minutes
+  private readonly POLLING_TIMEOUT = 60000;   // Increase status check timeout to 1 minute
 
   private async pollJobStatus(
     jobId: string,
@@ -66,23 +52,43 @@ class QueryService {
   ): Promise<ProcessedQueryResult> {
     const statusFormData = new FormData();
     statusFormData.append('job_id', jobId);
+    let retries = 0;
 
     while (true) {
       if (signal?.aborted) {
         throw new Error('AbortError');
       }
 
-      const response = await api.post('/process_query/status', statusFormData, {
-        signal,
-      });
+      try {
+        const response = await api.post('/process_query/status', statusFormData, {
+          signal,
+          timeout: this.POLLING_TIMEOUT,
+        });
 
-      const result = response.data;
+        const result = response.data;
 
-      if (result.status !== 'processing') {
-        return result;
+        // Reset retries on successful response
+        retries = 0;
+
+        if (result.status === 'completed' || result.status === 'failed') {
+          return result;
+        }
+
+        // Add exponential backoff for polling
+        const backoffTime = Math.min(this.POLLING_INTERVAL * Math.pow(1.5, retries), 15000);
+        await new Promise(resolve => setTimeout(resolve, backoffTime));
+
+      } catch (error) {
+        retries++;
+        
+        // Handle network errors with retry logic
+        if (retries >= this.MAX_RETRIES) {
+          throw new Error('Max polling retries exceeded');
+        }
+
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, this.POLLING_INTERVAL));
       }
-
-      await new Promise(resolve => setTimeout(resolve, this.POLLING_INTERVAL));
     }
   }
 
@@ -106,24 +112,13 @@ class QueryService {
     const formData = new FormData();
     
     // Modify the files metadata creation
-    const filesMetadata: FileMetadata[] = await Promise.all(
-      files?.map(async (file, index) => {
-        const metadata: FileMetadata = {
-          name: file.name,
-          type: file.type as AcceptedMimeType,
-          extension: `.${file.name.split('.').pop()?.toLowerCase() || ''}`,
-          size: file.size,
-          index
-        };
-
-        // Add page count for PDF files
-        if (file.type === 'application/pdf') {
-          metadata.page_count = await getPDFPageCount(file);
-        }
-
-        return metadata;
-      }) ?? []
-    );
+    const filesMetadata: FileMetadata[] = files?.map((file, index) => ({
+      name: file.name,
+      type: file.type as AcceptedMimeType,
+      extension: `.${file.name.split('.').pop()?.toLowerCase() || ''}`,
+      size: file.size,
+      index
+    })) ?? [];
 
     // Part 1: JSON payload with metadata
     const jsonData: QueryRequest = {
@@ -142,39 +137,73 @@ class QueryService {
     }
 
     try {
-      const response = await api.post('/process_query', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      const response: AxiosResponse<ProcessedQueryResult> = await api.post('/process_query', formData, {
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          'Keep-Alive': 'timeout=3600',
+          'Connection': 'keep-alive'
+        },
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity,
         signal,
-        timeout: 300000,
+        timeout: this.STANDARD_TIMEOUT,
       });
 
-      const initialResult = response.data;
+      const initialResult: ProcessedQueryResult = response.data;
 
-      // If this is a standard (non-batch) process, return immediately
-      if (!initialResult.job_id) {
-        return initialResult;
-      }
-
-      // For batch processing, begin polling
-      let lastResult: ProcessedQueryResult;
-      while (true) {
-        lastResult = await this.pollJobStatus(initialResult.job_id, signal);
+      // If this is a batch process, update the timeout and handle polling
+      if (initialResult.job_id) {
+        // Update timeout for batch processing
+        api.defaults.timeout = this.BATCH_TIMEOUT;
         
-        if (onProgress) {
-          onProgress({
-            message: lastResult.message,
-            processed: lastResult.num_images_processed
-          });
-        }
+        let lastProgress = 0;
+        
+        try {
+          while (true) {
+            const result = await this.pollJobStatus(initialResult.job_id, signal);
+            
+            if (onProgress && result.num_images_processed !== lastProgress) {
+              lastProgress = result.num_images_processed || 0;
+              onProgress({
+                message: result.message,
+                processed: lastProgress,
+                total: result.total_pages || 0
+              });
+            }
 
-        if (lastResult.status !== 'processing') {
-          break;
+            // Add specific handling for different batch processing states
+            if (result.status === 'error') {
+              throw new Error(result.message || 'Batch processing failed');
+            } else if (result.status === 'success') {
+              return result;
+            } else if (result.status === 'processing') {
+              // Continue polling
+              continue;
+            }
+          }
+        } catch (error: unknown) {
+          // Type guard for Error objects
+          if (error instanceof Error) {
+            if (error.message === 'AbortError') {
+              throw error;
+            }
+            // Handle polling errors gracefully
+            console.error('Polling error:', error);
+            throw new Error('Failed to get batch processing status');
+          }
+          // Handle non-Error objects
+          console.error('Unknown polling error:', error);
+          throw new Error('An unexpected error occurred during batch processing');
+        } finally {
+          // Reset timeout to standard
+          api.defaults.timeout = this.STANDARD_TIMEOUT;
         }
-
-        await new Promise(resolve => setTimeout(resolve, this.POLLING_INTERVAL));
       }
 
-      return lastResult;
+      // Handle non-batch processing result
+      await updateUserUsage(userId, true, files?.length || 0);
+      return initialResult;
+
     } catch (error) {
       // Check if the error is from axios
       if (error && typeof error === 'object' && 'code' in error) {

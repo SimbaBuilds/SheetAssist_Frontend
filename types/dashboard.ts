@@ -64,6 +64,7 @@ export interface ProcessedQueryResult {
   message: string;
   files?: FileInfo[];
   num_images_processed: number;
+  total_pages?: number;
   job_id?: string;
 }
 
@@ -71,6 +72,7 @@ export interface ProcessedQueryResult {
 export interface BatchProgress {
   message: string;
   processed: number;
+  total: number;
 }
 
 // Add FastAPI file response type
