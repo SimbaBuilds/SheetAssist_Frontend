@@ -112,6 +112,7 @@ export default function DashboardPage() {
     destinationUrls,
     selectedDestinationPair,
     setSelectedDestinationPair,
+    processingState,
   } = useDashboard()
 
   const {
@@ -616,11 +617,10 @@ export default function DashboardPage() {
           </form>
 
           <ProcessingResultDialog
-            result={processedResult}
+            state={processingState}
             isOpen={isProcessing || showResultDialog}
             onClose={() => setShowResultDialog(false)}
             outputType={outputType}
-            isLoading={isProcessing}
             destinationTitle={(() => {
               if (!outputUrl || !selectedOutputSheet) return undefined;
               const titleKey = formatTitleKey(outputUrl, selectedOutputSheet);

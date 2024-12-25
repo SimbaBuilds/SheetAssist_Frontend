@@ -1,6 +1,6 @@
 import { AxiosResponse } from 'axios';
 import api from './api';
-import { OutputPreferences, FileMetadata, QueryRequest, QueryResponse, FileInfo, Workbook, InputUrl } from '@/types/dashboard';
+import { OutputPreferences, FileMetadata, QueryRequest, QueryResponse, FileInfo, Workbook, InputUrl, ProcessingState } from '@/types/dashboard';
 import { AcceptedMimeType } from '@/constants/file-types';
 import { createClient } from '@/utils/supabase/client';
 
@@ -48,7 +48,8 @@ class QueryService {
 
   private async pollJobStatus(
     jobId: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    onProgress?: (state: ProcessingState) => void
   ): Promise<QueryResponse> {
     const statusFormData = new FormData();
     statusFormData.append('job_id', jobId);
@@ -61,7 +62,11 @@ class QueryService {
 
     while (true) {
       if (Date.now() - startTime > MAX_TOTAL_TIME) {
-        console.error('[process_query] Maximum polling time exceeded');
+        const errorState: ProcessingState = {
+          status: 'error',
+          message: 'Maximum polling time exceeded'
+        };
+        onProgress?.(errorState);
         throw new Error('Maximum polling time exceeded');
       }
 
@@ -78,32 +83,31 @@ class QueryService {
         });
 
         const result = response.data;
-        retries = 0;
+        
+        // Create processing state from result
+        const processingState: ProcessingState = {
+          status: result.status || 'processing',
+          message: result.message || `Processing page ${result.num_images_processed || 0} of ${result.total_pages || '?'}`,
+          progress: result.num_images_processed ? {
+            processed: result.num_images_processed,
+            total: result.total_pages || null
+          } : undefined
+        };
+        
+        // Update UI through callback
+        onProgress?.(processingState);
 
-        console.log('[process_query] Received status update:', {
-          status: result.status,
-          message: result.message,
-          processed: result.num_images_processed,
-          total: result.total_pages
-        });
-
-        // Ensure status updates include all relevant information
-        if (result.status === 'processing') {
-          result.message = result.message || `Processing page ${result.num_images_processed} of ${result.total_pages || '?'}`;
-          console.log('[process_query] Updated processing message:', result.message);
-        }
-
-        if (result.status === 'completed' || result.status === 'failed') {
-          console.log('[process_query] Polling complete:', result.status);
+        if (result.status === 'completed' || result.status === 'error') {
           return result;
         }
 
         const backoffTime = Math.min(
-          this.POLLING_INTERVAL * Math.pow(1.5, retries), 
+          this.POLLING_INTERVAL * Math.pow(1.5, retries),
           15000
         );
-        console.log(`[process_query] Waiting ${backoffTime}ms before next poll`);
+        
         await new Promise(resolve => setTimeout(resolve, backoffTime));
+        continue;
 
       } catch (error: any) {
         console.error('[process_query] Polling error:', {
@@ -139,7 +143,7 @@ class QueryService {
     files?: File[],
     outputPreferences?: OutputPreferences,
     signal?: AbortSignal,
-    onProgress?: (result: QueryResponse) => void
+    onProgress?: (state: ProcessingState) => void
   ): Promise<QueryResponse> {
     const startTime = Date.now();
     const supabase = createClient();
@@ -199,7 +203,7 @@ class QueryService {
         
         try {
           while (true) {
-            const result = await this.pollJobStatus(initialResult.job_id, signal);
+            const result = await this.pollJobStatus(initialResult.job_id, signal, onProgress);
             
             console.log('[process_query] Polling result:', {
               status: result.status,
@@ -208,15 +212,10 @@ class QueryService {
               total: result.total_pages
             });
             
-            // Update progress callback with more information including the current result
-            if (onProgress) {
-              onProgress(result);
-            }
-
             // Add specific handling for different batch processing states
             if (result.status === 'error') {
               throw new Error(result.message || 'Batch processing failed');
-            } else if (result.status === 'success') {
+            } else if (result.status === 'completed') {
               return result;  // Return the final result
             } else if (result.status === 'processing') {
               continue;  // Just continue polling

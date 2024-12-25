@@ -60,7 +60,7 @@ export interface FileInfo {
 
 export interface QueryResponse {
   result: TruncatedSandboxResult;
-  status: 'success' | 'error' | 'processing';
+  status: 'created' | 'processing' | 'completed' | 'error';
   message: string;
   files?: FileInfo[];
   num_images_processed: number;
@@ -150,4 +150,14 @@ export interface VisualizationResult {
   generated_image_name?: string
   error?: string
   message?: string
+}
+
+// Add new type for processing state
+export interface ProcessingState {
+  status: 'created' | 'processing' | 'completed' | 'error' | null;
+  message: string;
+  progress?: {
+    processed: number;
+    total: number | null;
+  };
 }

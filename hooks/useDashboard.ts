@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth'
 import {downloadFile} from '@/services_endpoints/download_file'
 import {getDocumentTitle} from '@/services_endpoints/get_document_title'
 import { createClient } from '@/utils/supabase/client'
-import type { DownloadFileType, DashboardInitialData, OutputPreferences, QueryResponse, SheetTitleKey, InputUrl, OnlineSheet } from '@/types/dashboard'
+import type { DownloadFileType, DashboardInitialData, OutputPreferences, QueryResponse, SheetTitleKey, InputUrl, OnlineSheet, ProcessingState } from '@/types/dashboard'
 import { MAX_FILES } from '@/constants/file-types'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/use-toast'
@@ -86,6 +86,10 @@ export function useDashboard(initialData?: UserPreferences) {
   const [showDestinationSheetSelector, setShowDestinationSheetSelector] = useState(false)
   const [destinationUrls, setDestinationUrls] = useState<string[]>([''])
   const [selectedDestinationPair, setSelectedDestinationPair] = useState<InputUrl | null>(null)
+  const [processingState, setProcessingState] = useState<ProcessingState>({
+    status: null,
+    message: ''
+  });
 
   const supabase = createClient()
 
@@ -684,16 +688,9 @@ export function useDashboard(initialData?: UserPreferences) {
         files,
         outputPreferences,
         controller.signal,
-        (result) => {
-          // Update processed result directly from the polling response
-          console.log('[useDashboard] Progress update:', {
-            message: result.message,
-            processed: result.num_images_processed,
-            total: result.total_pages,
-            status: result.status
-          });
-          
-          setProcessedResult(result);
+        (state) => {
+          setProcessingState(state);
+          setIsProcessing(state.status === 'processing' || state.status === 'created');
         }
       );
 
@@ -716,7 +713,7 @@ export function useDashboard(initialData?: UserPreferences) {
         }
 
         // Handle download if needed
-        if (outputType === 'download' && result.status === 'success' && result.files?.[0]) {
+        if (outputType === 'download' && result.status === 'completed' && result.files?.[0]) {
           try {
             await downloadFile(result.files[0]);
           } catch (downloadError) {
@@ -883,5 +880,6 @@ export function useDashboard(initialData?: UserPreferences) {
     destinationUrls,
     selectedDestinationPair,
     setSelectedDestinationPair,
+    processingState,
   } as const;
 }
