@@ -25,9 +25,9 @@ export const checkUrlPermissions = (
 }
 
 // Formatting utilities
-export const formatTitleKey = (url: string, sheet_name: string): string => {
-  if (!sheet_name) {
-    console.warn('Attempted to create title key without sheet name:', { url })
+export const formatTitleKey = (url: string | null | undefined, sheet_name: string | null | undefined): string => {
+  if (!url || !sheet_name) {
+    console.warn('Attempted to create title key with missing data:', { url, sheet_name })
     return ''
   }
   return JSON.stringify({ url, sheet_name } as SheetTitleKey)

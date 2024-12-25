@@ -4,12 +4,9 @@ import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { useDashboard } from '@/hooks/useDashboard'
-import { useSetupPermissions } from '@/hooks/useSetupPermissions'
-import { PlusIcon } from '@heroicons/react/24/outline'
-import type { DownloadFileType, SheetTitleKey } from '@/types/dashboard'
+import type { DownloadFileType } from '@/types/dashboard'
 import { DOWNLOAD_FILE_TYPES, ACCEPTED_FILE_EXTENSIONS, MAX_FILES, MAX_FILE_SIZE, MAX_QUERY_LENGTH } from '@/constants/file-types'
 import { ProcessingResultDialog } from '@/components/authorized/ProcessingResultDialog'
-import { Badge } from '@/components/ui/badge'
 import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { InfoIcon } from 'lucide-react'
@@ -29,7 +26,7 @@ import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
 import { useDataVisualization } from '@/hooks/useDataVisualization'
 import { GeneratingVisualizationDialog } from '@/components/authorized/GeneratingVisualizationDialog'
 import { SEABORN_SEQUENTIAL_PALETTES, SeabornSequentialPalette } from '@/types/dashboard'
-import { validateCumulativeFileSize, validateFile } from '@/utils/dashboard-utils'
+
 
 export const EXAMPLE_QUERIES = [
   "add this to the sheet",
@@ -622,13 +619,13 @@ export default function DashboardPage() {
             onClose={() => setShowResultDialog(false)}
             outputType={outputType}
             destinationTitle={(() => {
-              if (!outputUrl || !selectedOutputSheet) return undefined;
-              const titleKey = formatTitleKey(outputUrl, selectedOutputSheet);
+              if (!selectedDestinationPair) return undefined;
+              const titleKey = formatTitleKey(selectedDestinationPair.url, selectedDestinationPair.sheet_name);
               return documentTitles[titleKey];
             })()}
             destinationDocName={(() => {
-              if (!outputUrl || !selectedOutputSheet) return undefined;
-              const titleKey = formatTitleKey(outputUrl, selectedOutputSheet);
+              if (!selectedDestinationPair) return undefined;
+              const titleKey = formatTitleKey(selectedDestinationPair.url, selectedDestinationPair.sheet_name);
               return documentTitles[titleKey]?.split(' - ')?.[0];
             })()}
             modifyExisting={allowSheetModification}

@@ -9,10 +9,10 @@ interface ProcessingResultDialogProps {
   isOpen: boolean;
   onClose: () => void;
   outputType: 'download' | 'online' | null;
-  destinationTitle?: string;
+  destinationTitle?: string | null;
   onCancel?: () => void;
   modifyExisting?: boolean;
-  destinationDocName?: string;
+  destinationDocName?: string | null;
 }
 
 export function ProcessingResultDialog({
@@ -63,22 +63,16 @@ export function ProcessingResultDialog({
       <Loader2 className="h-8 w-8 animate-spin text-primary" />
       <div className="text-center space-y-2">
         <p className="text-sm text-gray-600">
-          {state.message || 'Processing your request.  This may take a few minutes...'}
+          {state.message || 'Processing your request. This may take a few minutes...'}
         </p>
-        {state.progress && (
-          <p className="text-sm font-medium">
-            Pages processed: {state.progress.processed}
-            {state.progress.total ? ` / ${state.progress.total}` : ''}
-          </p>
-        )}
       </div>
       {onCancel && renderCancelButton()}
     </div>
   );
 
   const getStatusContent = () => {
-    // Always show processing content while processing
-    if (state.status === 'processing' || state.status === 'created') {
+    // Show processing content for null status as well
+    if (state.status === null || state.status === 'processing' || state.status === 'created') {
       return renderProcessingContent();
     }
 
@@ -87,9 +81,11 @@ export function ProcessingResultDialog({
       return (
         <div className="space-y-4 py-4">
           <div className="text-green-600">
-            {state.message || (modifyExisting
-              ? `Data successfully uploaded to ${destinationTitle || 'destination'}`
-              : `Data successfully uploaded to new sheet in ${destinationDocName || 'destination workbook'}`)}
+            {outputType === 'download' 
+              ? 'Your file should download automatically'
+              : outputType === 'online' && (modifyExisting
+                ? `Data successfully uploaded to ${destinationTitle || 'destination'}`
+                : `Data successfully uploaded to new sheet in ${destinationDocName || 'destination workbook'}`)}
           </div>
         </div>
       );
@@ -112,9 +108,7 @@ export function ProcessingResultDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {(state.status === 'processing' || state.status === 'created')
-              ? 'Processing Request' 
-              : 'Processing Result'}
+            Processing Request
           </DialogTitle>
         </DialogHeader>
         
