@@ -1,6 +1,6 @@
 import { AxiosResponse } from 'axios';
 import api from './api';
-import { OutputPreferences, FileMetadata, QueryRequest, QueryResponse, FileInfo, Workbook, InputUrl, BatchProgress } from '@/types/dashboard';
+import { OutputPreferences, FileMetadata, QueryRequest, QueryResponse, FileInfo, Workbook, InputUrl } from '@/types/dashboard';
 import { AcceptedMimeType } from '@/constants/file-types';
 import { createClient } from '@/utils/supabase/client';
 
@@ -54,46 +54,64 @@ class QueryService {
     statusFormData.append('job_id', jobId);
     let retries = 0;
 
-    // Add timeout tracking
     const startTime = Date.now();
     const MAX_TOTAL_TIME = 3600000; // 1 hour max total polling time
 
+    console.log('[process_query] Starting status polling for job:', jobId);
+
     while (true) {
-      // Check total elapsed time
       if (Date.now() - startTime > MAX_TOTAL_TIME) {
+        console.error('[process_query] Maximum polling time exceeded');
         throw new Error('Maximum polling time exceeded');
       }
 
       if (signal?.aborted) {
+        console.log('[process_query] Polling aborted by signal');
         throw new Error('AbortError');
       }
 
       try {
-        // Use a longer timeout for status checks
+        console.log('[process_query] Polling status...');
         const response = await api.post('/process_query/status', statusFormData, {
           signal,
           timeout: this.POLLING_TIMEOUT,
-          headers: {
-            'Keep-Alive': 'timeout=60', // Add explicit keep-alive header
-            'Connection': 'keep-alive'
-          }
         });
 
         const result = response.data;
         retries = 0;
 
+        console.log('[process_query] Received status update:', {
+          status: result.status,
+          message: result.message,
+          processed: result.num_images_processed,
+          total: result.total_pages
+        });
+
+        // Ensure status updates include all relevant information
+        if (result.status === 'processing') {
+          result.message = result.message || `Processing page ${result.num_images_processed} of ${result.total_pages || '?'}`;
+          console.log('[process_query] Updated processing message:', result.message);
+        }
+
         if (result.status === 'completed' || result.status === 'failed') {
+          console.log('[process_query] Polling complete:', result.status);
           return result;
         }
 
-        // Add more granular backoff strategy
         const backoffTime = Math.min(
           this.POLLING_INTERVAL * Math.pow(1.5, retries), 
           15000
         );
+        console.log(`[process_query] Waiting ${backoffTime}ms before next poll`);
         await new Promise(resolve => setTimeout(resolve, backoffTime));
 
       } catch (error: any) {
+        console.error('[process_query] Polling error:', {
+          code: error?.code,
+          message: error?.message,
+          retries
+        });
+
         // More specific error handling
         if (error?.code === 'ECONNABORTED') {
           retries++;
@@ -121,7 +139,7 @@ class QueryService {
     files?: File[],
     outputPreferences?: OutputPreferences,
     signal?: AbortSignal,
-    onProgress?: (progress: BatchProgress) => void
+    onProgress?: (result: QueryResponse) => void
   ): Promise<QueryResponse> {
     const startTime = Date.now();
     const supabase = createClient();
@@ -162,9 +180,7 @@ class QueryService {
     try {
       const response: AxiosResponse<QueryResponse> = await api.post('/process_query', formData, {
         headers: { 
-          'Content-Type': 'multipart/form-data',
-          'Keep-Alive': 'timeout=3600',
-          'Connection': 'keep-alive'
+          'Content-Type': 'multipart/form-data'
         },
         maxBodyLength: Infinity,
         maxContentLength: Infinity,
@@ -185,28 +201,25 @@ class QueryService {
           while (true) {
             const result = await this.pollJobStatus(initialResult.job_id, signal);
             
-            // Update progress callback with more information
+            console.log('[process_query] Polling result:', {
+              status: result.status,
+              message: result.message,
+              processed: result.num_images_processed,
+              total: result.total_pages
+            });
+            
+            // Update progress callback with more information including the current result
             if (onProgress) {
-              onProgress({
-                message: result.message || 'Processing...',
-                processed: result.num_images_processed || lastProgress,
-                total: result.total_pages || 0,
-                status: result.status
-              });
-              
-              if (result.num_images_processed !== undefined) {
-                lastProgress = result.num_images_processed;
-              }
+              onProgress(result);
             }
 
             // Add specific handling for different batch processing states
             if (result.status === 'error') {
               throw new Error(result.message || 'Batch processing failed');
             } else if (result.status === 'success') {
-              return result;
+              return result;  // Return the final result
             } else if (result.status === 'processing') {
-              // Continue polling
-              continue;
+              continue;  // Just continue polling
             }
           }
         } catch (error: unknown) {

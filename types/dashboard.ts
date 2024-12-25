@@ -68,13 +68,7 @@ export interface QueryResponse {
   job_id?: string;
 }
 
-// Add new types for batch processing
-export interface BatchProgress {
-  message: string;
-  processed: number;
-  total: number;
-  status?: string;
-}
+
 
 // Add FastAPI file response type
 export interface FileResponse {

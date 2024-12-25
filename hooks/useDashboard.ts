@@ -3,7 +3,7 @@ import { useAuth } from '@/hooks/useAuth'
 import {downloadFile} from '@/services_endpoints/download_file'
 import {getDocumentTitle} from '@/services_endpoints/get_document_title'
 import { createClient } from '@/utils/supabase/client'
-import type { DownloadFileType, DashboardInitialData, OutputPreferences, QueryResponse, SheetTitleKey, InputUrl, OnlineSheet, BatchProgress } from '@/types/dashboard'
+import type { DownloadFileType, DashboardInitialData, OutputPreferences, QueryResponse, SheetTitleKey, InputUrl, OnlineSheet } from '@/types/dashboard'
 import { MAX_FILES } from '@/constants/file-types'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/use-toast'
@@ -86,7 +86,6 @@ export function useDashboard(initialData?: UserPreferences) {
   const [showDestinationSheetSelector, setShowDestinationSheetSelector] = useState(false)
   const [destinationUrls, setDestinationUrls] = useState<string[]>([''])
   const [selectedDestinationPair, setSelectedDestinationPair] = useState<InputUrl | null>(null)
-  const [batchProgress, setBatchProgress] = useState<BatchProgress | undefined>()
 
   const supabase = createClient()
 
@@ -626,6 +625,7 @@ export function useDashboard(initialData?: UserPreferences) {
     e.preventDefault();
     setError('');
     setOutputTypeError(null);
+    setProcessedResult(null);
 
     // Clean up any existing abort controller
     if (abortController) {
@@ -665,6 +665,7 @@ export function useDashboard(initialData?: UserPreferences) {
     const controller = new AbortController();
     setAbortController(controller);
     setIsProcessing(true);
+    setShowResultDialog(true);
 
     try {
       const outputPreferences: OutputPreferences = {
@@ -673,7 +674,6 @@ export function useDashboard(initialData?: UserPreferences) {
         ...(outputType === 'online' && {
           destination_url: selectedDestinationPair?.url ?? outputUrl,
           modify_existing: allowSheetModification,
-          // Use the sheet name from selectedDestinationPair if available
           sheet_name: selectedDestinationPair?.sheet_name ?? selectedOutputSheet
         })
       };
@@ -684,13 +684,22 @@ export function useDashboard(initialData?: UserPreferences) {
         files,
         outputPreferences,
         controller.signal,
-        (progress) => setBatchProgress(progress)
+        (result) => {
+          // Update processed result directly from the polling response
+          console.log('[useDashboard] Progress update:', {
+            message: result.message,
+            processed: result.num_images_processed,
+            total: result.total_pages,
+            status: result.status
+          });
+          
+          setProcessedResult(result);
+        }
       );
 
       if (!controller.signal.aborted) {
         setProcessedResult(result);
-        setShowResultDialog(true);
-
+        
         if (result.result.error) {
           setError(result.result.error);
           // Log error
@@ -747,11 +756,14 @@ export function useDashboard(initialData?: UserPreferences) {
             resolved: false,
           });
       }
+      if (!controller.signal.aborted) {
+        setProcessedResult(null); // Clear result on error
+      }
     } finally {
-      // Only clean up if the component is still mounted
-      setIsProcessing(false);
-      setAbortController(null);
-      setBatchProgress(undefined);
+      if (!controller.signal.aborted) {
+        setIsProcessing(false);
+        setAbortController(null);
+      }
     }
   };
 
@@ -871,6 +883,5 @@ export function useDashboard(initialData?: UserPreferences) {
     destinationUrls,
     selectedDestinationPair,
     setSelectedDestinationPair,
-    batchProgress,
   } as const;
 }
