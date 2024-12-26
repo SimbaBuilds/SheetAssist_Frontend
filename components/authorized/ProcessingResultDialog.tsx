@@ -69,7 +69,7 @@ export function ProcessingResultDialog({
       <Loader2 className="h-8 w-8 animate-spin text-primary" />
       <div className="text-center space-y-2">
         <p className="text-sm text-gray-600">
-          {state.message || 'Processing your request. This may take a few minutes...'}
+          {state.message || 'Processing your request...'}
         </p>
       </div>
       {onCancel && renderCancelButton()}

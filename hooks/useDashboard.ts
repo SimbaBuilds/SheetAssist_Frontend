@@ -678,7 +678,7 @@ export function useDashboard(initialData?: UserPreferences) {
     setShowResultDialog(true);
     setProcessingState({
       status: 'processing',
-      message: 'Processing your request. This may take a few minutes...'
+      message: 'Processing your request...'
     });
 
     try {
