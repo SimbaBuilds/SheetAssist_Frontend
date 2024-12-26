@@ -38,8 +38,8 @@ async function updateUserUsage(userId: string, success: boolean, numImagesProces
 
 class QueryService {
   // Increase polling interval to reduce server load
-  private readonly POLLING_INTERVAL = 5000; // 5 seconds
-  private readonly MAX_RETRIES = 3;
+  private readonly POLLING_INTERVAL = 10000; // 10 seconds
+  private readonly MAX_RETRIES = 50;
   
   // Add new timeout constants
   private readonly BATCH_TIMEOUT = 3600000; // 1 hour for batch processes
@@ -182,6 +182,12 @@ class QueryService {
     }
 
     try {
+      // Update initial processing state
+      onProgress?.({
+        status: 'processing',
+        message: 'Processing your request...'
+      });
+
       const response: AxiosResponse<QueryResponse> = await api.post('/process_query', formData, {
         headers: { 
           'Content-Type': 'multipart/form-data'
@@ -194,7 +200,7 @@ class QueryService {
 
       const initialResult: QueryResponse = response.data;
 
-      // If this is a batch process, update the timeout and handle polling
+      // If this is a batch process, handle polling
       if (initialResult.job_id) {
         // Update timeout for batch processing
         api.defaults.timeout = this.BATCH_TIMEOUT;
@@ -216,6 +222,8 @@ class QueryService {
             if (result.status === 'error') {
               throw new Error(result.message || 'Batch processing failed');
             } else if (result.status === 'completed') {
+              // Update user usage statistics for successful batch processing
+              await updateUserUsage(userId, true, result.num_images_processed || 0);
               return result;  // Return the final result
             } else if (result.status === 'processing') {
               continue;  // Just continue polling
@@ -238,13 +246,31 @@ class QueryService {
           // Reset timeout to standard
           api.defaults.timeout = this.STANDARD_TIMEOUT;
         }
+      } else {
+        // Handle non-batch processing result
+        // Update processing state for completion
+        const processingState: ProcessingState = {
+          status: initialResult.status || 'completed',
+          message: initialResult.message || 'Processing complete',
+          progress: initialResult.num_images_processed ? {
+            processed: initialResult.num_images_processed,
+            total: initialResult.total_pages || null
+          } : undefined
+        };
+        
+        onProgress?.(processingState);
+        await updateUserUsage(userId, true, initialResult.num_images_processed || 0);
+        return initialResult;
       }
 
-      // Handle non-batch processing result
-      await updateUserUsage(userId, true, files?.length || 0);
-      return initialResult;
-
     } catch (error) {
+      // Update processing state for error
+      const errorState: ProcessingState = {
+        status: 'error',
+        message: error instanceof Error ? error.message : 'An unexpected error occurred'
+      };
+      onProgress?.(errorState);
+
       // Check if the error is from axios
       if (error && typeof error === 'object' && 'code' in error) {
         // Handle specific axios error codes

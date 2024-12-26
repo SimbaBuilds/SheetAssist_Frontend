@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import type { ProcessingState, QueryResponse } from '@/types/dashboard'
 import { Loader2, XCircle } from "lucide-react"
 import { Button } from '@/components/ui/button'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface ProcessingResultDialogProps {
   state: ProcessingState;
@@ -26,6 +26,12 @@ export function ProcessingResultDialog({
   destinationDocName,
 }: ProcessingResultDialogProps) {
   const [isCanceling, setIsCanceling] = useState(false)
+
+  useEffect(() => {
+    if (!isOpen) {
+      setIsCanceling(false)
+    }
+  }, [isOpen])
 
   const handleCancel = async () => {
     if (!onCancel || isCanceling) return
@@ -104,7 +110,12 @@ export function ProcessingResultDialog({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog 
+      open={isOpen} 
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>

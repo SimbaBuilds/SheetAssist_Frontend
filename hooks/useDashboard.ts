@@ -627,9 +627,15 @@ export function useDashboard(initialData?: UserPreferences) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Reset all relevant states at the start
     setError('');
     setOutputTypeError(null);
     setProcessedResult(null);
+    setProcessingState({ // Reset processing state
+      status: null,
+      message: ''
+    });
 
     // Clean up any existing abort controller
     if (abortController) {
@@ -670,6 +676,10 @@ export function useDashboard(initialData?: UserPreferences) {
     setAbortController(controller);
     setIsProcessing(true);
     setShowResultDialog(true);
+    setProcessingState({
+      status: 'processing',
+      message: 'Processing your request. This may take a few minutes...'
+    });
 
     try {
       const outputPreferences: OutputPreferences = {
@@ -813,6 +823,7 @@ export function useDashboard(initialData?: UserPreferences) {
     }
   }
 
+
   return {
     isInitializing,
     urls,
@@ -850,7 +861,6 @@ export function useDashboard(initialData?: UserPreferences) {
     setOutputUrl,
     setDownloadFileType,
     setOutputTypeError,
-    setShowResultDialog,
     setAllowSheetModification,
     setShowSheetSelector,
     handleSheetSelection,
@@ -863,6 +873,7 @@ export function useDashboard(initialData?: UserPreferences) {
     handleDownloadFormatChange,
     isRetrievingData,
     isRetrievingDestinationData,
+    setShowResultDialog,
     formatTitleKey,
     formatDisplayTitle,
     removeSelectedUrlPair,

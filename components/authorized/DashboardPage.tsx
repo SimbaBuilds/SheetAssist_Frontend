@@ -69,6 +69,7 @@ export default function DashboardPage() {
     outputTypeError,
     processedResult,
     showResultDialog,
+    setShowResultDialog,
     allowSheetModification,
     destinationUrlError,
     availableSheets,
@@ -82,7 +83,6 @@ export default function DashboardPage() {
     setOutputUrl,
     setDownloadFileType,
     setOutputTypeError,
-    setShowResultDialog,
     setShowSheetSelector,
     handleSheetSelection,
     handleFileChange,
@@ -616,7 +616,9 @@ export default function DashboardPage() {
           <ProcessingResultDialog
             state={processingState}
             isOpen={isProcessing || showResultDialog}
-            onClose={() => setShowResultDialog(false)}
+            onClose={() => {
+              setShowResultDialog(false);
+            }}
             outputType={outputType}
             destinationTitle={(() => {
               if (!selectedDestinationPair) return undefined;
