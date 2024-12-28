@@ -1,5 +1,5 @@
 import api from './api';
-import { FileInfo } from '@/types/dashboard';
+import { FileInfo } from '@/lib/types/dashboard';
 
 
 // Download function

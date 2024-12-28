@@ -1,5 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import type { ProcessingState, QueryResponse } from '@/types/dashboard'
+import type { ProcessingState, QueryResponse } from '@/lib/types/dashboard'
 import { Loader2, XCircle } from "lucide-react"
 import { Button } from '@/components/ui/button'
 import { useState, useEffect } from 'react'

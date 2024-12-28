@@ -1,5 +1,5 @@
 import { stripe } from '@/lib/stripe';
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 
 interface CreatePortalSessionParams {
   userId: string;

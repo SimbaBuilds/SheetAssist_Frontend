@@ -4,7 +4,7 @@ import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import type { SignUpFormValues } from '@/types/auth'
+import type { SignUpFormValues } from '@/lib/types/auth'
 // Validation schema
 const signUpSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),

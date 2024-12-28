@@ -33,7 +33,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "utils/supabase/reset-monthly-usage/config.js"
+    "lib/supabase/reset-monthly-usage/config.js"
   ],
   "exclude": [
     "node_modules"

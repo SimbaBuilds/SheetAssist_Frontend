@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { createClient } from '@/utils/supabase/client'
-import type { PermissionSetupOptions } from '@/types/auth'
+import { createClient } from '@/lib/supabase/client'
+import type { PermissionSetupOptions } from '@/lib/types/auth'
 import { DOCUMENT_SCOPES } from '@/constants/routes'
 
 export function useSetupPermissions() {

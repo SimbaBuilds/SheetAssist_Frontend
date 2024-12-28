@@ -1,5 +1,5 @@
 import { stripe } from '@/lib/stripe';
-import { createClient } from '@/utils/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import type Stripe from 'stripe';
 
 export type SubscriptionStatus = 'active' | 'canceled' | 'incomplete' | 'incomplete_expired' | 'past_due' | 'trialing' | 'unpaid' | 'inactive';

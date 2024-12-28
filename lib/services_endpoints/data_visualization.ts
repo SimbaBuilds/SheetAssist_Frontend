@@ -1,6 +1,6 @@
 import { AxiosResponse } from 'axios'
 import api from './api'
-import { createClient } from '@/utils/supabase/client'
+import { createClient } from '@/lib/supabase/client'
 import { AcceptedMimeType } from '@/constants/file-types'
 import { 
   VisualizationOptions, 
@@ -8,7 +8,7 @@ import {
   FileMetadata,
   VisualizationRequest,
   InputUrl,
-} from '@/types/dashboard'
+} from '@/lib/types/dashboard'
 
 // Helper function to update user visualization usage statistics
 async function updateVisualizationUsage(userId: string, success: boolean) {

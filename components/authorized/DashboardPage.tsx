@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { useDashboard } from '@/hooks/useDashboard'
-import type { DownloadFileType } from '@/types/dashboard'
+import type { DownloadFileType } from '@/lib/types/dashboard'
 import { DOWNLOAD_FILE_TYPES, ACCEPTED_FILE_EXTENSIONS, MAX_FILES, MAX_FILE_SIZE, MAX_QUERY_LENGTH } from '@/constants/file-types'
 import { ProcessingResultDialog } from '@/components/authorized/ProcessingResultDialog'
 import { Switch } from "@/components/ui/switch"
@@ -25,7 +25,7 @@ import { useRouter } from 'next/navigation'
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
 import { useDataVisualization } from '@/hooks/useDataVisualization'
 import { GeneratingVisualizationDialog } from '@/components/authorized/GeneratingVisualizationDialog'
-import { SEABORN_SEQUENTIAL_PALETTES, SeabornSequentialPalette } from '@/types/dashboard'
+import { SEABORN_SEQUENTIAL_PALETTES, SeabornSequentialPalette } from '@/lib/types/dashboard'
 
 
 export const EXAMPLE_QUERIES = [

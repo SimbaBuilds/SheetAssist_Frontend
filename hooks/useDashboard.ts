@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import {downloadFile} from '@/services_endpoints/download_file'
-import {getDocumentTitle} from '@/services_endpoints/get_document_title'
-import { createClient } from '@/utils/supabase/client'
-import type { DownloadFileType, DashboardInitialData, OutputPreferences, QueryResponse, SheetTitleKey, InputUrl, OnlineSheet, ProcessingState } from '@/types/dashboard'
+import {downloadFile} from '@/lib/services_endpoints/download_file'
+import {getDocumentTitle} from '@/lib/services_endpoints/get_document_title'
+import { createClient } from '@/lib/supabase/client'
+import type { DownloadFileType, DashboardInitialData, OutputPreferences, QueryResponse, SheetTitleKey, InputUrl, OnlineSheet, ProcessingState } from '@/lib/types/dashboard'
 import { MAX_FILES } from '@/constants/file-types'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/use-toast'
@@ -18,8 +18,8 @@ import {
   handleAuthError,
   handleUrlValidation,
   fetchAndHandleSheets
-} from '@/utils/dashboard-utils'
-import { queryService } from '@/services_endpoints/process_query'
+} from '@/lib/utils/dashboard-utils'
+import { queryService } from '@/lib/services_endpoints/process_query'
 
 
 type UserPreferences = DashboardInitialData

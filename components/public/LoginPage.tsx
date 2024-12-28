@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import * as LabelPrimitive from "@radix-ui/react-label"
 import { useAuth } from '@/hooks/useAuth'
-import { createClient } from '@/utils/supabase/client'
+import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 
 export default function LoginPage() {

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { SUBSCRIPTION_PLANS } from '@/types/stripe';
+import { SUBSCRIPTION_PLANS } from '@/lib/types/stripe';
 
 export async function GET() {
   return NextResponse.json({

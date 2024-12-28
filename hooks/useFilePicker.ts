@@ -1,6 +1,6 @@
-import { createClient } from '@/utils/supabase/client'
+import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
-import { FilePermissions, UserDocumentsAccess } from '@/types/supabase_tables'
+import { FilePermissions, UserDocumentsAccess } from '@/lib/types/supabase_tables'
 import { useRouter } from 'next/navigation'
 import { toast } from '@/components/ui/use-toast'
 

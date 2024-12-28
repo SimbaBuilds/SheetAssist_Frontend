@@ -1,6 +1,6 @@
 import { AxiosResponse } from 'axios';
 import api from './api';
-import { Workbook } from '@/types/dashboard';
+import { Workbook } from '@/lib/types/dashboard';
 
 
 // Function to get document titles from URLs

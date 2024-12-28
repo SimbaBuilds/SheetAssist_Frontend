@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { loadStripe } from '@stripe/stripe-js'
 import { useToast } from '@/components/ui/use-toast'
-import { SUBSCRIPTION_PLANS } from '@/types/stripe'
+import { SUBSCRIPTION_PLANS } from '@/lib/types/stripe'
 
 export function useSubscription() {
   const [isLoading, setIsLoading] = useState(false)

@@ -1,22 +1,22 @@
-import type { SeabornSequentialPalette } from '@/types/dashboard'
+import type { SeabornSequentialPalette } from '@/lib/types/dashboard'
 
 import { useState } from 'react'
 import { useFilePicker } from '@/hooks/useFilePicker'
-import { processDataVisualization } from '@/services_endpoints/data_visualization'
-import { getDocumentTitle } from '@/services_endpoints/get_document_title'
-import { createClient } from '@/utils/supabase/client'
+import { processDataVisualization } from '@/lib/services_endpoints/data_visualization'
+import { getDocumentTitle } from '@/lib/services_endpoints/get_document_title'
+import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
 import { 
   validateVisualizationFile,
   formatTitleKey,
   formatDisplayTitle,
   handleUrlValidation,
-} from '@/utils/dashboard-utils'
+} from '@/lib/utils/dashboard-utils'
 import type { 
   VisualizationOptions,
   InputUrl,
   VisualizationResult,
-} from '@/types/dashboard'
+} from '@/lib/types/dashboard'
 
 interface FileError {
   file: File;

@@ -1,8 +1,8 @@
 import { AxiosResponse } from 'axios';
 import api from './api';
-import { OutputPreferences, FileMetadata, QueryRequest, QueryResponse, FileInfo, Workbook, InputUrl, ProcessingState } from '@/types/dashboard';
+import { OutputPreferences, FileMetadata, QueryRequest, QueryResponse, FileInfo, Workbook, InputUrl, ProcessingState } from '@/lib/types/dashboard';
 import { AcceptedMimeType } from '@/constants/file-types';
-import { createClient } from '@/utils/supabase/client';
+import { createClient } from '@/lib/supabase/client';
 
 // Helper function to update user usage statistics
 async function updateUserUsage(userId: string, success: boolean, numImagesProcessed: number = 0) {
