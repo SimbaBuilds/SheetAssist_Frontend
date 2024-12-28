@@ -54,6 +54,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@stripe/stripe-js": "^5.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
     "@testing-library/user-event": "^14.5.2",
@@ -62,6 +63,7 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18",
     "@types/react-icons": "^2.2.7",
+    "@types/stripe": "^8.0.416",
     "eslint": "^8",
     "eslint-config-next": "14.2.16",
     "https": "^1.0.0",
@@ -70,6 +72,7 @@
     "local-ssl-proxy": "^2.0.5",
     "mkcert": "^3.2.0",
     "postcss": "^8",
+    "stripe": "^17.5.0",
     "tailwindcss": "^3.4.1",
     "ts-node": "^10.9.2",
     "typescript": "^5"

@@ -157,7 +157,7 @@ export default function DashboardPage() {
       {isInitializing ? (
         <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900" />
-          <p className="text-sm text-muted-foreground">Loading your dashboard...</p>
+          <p className="text-sm text-muted-foreground">Loading dashboard...</p>
         </div>
       ) : (
         <>

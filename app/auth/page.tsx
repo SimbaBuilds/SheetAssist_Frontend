@@ -3,8 +3,8 @@ import { redirect } from 'next/navigation'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Authentication - AI File',
-  description: 'Sign in or create an account to get started with AI File',
+  title: 'Authentication - Sheet Assist',
+  description: 'Sign in or create an account to get started with Sheet Assist',
 }
 
 export default async function AuthPage() {

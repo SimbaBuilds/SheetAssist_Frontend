@@ -29,7 +29,7 @@ export default function Header() {
     <header className="bg-background shadow-md">
       <nav className="container mx-auto px-6 py-3 flex justify-between items-center">
         <Link href="/" className="text-2xl font-bold text-primary">
-          AI File
+          Sheet Assist
         </Link>
         <div className="flex items-center space-x-4">
           {/* <Link href="/about" className="text-foreground hover:text-primary">About</Link> */}

@@ -14,9 +14,15 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Switch } from "@/components/ui/switch"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle } from 'lucide-react'
+import { useSubscription } from '@/hooks/useSubscription'
+import { SUBSCRIPTION_PLANS } from '@/types/stripe'
 
 interface UserAccountPageProps {
-  profile: UserProfile
+  profile: UserProfile & {
+    subscription_status?: 'active' | 'canceled' | 'incomplete' | 'incomplete_expired' | 'past_due' | 'trialing' | 'unpaid'
+    current_period_end?: string
+    price_id?: string
+  }
   user: User
   usage: UserUsage
 }
@@ -61,6 +67,12 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
   const requestUsagePercentage = (requestsThisMonth / requestLimit) * 100
   const imageUsagePercentage = (imagesThisMonth / imageLimit) * 100
   const visUsagePercentage = (visualizationsThisMonth / visLimit) * 100
+
+  const {
+    isLoading: isSubscriptionLoading,
+    checkout,
+    openPortal,
+  } = useSubscription()
 
   if (isLoading) {
     return <AccountPageSkeleton />
@@ -255,6 +267,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
         <Card>
           <CardHeader>
             <CardTitle>Subscription Plan</CardTitle>
+            <CardDescription>Manage your subscription and billing</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
@@ -262,10 +275,62 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
                 <h3 className="font-medium">Current Plan</h3>
                 <p className="text-2xl font-bold capitalize">{plan}</p>
               </div>
-              <Button variant="outline">
-                Upgrade Plan
-              </Button>
+              <div className="space-x-2">
+                {plan === 'free' ? (
+                  <Button
+                    onClick={() => checkout(SUBSCRIPTION_PLANS.PRO.priceId!)}
+                    disabled={isLoading}
+                  >
+                    Upgrade to Pro
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={openPortal}
+                    disabled={isLoading}
+                  >
+                    Manage Subscription
+                  </Button>
+                )}
+              </div>
             </div>
+
+            {/* Plan Features */}
+            <div className="mt-6 space-y-4">
+              {/* <h4 className="font-medium">Plan Features</h4> */}
+              <div className="grid gap-4 md:grid-cols-2">
+                {plan === 'free' ? (
+                  <>
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Upgrade to Pro for:</p>
+                      <ul className="text-sm text-muted-foreground space-y-1">
+                        <li>• 200 data processing requests/month</li>
+                        <li>• 200 visualizations/month</li>
+                        <li>• 200 input images/month</li>
+                      </ul>
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Pro Plan Includes:</p>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      <li>• 200 data processing requests/month</li>
+                      <li>• 200 visualizations/month</li>
+                      <li>• 200 input images/month</li>
+                      <li>• Pay-as-you-go for additional usage</li>
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Current Period */}
+            {currentProfile?.current_period_end && (
+              <div className="mt-4 text-sm text-muted-foreground">
+                Current period ends on{' '}
+                {new Date(currentProfile.current_period_end).toLocaleDateString()}
+              </div>
+            )}
           </CardContent>
         </Card>
 

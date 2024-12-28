@@ -11,6 +11,11 @@ export interface UserProfile {
   microsoft_permissions_set: boolean
   plan: PlanType
   direct_sheet_modification: boolean
+  stripe_customer_id?: string
+  subscription_id?: string
+  subscription_status?: 'active' | 'canceled' | 'incomplete' | 'incomplete_expired' | 'past_due' | 'trialing' | 'unpaid'
+  current_period_end?: string
+  price_id?: string
 }
 
 // user_usage table

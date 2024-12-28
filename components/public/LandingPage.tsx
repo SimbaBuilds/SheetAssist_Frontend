@@ -178,10 +178,6 @@ export default function LandingPage() {
                 </li>
                 <li className="flex items-center">
                   <CheckIcon className="mr-2" />
-                  <span>Priority support</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckIcon className="mr-2" />
                   <span>Custom integrations</span>
                 </li>
               </ul>

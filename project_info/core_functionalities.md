@@ -3,7 +3,7 @@
 This is the front end of a AI productively/workflow application.  It accepts user requests asking to perform actions on files and spreadsheets and sends this form data to a Python backend which creates a sandbox environment, runs AI generated code, and returns data of type dataframe, string, pdf file, etc...
 
 1. Landing Page
-    1. Title: "AI File"
+    1. Title: "Sheet Assist"
     2. “AI tool for your spreadsheets, pdfs, text documents, and images!  Integrate with your Google and Microsoft services.  Instantly transfer images to spreadsheets.  Combine/convert spreadsheets and pdfs.”
     3. Pricing: 
         1. Free membership: 10 tasks/mo.  
