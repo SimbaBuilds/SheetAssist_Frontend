@@ -58,16 +58,16 @@ export interface FileInfo {
   download_url: string;
 }
 
+//Handles batch and standard requests
 export interface QueryResponse {
-  result: TruncatedSandboxResult;
+  original_query?: string;
   status: 'created' | 'processing' | 'completed' | 'error';
   message: string;
   files?: FileInfo[];
   num_images_processed: number;
-  total_pages?: number;
   job_id?: string;
   error?: string;
-  error_message?: string;
+  total_pages?: number;
 }
 
 
@@ -156,7 +156,7 @@ export interface VisualizationOptions {
 }
 
 export interface VisualizationResult {
-  status: 'success' | 'error'
+  success: boolean
   image_data?: string  // base64 encoded image data with or without data URI prefix
   generated_image_name?: string
   error?: string

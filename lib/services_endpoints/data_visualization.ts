@@ -120,7 +120,7 @@ export const processDataVisualization = async (
     }
 
     // Update usage statistics
-    await updateVisualizationUsage(userId, response.data.status === 'success')
+    await updateVisualizationUsage(userId, response.data.success)
 
     // Log the visualization request in request_log instead of visualization_log
     const processingTime = Date.now() - startTime
@@ -130,8 +130,7 @@ export const processDataVisualization = async (
       doc_names: webUrls.map(url => url.url),
       file_names: files?.map(f => f.name) || [],
       processing_time_ms: processingTime,
-      status: response.data.status,
-      success: response.data.status === 'success'
+      success: response.data.success
     })
 
     return response.data

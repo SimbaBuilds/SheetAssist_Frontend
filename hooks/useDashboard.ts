@@ -722,17 +722,17 @@ export function useDashboard(initialData?: UserPreferences) {
       if (!controller.signal.aborted) {
         setProcessedResult(result);
         
-        if (result.result.error) {
-          setError(result.result.error);
+        if (result.error) {
+          setError(result.error);
           // Log error
           await supabase
             .from('error_log')
             .insert({
               user_id: user?.id,
-              message: result.result.error,
+              message: result.error,
               error_code: 'QUERY_PROCESSING_ERROR',
               resolved: false,
-              original_query: result.result.original_query
+              original_query: result.original_query
             });
           return;
         }
@@ -754,7 +754,7 @@ export function useDashboard(initialData?: UserPreferences) {
                   message: downloadError instanceof Error ? downloadError.message : 'Download failed',
                   error_code: 'DOWNLOAD_ERROR',
                   resolved: false,
-                  original_query: result.result.original_query
+                  original_query: result.original_query
                 });
             }
           }

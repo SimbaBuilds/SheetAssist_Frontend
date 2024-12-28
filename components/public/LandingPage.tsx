@@ -32,9 +32,9 @@ export default function LandingPage() {
       <div className="container mx-auto px-4 py-20 text-center">
         <h1 className="text-4xl md:text-6xl font-bold mb-6">Sheet Assist</h1>
         <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto mb-12">
-          AI tool for your spreadsheets, pdfs, text documents, and images. 
-          Delivers consistent, reliable results.
-          Integrates with Google and Microsoft services. 
+          AI tool for your spreadsheets, pdfs, text documents, and images. <br/> 
+          Delivers consistent, reliable results. <br/> 
+          Integrates with Google and Microsoft services. <br/> 
         </p>
         <Button size="lg" asChild>
           <Link href="/login">Get Started</Link>
@@ -50,38 +50,28 @@ export default function LandingPage() {
             className="text-xl md:text-2xl text-primary"
           />
         </div>
-        <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
+        <div className="grid md:grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
           <Card>
             <CardHeader>
               <CardTitle>Spreadsheet Operations</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Merges, cleans, and sorts spreadsheets given natural language commands.
+              Merges, cleans, sorts, filters, and transforms spreadsheets given simple natural language commands. 
+              Performs advanced functions like generating pivot tables, conducting statistical analyses, and running VLOOKUP-like operations.             
               </p>
+      
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Data Extraction from Images and PDFs</CardTitle>
+              <CardTitle>Batch Processing with AI</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
-                Extracts text and data from PDFs, images, and scanned documents to update your spreadsheets using vision-enabled AI.
-              </p>
-            </CardContent>
-          </Card>
-
-
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Batch Processing</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Transfers 50 pages of scanned documents to a spreadsheet in minutes with AI.
+                Extracts text and data from PDFs, images, and scanned documents with vision-enabled AI.
+                Transfers 50 pages of scanned documents to a spreadsheet in minutes.
               </p>
             </CardContent>
           </Card>
@@ -116,7 +106,7 @@ export default function LandingPage() {
               <ul className="space-y-4">
                 <li className="flex items-center">
                   <CheckIcon className="mr-2" />
-                  <span>{PLAN_REQUEST_LIMITS.free} requests per month</span>
+                  <span>{PLAN_REQUEST_LIMITS.free} standard requests per month</span>
                 </li>
                 <li className="flex items-center">
                   <CheckIcon className="mr-2" />
@@ -143,7 +133,7 @@ export default function LandingPage() {
               <ul className="space-y-4">
                 <li className="flex items-center">
                   <CheckIcon className="mr-2" />
-                  <span>{PLAN_REQUEST_LIMITS.pro} requests per month</span>
+                  <span>{PLAN_REQUEST_LIMITS.pro} standard requests per month</span>
                 </li>
                 <li className="flex items-center">
                   <CheckIcon className="mr-2" />
