@@ -3,6 +3,8 @@ import api from './api';
 import { OutputPreferences, FileMetadata, QueryRequest, QueryResponse, FileInfo, Workbook, InputUrl, ProcessingState } from '@/lib/types/dashboard';
 import { AcceptedMimeType } from '@/lib/constants/file-types';
 import { createClient } from '@/lib/supabase/client';
+import { isUserOnProPlan, getUserSubscriptionId, trackUsage } from '@/lib/stripe/usage'
+import { PLAN_REQUEST_LIMITS, PLAN_IMAGE_LIMITS } from '@/lib/constants/pricing'
 
 // Helper function to update user usage statistics
 async function updateUserUsage(userId: string, success: boolean, numImagesProcessed: number = 0) {
@@ -20,13 +22,15 @@ async function updateUserUsage(userId: string, success: boolean, numImagesProces
     return;
   }
 
-  // Prepare update data
+  const newRequestCount = (usageData?.requests_this_month || 0) + (success ? 1 : 0);
+  const newImageCount = (usageData?.images_processed_this_month || 0) + (success ? numImagesProcessed : 0);
+
   const updateData = {
-    requests_this_week: (usageData.requests_this_week || 0) + (success ? 1 : 0),
-    requests_this_month: (usageData.requests_this_month || 0) + (success ? 1 : 0),
-    images_processed_this_month: (usageData.images_processed_this_month || 0) + (success ? numImagesProcessed : 0),
-    requests_previous_3_months: (usageData.requests_previous_3_months || 0) + (success ? 1 : 0),
-    unsuccessful_requests_this_month: (usageData.unsuccessful_requests_this_month || 0) + (success ? 0 : 1)
+    requests_this_month: newRequestCount,
+    images_processed_this_month: newImageCount,
+    requests_this_week: (usageData?.requests_this_week || 0) + (success ? 1 : 0),
+    requests_previous_3_months: (usageData?.requests_previous_3_months || 0) + (success ? 1 : 0),
+    unsuccessful_requests_this_month: (usageData?.unsuccessful_requests_this_month || 0) + (success ? 0 : 1)
   };
 
   // Update usage statistics
@@ -34,6 +38,33 @@ async function updateUserUsage(userId: string, success: boolean, numImagesProces
     .from('user_usage')
     .update(updateData)
     .eq('user_id', userId);
+
+  // Check if pro user and handle overages
+  if (success) {
+    const isProUser = await isUserOnProPlan(userId);
+    if (isProUser) {
+      const subscriptionId = await getUserSubscriptionId(userId);
+      if (subscriptionId) {
+        // Track processing usage if over limit
+        if (newRequestCount > PLAN_REQUEST_LIMITS.pro) {
+          await trackUsage({
+            subscriptionId,
+            type: 'processing',
+            quantity: newRequestCount
+          });
+        }
+        
+        // Track images usage if over limit
+        if (newImageCount > PLAN_IMAGE_LIMITS.pro) {
+          await trackUsage({
+            subscriptionId,
+            type: 'images',
+            quantity: newImageCount
+          });
+        }
+      }
+    }
+  }
 }
 
 class QueryService {

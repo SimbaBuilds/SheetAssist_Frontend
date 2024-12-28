@@ -66,6 +66,8 @@ export interface QueryResponse {
   num_images_processed: number;
   total_pages?: number;
   job_id?: string;
+  error?: string;
+  error_message?: string;
 }
 
 
@@ -105,6 +107,15 @@ export interface DocumentTitleMap {
   [key: string]: string;  // key will be JSON.stringify(SheetTitleKey)
 }
 
+// Add new type for processing state
+export interface ProcessingState {
+  status: 'created' | 'processing' | 'completed' | 'error' | null;
+  message: string;
+  progress?: {
+    processed: number;
+    total: number | null;
+  };
+}
 
 export const SEABORN_SEQUENTIAL_PALETTES = {
   rocket: {
@@ -152,12 +163,3 @@ export interface VisualizationResult {
   message?: string
 }
 
-// Add new type for processing state
-export interface ProcessingState {
-  status: 'created' | 'processing' | 'completed' | 'error' | null;
-  message: string;
-  progress?: {
-    processed: number;
-    total: number | null;
-  };
-}

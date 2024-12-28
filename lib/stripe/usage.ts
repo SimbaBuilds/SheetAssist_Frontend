@@ -1,4 +1,5 @@
 import { stripe } from '@/lib/stripe';
+import { createClient } from '@/lib/supabase/client';
 
 interface UsageType {
   type: 'processing' | 'visualizations' | 'images'
@@ -82,4 +83,28 @@ export async function checkUsageLimits({
     isOverLimit: currentUsage > includedQuantity,
     percentageUsed,
   }
+}
+
+// Add this helper function
+export async function isUserOnProPlan(userId: string): Promise<boolean> {
+  const supabase = createClient()
+  const { data: profile } = await supabase
+    .from('user_profile')
+    .select('plan')
+    .eq('id', userId)
+    .single()
+  
+  return profile?.plan === 'pro'
+}
+
+// Add this helper to get subscription ID
+export async function getUserSubscriptionId(userId: string): Promise<string | null> {
+  const supabase = createClient()
+  const { data: profile } = await supabase
+    .from('user_profile')
+    .select('subscription_id')
+    .eq('id', userId)
+    .single()
+  
+  return profile?.subscription_id || null
 }   

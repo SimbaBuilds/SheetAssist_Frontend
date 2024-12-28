@@ -12,8 +12,7 @@ import type { User } from '@supabase/supabase-js'
 import { PLAN_REQUEST_LIMITS, PLAN_IMAGE_LIMITS, VIS_GEN_LIMITS } from '@/lib/constants/pricing'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Switch } from "@/components/ui/switch"
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
-import { AlertCircle } from 'lucide-react'
+
 import { useSubscription } from '@/hooks/useSubscription'
 import { SUBSCRIPTION_PLANS } from '@/lib/types/stripe'
 
@@ -24,7 +23,10 @@ interface UserAccountPageProps {
     price_id?: string
   }
   user: User
-  usage: UserUsage
+  usage: UserUsage & {
+    overage_this_month?: number
+    overage_hard_limit?: number
+  }
 }
 
 export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) {
@@ -41,6 +43,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
     updateSheetModificationPreference,
     handleGoogleReconnect,
     handleMicrosoftReconnect,
+    updateOverageLimit,
   } = useUserAccount({ 
     initialProfile: profile,
     initialUsage: usage,
@@ -124,12 +127,16 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
         <Card>
           <CardHeader>
             <CardTitle>Connected Services</CardTitle>
-            <CardDescription>
-              <p className="text-xs">
-                Please accept all permissions to get the most out of this application. 
-                <br/>Changes to your sheets will only be additive; no deletions or modifications will be made to your files or their contents.
-                <br/>Verification for this app is pending.
-              </p>
+            <CardDescription className="space-y-2">
+              <span className="block">
+                Accept all permissions to get the most out of this application.
+              </span>
+              <span className="block">
+                Changes to your sheets will only be additive; no deletions or modifications will be made to your files or their contents.
+              </span>
+              <span className="block">
+                Verification for this app is pending.
+              </span>
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -259,6 +266,53 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
                   />
                 </div>
               </div>
+
+              {plan === 'pro' && (
+                <div className="mt-6 pt-6 border-t">
+                  <div className="flex flex-col space-y-2">
+                    <Label htmlFor="overageLimit">Monthly Overage Limit</Label>
+                    <div className="text-xs text-muted-foreground">
+                      Set a maximum monthly spending limit for usage beyond your plan's included quantities.
+                      Leave empty for no limit.
+                    </div>
+                    <span className="text-sm text-muted-foreground">
+                      Current overage: ${((currentUsage?.overage_this_month ?? 0)).toFixed(2)} / 
+                      ${((currentUsage?.overage_hard_limit ?? 0)).toFixed(2)}
+                    </span>
+                    <div className="flex items-center space-x-2">
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                        <Input
+                          id="overageLimit"
+                          type="number"
+                          min="0"
+                          step="1"
+                          className="pl-7"
+                          placeholder="No limit"
+                          value={currentUsage?.overage_hard_limit || ''}
+                          onChange={(e) => {
+                            const value = e.target.value === '' ? null : parseInt(e.target.value, 10);
+                            if (value === null || (value >= 0 && Number.isInteger(value))) {
+                              updateOverageLimit(value);
+                            }
+                          }}
+                          disabled={isUpdating}
+                        />
+                      </div>
+                      {currentUsage?.overage_hard_limit && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => updateOverageLimit(null)}
+                          disabled={isUpdating}
+                        >
+                          Remove Limit
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

@@ -17,6 +17,7 @@ import type {
   InputUrl,
   VisualizationResult,
 } from '@/lib/types/dashboard'
+import { useUsageLimits } from '@/hooks/useUsageLimits'
 
 interface FileError {
   file: File;
@@ -60,6 +61,11 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
   const { user } = useAuth()
   const supabase = createClient()
   const { verifyFileAccess, launchPicker } = useFilePicker()
+  const { 
+    hasReachedVisualizationLimit, 
+    hasReachedOverageLimit, 
+    currentPlan 
+  } = useUsageLimits()
 
   const updateRecentUrls = async (url: string, sheetName: string, docName: string) => {
     if (!user?.id || !url.trim() || !sheetName.trim() || !docName.trim()) {
@@ -281,6 +287,15 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
   }
 
   const handleVisualizationSubmit = async () => {
+    if (hasReachedVisualizationLimit) {
+      setVisualizationError(
+        currentPlan === 'free'
+          ? 'Monthly visualization limit reached. Please upgrade to Pro for more visualizations.'
+          : 'Overage limit reached. Please increase your limit in account settings.'
+      )
+      return
+    }
+
     setVisualizationError('')
     setVisualizationResult(null)
 

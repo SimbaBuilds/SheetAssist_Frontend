@@ -20,6 +20,7 @@ import {
   fetchAndHandleSheets
 } from '@/lib/utils/dashboard-utils'
 import { queryService } from '@/lib/services_endpoints/process_query'
+import { useUsageLimits } from '@/hooks/useUsageLimits'
 
 
 type UserPreferences = DashboardInitialData
@@ -90,6 +91,11 @@ export function useDashboard(initialData?: UserPreferences) {
     status: null,
     message: ''
   });
+  const { 
+    hasReachedRequestLimit, 
+    hasReachedOverageLimit, 
+    currentPlan 
+  } = useUsageLimits()
 
   const supabase = createClient()
 
@@ -628,6 +634,15 @@ export function useDashboard(initialData?: UserPreferences) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (hasReachedRequestLimit) {
+      setError(
+        currentPlan === 'free' 
+          ? 'Monthly request limit reached. Please upgrade to Pro for more requests.' 
+          : 'Overage limit reached. Please increase your limit in account settings.'
+      )
+      return
+    }
+
     // Reset all relevant states at the start
     setError('');
     setOutputTypeError(null);

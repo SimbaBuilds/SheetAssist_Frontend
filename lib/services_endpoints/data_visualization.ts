@@ -9,6 +9,8 @@ import {
   VisualizationRequest,
   InputUrl,
 } from '@/lib/types/dashboard'
+import { isUserOnProPlan, getUserSubscriptionId, trackUsage } from '@/lib/stripe/usage'
+import { VIS_GEN_LIMITS } from '@/lib/constants/pricing'
 
 // Helper function to update user visualization usage statistics
 async function updateVisualizationUsage(userId: string, success: boolean) {
@@ -25,14 +27,31 @@ async function updateVisualizationUsage(userId: string, success: boolean) {
     return
   }
 
+  const newCount = (usageData?.visualizations_this_month || 0) + (success ? 1 : 0)
+  
   const updateData = {
-    visualizations_this_month: (usageData?.visualizations_this_month || 0) + (success ? 1 : 0),
+    visualizations_this_month: newCount,
   }
 
   await supabase
     .from('user_usage')
     .update(updateData)
     .eq('user_id', userId)
+
+  // Check if pro user and handle overage
+  if (success) {
+    const isProUser = await isUserOnProPlan(userId)
+    if (isProUser && newCount > VIS_GEN_LIMITS.pro) {
+      const subscriptionId = await getUserSubscriptionId(userId)
+      if (subscriptionId) {
+        await trackUsage({
+          subscriptionId,
+          type: 'visualizations',
+          quantity: newCount
+        })
+      }
+    }
+  }
 }
 
 export const processDataVisualization = async (

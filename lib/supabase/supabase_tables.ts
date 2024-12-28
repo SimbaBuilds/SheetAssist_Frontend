@@ -28,7 +28,8 @@ export interface UserUsage {
   requests_previous_3_months: number
   unsuccessful_requests_this_month: number
   recent_sheets: OnlineSheet[] | null // jsonb array of max length 6
-
+  overage_hard_limit: number // in dollars
+  overage_this_month: number // in dollars
 }
 
 // error_log table

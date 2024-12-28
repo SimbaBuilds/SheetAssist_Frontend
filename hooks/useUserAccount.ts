@@ -25,6 +25,7 @@ interface UseUserAccountReturn {
   updateSheetModificationPreference: (allow: boolean) => Promise<void>
   handleGoogleReconnect: () => Promise<void>
   handleMicrosoftReconnect: () => Promise<void>
+  updateOverageLimit: (limit: number | null) => Promise<void>
 }
 
 export function useUserAccount({ 
@@ -252,6 +253,40 @@ export function useUserAccount({
     }
   }
 
+  const updateOverageLimit = async (limit: number | null) => {
+    try {
+      setIsUpdating(true)
+      const { error } = await supabase
+        .from('user_usage')
+        .update({ 
+          overage_hard_limit: limit ?? 0,
+        })
+        .eq('user_id', user.id)
+
+      if (error) throw error
+
+      setUserUsage(prev => ({ 
+        ...prev, 
+        overage_hard_limit: limit ?? 0,
+      }))
+      
+      toast({
+        title: "Success",
+        description: limit === null 
+          ? "Overage limit removed successfully."
+          : `Overage limit set to $${limit}.`,
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update overage limit.",
+        className: "destructive"
+      })
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
   return {
     isLoading,
     userProfile,
@@ -265,5 +300,6 @@ export function useUserAccount({
     updateSheetModificationPreference,
     handleGoogleReconnect,
     handleMicrosoftReconnect,
+    updateOverageLimit,
   }
 }

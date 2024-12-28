@@ -26,6 +26,7 @@ import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
 import { useDataVisualization } from '@/hooks/useDataVisualization'
 import { GeneratingVisualizationDialog } from '@/components/authorized/GeneratingVisualizationDialog'
 import { SEABORN_SEQUENTIAL_PALETTES, SeabornSequentialPalette } from '@/lib/types/dashboard'
+import { useUsageLimits } from '@/hooks/useUsageLimits'
 
 
 export const EXAMPLE_QUERIES = [
@@ -151,6 +152,21 @@ export default function DashboardPage() {
   })
 
   const router = useRouter()
+
+  const {
+    isLoading: isLoadingUsage,
+    hasReachedRequestLimit,
+    hasReachedVisualizationLimit,
+    requestsRemaining,
+    visualizationsRemaining,
+    requestsUsed,
+    visualizationsUsed,
+    requestLimit,
+    visualizationLimit,
+    currentPlan,
+    overageHardLimit,
+    overageRemaining
+  } = useUsageLimits()
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -608,9 +624,40 @@ export default function DashboardPage() {
               </div>
             )}
 
-            <Button type="submit" disabled={isProcessing} className="w-full">
+            <Button 
+              type="submit" 
+              disabled={isProcessing || hasReachedRequestLimit} 
+              className="w-full"
+            >
               {isProcessing ? 'Processing...' : 'Submit'}
             </Button>
+            {hasReachedRequestLimit && (
+              <div className="text-red-500 text-sm mt-2">
+                {currentPlan === 'free' ? (
+                  <>
+                    You've reached your monthly request limit ({requestLimit} requests).
+                    <Button
+                      variant="link"
+                      className="p-0 h-auto text-sm text-blue-600 hover:text-blue-800"
+                      onClick={() => router.push('/pricing')}
+                    >
+                      Upgrade to Pro for more requests
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    You've reached your overage limit (${overageHardLimit.toFixed(2)}).
+                    <Button
+                      variant="link"
+                      className="p-0 h-auto text-sm text-blue-600 hover:text-blue-800"
+                      onClick={() => router.push('/user-account')}
+                    >
+                      Increase your overage limit in account settings
+                    </Button>
+                  </>
+                )}
+              </div>
+            )}
           </form>
 
           <ProcessingResultDialog
@@ -879,12 +926,40 @@ export default function DashboardPage() {
                   disabled={
                     isVisualizationProcessing || 
                     (!selectedVisualizationPair && !visualizationFile) ||
-                    !colorPalette
+                    !colorPalette ||
+                    hasReachedVisualizationLimit
                   }
                   className="w-full mt-6"
                 >
                   {isVisualizationProcessing ? 'Processing...' : 'Generate Visualization'}
                 </Button>
+                {hasReachedVisualizationLimit && (
+                  <div className="text-red-500 text-sm mt-2">
+                    {currentPlan === 'free' ? (
+                      <>
+                        You've reached your monthly visualization limit ({visualizationLimit} visualizations).
+                        <Button
+                          variant="link"
+                          className="p-0 h-auto text-sm text-blue-600 hover:text-blue-800"
+                          onClick={() => router.push('/pricing')}
+                        >
+                          Upgrade to Pro for more visualizations
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        You've reached your overage limit (${overageHardLimit.toFixed(2)}).
+                        <Button
+                          variant="link"
+                          className="p-0 h-auto text-sm text-blue-600 hover:text-blue-800"
+                          onClick={() => router.push('/user-account')}
+                        >
+                          Increase your overage limit in account settings
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                )}
 
                 {/* Add this before the visualization result display */}
                 <GeneratingVisualizationDialog
