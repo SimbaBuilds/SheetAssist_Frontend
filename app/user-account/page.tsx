@@ -1,6 +1,6 @@
 import { UserAccountPage } from '@/components/authorized/UserAccountPage'
 import { createClient } from '@/lib/supabase/server'
-import type { UserProfile, UserUsage } from '@/lib/types/supabase_tables'
+import type { UserProfile, UserUsage } from '@/lib/supabase/supabase_tables'
 import type { User } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 

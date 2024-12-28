@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import Typed from 'typed.js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PLAN_REQUEST_LIMITS, PLAN_IMAGE_LIMITS, VIS_GEN_LIMITS } from '@/constants/pricing';
+import { PLAN_REQUEST_LIMITS, PLAN_IMAGE_LIMITS, VIS_GEN_LIMITS } from '@/lib/constants/pricing';
 import Link from 'next/link';
 import { EXAMPLE_QUERIES } from '@/components/authorized/DashboardPage';
 

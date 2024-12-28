@@ -1,5 +1,5 @@
-import { OnlineSheet } from './dashboard'
-import { PlanType } from '../../constants/pricing'
+import { OnlineSheet } from '../types/dashboard'
+import { PlanType } from '../constants/pricing'
 
 
 // user_profile table

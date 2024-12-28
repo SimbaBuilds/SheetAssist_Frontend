@@ -1,5 +1,5 @@
-import { DOWNLOAD_FILE_TYPES } from '@/constants/file-types'
-import { AcceptedMimeType } from '@/constants/file-types'
+import { DOWNLOAD_FILE_TYPES } from '@/lib/constants/file-types'
+import { AcceptedMimeType } from '@/lib/constants/file-types'
 export type DownloadFileType = typeof DOWNLOAD_FILE_TYPES[number]['value']
 
 

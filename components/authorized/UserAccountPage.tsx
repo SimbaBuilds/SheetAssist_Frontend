@@ -7,9 +7,9 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useUserAccount } from '@/hooks/useUserAccount'
 import { useState } from 'react'
-import type { UserProfile, UserUsage } from '@/lib/types/supabase_tables'
+import type { UserProfile, UserUsage } from '@/lib/supabase/supabase_tables'
 import type { User } from '@supabase/supabase-js'
-import { PLAN_REQUEST_LIMITS, PLAN_IMAGE_LIMITS, VIS_GEN_LIMITS } from '@/constants/pricing'
+import { PLAN_REQUEST_LIMITS, PLAN_IMAGE_LIMITS, VIS_GEN_LIMITS } from '@/lib/constants/pricing'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Switch } from "@/components/ui/switch"
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
@@ -221,7 +221,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
               <div className="mt-4">
                 <Label>Input Images Processed This Month</Label>
                 <p className="text-xs text-muted-foreground mt-1 mb-3">
-                  This includes any png and jpeg images as well as image-like scanned document pages contained in pdfs
+                  This includes any png and jpeg images as well as image-like scanned pages in pdfs
                 </p>
                 <div className="mt-2 flex items-center justify-between">
                   <div className="text-sm">
@@ -302,7 +302,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
                 {plan === 'free' ? (
                   <>
                     <div className="space-y-2">
-                      <p className="text-sm font-medium">Upgrade to Pro for:</p>
+                      <p className="text-sm font-medium">Upgrade to Pro:</p>
                       <ul className="text-sm text-muted-foreground space-y-1">
                         <li>• 200 data processing requests/month</li>
                         <li>• 200 visualizations/month</li>

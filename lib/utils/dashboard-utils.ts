@@ -1,5 +1,5 @@
 import type { SheetTitleKey } from '@/lib/types/dashboard'
-import { MAX_FILE_SIZE, ACCEPTED_FILE_TYPES } from '@/constants/file-types'
+import { MAX_FILE_SIZE, ACCEPTED_FILE_TYPES } from '@/lib/constants/file-types'
 
 // URL-related utilities
 export const getUrlProvider = (url: string): 'google' | 'microsoft' | null => {

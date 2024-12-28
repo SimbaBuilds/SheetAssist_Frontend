@@ -1,7 +1,7 @@
 import { AxiosResponse } from 'axios'
 import api from './api'
 import { createClient } from '@/lib/supabase/client'
-import { AcceptedMimeType } from '@/constants/file-types'
+import { AcceptedMimeType } from '@/lib/constants/file-types'
 import { 
   VisualizationOptions, 
   VisualizationResult, 
