@@ -605,25 +605,6 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {processingState.status === 'error' && (
-              <div className="text-red-500 text-sm">
-                {processingState.message.toLowerCase().includes('reconnect') ? (
-                  <div className="flex items-center gap-2">
-                    <span>{processingState.message}</span>
-                    <Button
-                      variant="link"
-                      className="h-auto p-0 text-sm font-medium text-blue-600 hover:text-blue-800"
-                      onClick={() => router.push('user-account')}
-                    >
-                      Reconnect Account
-                    </Button>
-                  </div>
-                ) : (
-                  processingState.message
-                )}
-              </div>
-            )}
-
             <Button 
               type="submit" 
               disabled={isProcessing || hasReachedRequestLimit} 
@@ -890,6 +871,16 @@ export default function DashboardPage() {
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="custom" id="custom" />
                       <Label htmlFor="custom">Give Custom Instructions</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <InfoIcon className="h-4 w-4 text-muted-foreground" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-[300px]">
+                            The data visualizer does not yet have the ability to access prior visualizations. You can provide this context in the custom instruction if desired.
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   </RadioGroup>
 

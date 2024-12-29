@@ -72,7 +72,7 @@ export default function LandingPage() {
             <CardContent>
               <p className="text-muted-foreground">
                 Extracts text and data from PDFs, images, and scanned documents with vision-enabled AI.
-                Transfers 50 pages of scanned documents to a spreadsheet in minutes.
+                Transfers dozens of pages of scanned documents to a spreadsheet in minutes.
               </p>
             </CardContent>
           </Card>
@@ -146,7 +146,11 @@ export default function LandingPage() {
                 </li>
                 <li className="flex items-center">
                   <CheckIcon className="mr-2" />
-                  <span>Pay as you go once limits reached</span>
+                  <span>Usage based pricing once limits reached</span>
+                </li>
+                <li className="flex items-center">
+                  <CheckIcon className="mr-2" />
+                  <span>Cancel any time</span>
                 </li>
               </ul>
               <Button className="w-full mt-6" asChild>
@@ -159,7 +163,7 @@ export default function LandingPage() {
           <Card className="relative">
             <CardHeader>
               <CardTitle>Business</CardTitle>
-              <div className="text-3xl font-bold">Custom</div>
+              <div className="text-3xl font-bold">Varies</div>
             </CardHeader>
             <CardContent>
               <ul className="space-y-4">

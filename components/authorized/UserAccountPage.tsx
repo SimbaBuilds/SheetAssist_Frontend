@@ -371,7 +371,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
                       <li>• 200 data processing requests/month</li>
                       <li>• 200 visualizations/month</li>
                       <li>• 200 input images/month</li>
-                      <li>• Pay-as-you-go for additional usage</li>
+                      <li>• Usage based pricing once limits reached</li>
                     </ul>
                   </div>
                 )}

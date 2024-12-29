@@ -143,7 +143,16 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
       if (documentTitles[titleKey]) {
         try {
           const { url, sheet_name } = JSON.parse(titleKey);
-          setSelectedVisualizationPair({ url, sheet_name });
+          const displayTitle = documentTitles[titleKey];
+          const doc_name = displayTitle.split(' - ')[0];
+          
+          const visualizationPair: InputUrl = { 
+            url, 
+            sheet_name,
+            doc_name
+          };
+          
+          setSelectedVisualizationPair(visualizationPair);
           setVisualizationUrls(['']);
           setVisualizationUrl(url);
           return;
@@ -196,7 +205,13 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
           [titleKey]: displayTitle,
         }));
 
-        setSelectedVisualizationPair({ url: value, sheet_name: sheet });
+        // Create visualization pair with doc_name
+        const visualizationPair: InputUrl = {
+          url: value,
+          sheet_name: sheet,
+          doc_name: workbook.doc_name // Include doc_name from API response
+        };
+        setSelectedVisualizationPair(visualizationPair);
         setVisualizationUrls(['']);
         
         await updateRecentUrls(value, sheet, workbook.doc_name);
@@ -217,40 +232,29 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
     setIsRetrievingVisualizationData(true);
 
     try {
-      let cachedWorkbook = workbookCache[url];
-
-      if (!cachedWorkbook || !cachedWorkbook.doc_name) {
-        const workbook = await getDocumentTitle(url);
-        if (!workbook?.success) {
-          throw new Error(workbook?.error || 'Failed to fetch document information');
-        }
-        
-        cachedWorkbook = {
-          doc_name: workbook.doc_name,
-          sheet_names: workbook.sheet_names ?? [],
-        };
-
-        setWorkbookCache(prev => ({
-          ...prev,
-          [url]: cachedWorkbook,
-        }));
+      const workbook = await getDocumentTitle(url);
+      if (!workbook?.success) {
+        throw new Error(workbook?.error || 'Failed to fetch document information');
       }
 
-      setSelectedVisualizationPair({ 
+      // Create visualization pair with doc_name from API response
+      const visualizationPair: InputUrl = { 
         url, 
         sheet_name: sheet,
-        doc_name: cachedWorkbook.doc_name
-      });
+        doc_name: workbook.doc_name
+      };
+      
+      setSelectedVisualizationPair(visualizationPair);
 
       const titleKey = formatTitleKey(url, sheet);
-      const displayTitle = formatDisplayTitle(cachedWorkbook.doc_name, sheet);
+      const displayTitle = formatDisplayTitle(workbook.doc_name, sheet);
 
       setDocumentTitles(prev => ({
         ...prev,
         [titleKey]: displayTitle,
       }));
 
-      await updateRecentUrls(url, sheet, cachedWorkbook.doc_name);
+      await updateRecentUrls(url, sheet, workbook.doc_name);
       
       setVisualizationUrls(['']);
       setVisualizationUrl(url);

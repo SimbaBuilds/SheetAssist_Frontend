@@ -354,7 +354,16 @@ export function useDashboard(initialData?: UserPreferences) {
       if (documentTitles[titleKey]) {
         try {
           const { url, sheet_name } = JSON.parse(titleKey);
-          const newPair: InputUrl = { url, sheet_name };
+          const displayTitle = documentTitles[titleKey];
+          // Extract doc_name from displayTitle (format is "doc_name - sheet_name")
+          const doc_name = displayTitle.split(' - ')[0];
+          
+          const newPair: InputUrl = { 
+            url, 
+            sheet_name,
+            doc_name // Use doc_name from display title
+          };
+          
           setSelectedUrlPairs(prev => [...prev, newPair]);
           setUrls(['']);
           return;
@@ -435,9 +444,18 @@ export function useDashboard(initialData?: UserPreferences) {
       if (documentTitles[titleKey]) {
         try {
           const { url, sheet_name } = JSON.parse(titleKey);
-          setSelectedDestinationPair({ url, sheet_name });
-          setDestinationUrls(['']);  // Clear input
-          setOutputUrl('');  // Clear the output URL when a sheet is selected
+          const displayTitle = documentTitles[titleKey];
+          const doc_name = displayTitle.split(' - ')[0];
+          
+          const destinationPair: InputUrl = { 
+            url, 
+            sheet_name,
+            doc_name
+          };
+          
+          setSelectedDestinationPair(destinationPair);
+          setDestinationUrls(['']);
+          setOutputUrl('');
           return;
         } catch (error) {
           console.error('Error parsing title key:', error);
@@ -492,6 +510,15 @@ export function useDashboard(initialData?: UserPreferences) {
             [titleKey]: displayTitle
           }));
 
+          // Create destination pair with doc_name
+          const destinationPair: InputUrl = {
+            url: value,
+            sheet_name: sheet,
+            doc_name: workbook.doc_name // Include doc_name from API response
+          };
+          setSelectedDestinationPair(destinationPair);
+          setDestinationUrls(['']);
+          
           await updateRecentUrls(value, sheet, workbook.doc_name);
         } else if (sheetNames.length > 1) {
           setShowDestinationSheetSelector(true);
@@ -508,24 +535,33 @@ export function useDashboard(initialData?: UserPreferences) {
 
   const handleDestinationSheetSelection = async (url: string, sheet: string) => {
     setShowDestinationSheetSelector(false);
-    setSelectedDestinationPair({ 
-      url, 
-      sheet_name: sheet,
-      doc_name: workbookCache[url]?.doc_name
-    });
-    setDestinationUrls(['']);
-
-    if (url && sheet) {
-      const cachedWorkbook = workbookCache[url];
-      if (cachedWorkbook) {
-        const titleKey = formatTitleKey(url, sheet);
-        const displayTitle = formatDisplayTitle(cachedWorkbook.doc_name, sheet);
-        setDocumentTitles(prev => ({
-          ...prev,
-          [titleKey]: displayTitle
-        }));
-        await updateRecentUrls(url, sheet, cachedWorkbook.doc_name);
+    
+    try {
+      const workbook = await getDocumentTitle(url);
+      if (!workbook?.success) {
+        throw new Error('Failed to get document information');
       }
+
+      const destinationPair: InputUrl = { 
+        url, 
+        sheet_name: sheet,
+        doc_name: workbook.doc_name
+      };
+      
+      setSelectedDestinationPair(destinationPair);
+      setDestinationUrls(['']);
+
+      const titleKey = formatTitleKey(url, sheet);
+      const displayTitle = formatDisplayTitle(workbook.doc_name, sheet);
+      setDocumentTitles(prev => ({
+        ...prev,
+        [titleKey]: displayTitle
+      }));
+      
+      await updateRecentUrls(url, sheet, workbook.doc_name);
+    } catch (error) {
+      console.error('Error in handleDestinationSheetSelection:', error);
+      setError('Failed to process sheet selection');
     }
   };
 
@@ -545,31 +581,25 @@ export function useDashboard(initialData?: UserPreferences) {
         throw new Error('Workbook information not found in cache');
       }
 
-      // Create new URL pair with selected sheet and doc_name
+      // Create new URL pair with doc_name from API response
       const newPair: InputUrl = { 
         url, 
         sheet_name: selectedSheet,
         doc_name: cachedWorkbook.doc_name
       };
+      
       setSelectedUrlPairs(prev => [...prev, newPair]);
-      setUrls(['']); // Reset URL input field
+      setUrls(['']);
 
-      // Create title key and display title
       const titleKey = formatTitleKey(url, selectedSheet);
       const displayTitle = formatDisplayTitle(cachedWorkbook.doc_name, selectedSheet);
       
-      // Update document titles mapping
       setDocumentTitles(prev => ({
         ...prev,
         [titleKey]: displayTitle
       }));
 
-      // Update recent URLs
-      await updateRecentUrls(
-        url,
-        selectedSheet,
-        cachedWorkbook.doc_name
-      );
+      await updateRecentUrls(url, selectedSheet, cachedWorkbook.doc_name);
 
     } catch (error) {
       console.error('Error in handleSheetSelection:', error);

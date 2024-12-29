@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { ProcessingState, QueryResponse } from '@/lib/types/dashboard'
-import { Loader2, XCircle } from "lucide-react"
+import { AlertCircle, CheckCircle, Loader2, XCircle } from "lucide-react"
 import { Button } from '@/components/ui/button'
 import { useState, useEffect } from 'react'
 
@@ -64,6 +64,47 @@ export function ProcessingResultDialog({
     </Button>
   )
 
+  function renderContent() {
+    switch (state.status) {
+      case 'error':
+        return (
+          <div className="flex flex-col items-center justify-center py-8 space-y-4">
+            <AlertCircle className="h-8 w-8 text-destructive" />
+            <div className="text-center space-y-2">
+              <p className="text-sm text-destructive">
+                {state.message || 'An error occurred while processing your request'}
+              </p>
+            </div>
+          </div>
+        )
+
+      case 'completed':
+        return (
+          <div className="flex flex-col items-center justify-center py-8 space-y-4">
+            <CheckCircle className="h-8 w-8 text-green-500" />
+            <div className="text-center space-y-2">
+              <p className="text-sm text-gray-600">
+                {state.message || 'Processing completed successfully'}
+              </p>
+            </div>
+          </div>
+        )
+
+      default:
+        return (
+          <div className="flex flex-col items-center justify-center py-8 space-y-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <div className="text-center space-y-2">
+              <p className="text-sm text-gray-600">
+                {state.message || 'Processing your request...'}
+              </p>
+            </div>
+            {onCancel && renderCancelButton()}
+          </div>
+        )
+    }
+  }
+
   return (
     <Dialog 
       open={isOpen} 
@@ -74,20 +115,14 @@ export function ProcessingResultDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            Processing Request
+            {state.status === 'error' ? 'Error' : 
+             state.status === 'completed' ? 'Success' : 
+             'Processing Request'}
           </DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4">
-          <div className="flex flex-col items-center justify-center py-8 space-y-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <div className="text-center space-y-2">
-              <p className="text-sm text-gray-600">
-                {state.message || 'Processing your request...'}
-              </p>
-            </div>
-            {onCancel && renderCancelButton()}
-          </div>
+          {renderContent()}
         </div>
       </DialogContent>
     </Dialog>
