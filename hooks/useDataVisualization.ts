@@ -236,6 +236,12 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
         }));
       }
 
+      setSelectedVisualizationPair({ 
+        url, 
+        sheet_name: sheet,
+        doc_name: cachedWorkbook.doc_name
+      });
+
       const titleKey = formatTitleKey(url, sheet);
       const displayTitle = formatDisplayTitle(cachedWorkbook.doc_name, sheet);
 
@@ -246,7 +252,6 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
 
       await updateRecentUrls(url, sheet, cachedWorkbook.doc_name);
       
-      setSelectedVisualizationPair({ url, sheet_name: sheet });
       setVisualizationUrls(['']);
       setVisualizationUrl(url);
     } catch (error) {
@@ -288,92 +293,93 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
 
   const handleVisualizationSubmit = async () => {
     if (hasReachedVisualizationLimit) {
-      setVisualizationError(
-        currentPlan === 'free'
-          ? 'Monthly visualization limit reached. Please upgrade to Pro for more visualizations.'
-          : 'Overage limit reached. Please increase your limit in account settings.'
-      )
-      return
+      const limitMessage = currentPlan === 'free'
+        ? 'Monthly visualization limit reached. Please upgrade to Pro for more visualizations.'
+        : 'Overage limit reached. Please increase your limit in account settings.';
+      setVisualizationError(limitMessage);
+      return;
     }
 
-    setVisualizationError('')
-    setVisualizationResult(null)
+    setVisualizationError('');
+    setVisualizationResult(null);
 
     if (!selectedVisualizationPair?.url && !visualizationFile) {
-      setVisualizationError('Please provide either a URL or file')
-      return
+      setVisualizationError('Please provide either a URL or file');
+      return;
     }
 
     if (!colorPalette) {
-      setVisualizationError('Please select a color palette')
-      return
+      setVisualizationError('Please select a color palette');
+      return;
     }
 
     // Clean up any existing abort controller
     if (visualizationAbortController) {
-      visualizationAbortController.abort()
-      setVisualizationAbortController(null)
+      visualizationAbortController.abort();
+      setVisualizationAbortController(null);
     }
 
     // Create new AbortController
-    const controller = new AbortController()
-    setVisualizationAbortController(controller)
+    const controller = new AbortController();
+    setVisualizationAbortController(controller);
 
-    setIsVisualizationProcessing(true)
-    setShowVisualizationDialog(true)
+    setIsVisualizationProcessing(true);
+    setShowVisualizationDialog(true);
 
     try {
       const options: VisualizationOptions = {
         chart_type: 'auto',
         color_palette: colorPalette || undefined,
         custom_instructions: customInstructions || undefined
-      }
+      };
 
       const webUrls = selectedVisualizationPair 
         ? [{ 
             url: selectedVisualizationPair.url, 
-            sheet_name: selectedVisualizationPair.sheet_name 
+            sheet_name: selectedVisualizationPair.sheet_name,
+            doc_name: selectedVisualizationPair.doc_name
           }] 
-        : []
+        : [];
       
-      const files = visualizationFile ? [visualizationFile] : undefined
+      const files = visualizationFile ? [visualizationFile] : undefined;
 
       const result = await processDataVisualization(
         options,
         webUrls,
         files,
         controller.signal
-      )
-      
-      // Add debugging
-      console.log('Visualization result type:', typeof result.image_data)
-      console.log('Visualization result length:', result.image_data?.length)
-      console.log('Visualization result preview:', result.image_data?.substring(0, 100))
-      
+      );
+
       // Only update if request wasn't cancelled
       if (!controller.signal.aborted) {
-        if (!result.image_data) {
-          setVisualizationError('No image data received from server')
-          return
+        if (result.error) {
+          setVisualizationError(result.message || result.error);
+          return;
         }
-        setVisualizationResult(result)
+        
+        if (!result.image_data) {
+          setVisualizationError(result.message || 'No image data received from server');
+          return;
+        }
+        
+        setVisualizationResult(result);
       }
     } catch (error) {
       if (error instanceof Error && error.message === 'AbortError') {
-        console.log('Request was cancelled')
-        return
+        setVisualizationError('Request was cancelled');
+        return;
       }
-      console.error('Error processing visualization:', error)
-      setVisualizationError('An error occurred while processing your request')
+      console.error('Error processing visualization:', error);
+      setVisualizationError(error instanceof Error ? error.message : 'An error occurred while processing your request');
     } finally {
       // Only clean up if not aborted
       if (!controller.signal.aborted) {
-        setIsVisualizationProcessing(false)
-        setShowVisualizationDialog(false)
-        setVisualizationAbortController(null)
+        setIsVisualizationProcessing(false);
+        setShowVisualizationDialog(false);
+        setVisualizationAbortController(null);
       }
     }
-  }
+  };
 
   const handleVisualizationOptionChange = (value: 'surprise' | 'custom') => {
     if (value === 'surprise') {

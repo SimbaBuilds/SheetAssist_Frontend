@@ -17,6 +17,7 @@ export interface OutputPreferences {
   format?: DownloadFileType;
   modify_existing?: boolean;
   sheet_name?: string | null;
+  doc_name?: string | null;
 }
 
 export interface FileMetadata {
@@ -32,6 +33,7 @@ export interface FileMetadata {
 export interface InputUrl {
     url: string
     sheet_name?: string | null
+    doc_name?: string | null
 }
 
 export interface QueryRequest {
@@ -61,7 +63,7 @@ export interface FileInfo {
 //Handles batch and standard requests
 export interface QueryResponse {
   original_query?: string;
-  status: 'created' | 'processing' | 'completed' | 'error';
+  status: 'created' | 'processing' | 'completed' | 'error' | 'canceled';
   message: string;
   files?: FileInfo[];
   num_images_processed: number;
@@ -109,7 +111,7 @@ export interface DocumentTitleMap {
 
 // Add new type for processing state
 export interface ProcessingState {
-  status: 'created' | 'processing' | 'completed' | 'error' | null;
+  status: 'created' | 'processing' | 'completed' | 'error' | 'canceled' | null;
   message: string;
   progress?: {
     processed: number;

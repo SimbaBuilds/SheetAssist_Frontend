@@ -508,8 +508,12 @@ export function useDashboard(initialData?: UserPreferences) {
 
   const handleDestinationSheetSelection = async (url: string, sheet: string) => {
     setShowDestinationSheetSelector(false);
-    setSelectedDestinationPair({ url, sheet_name: sheet });
-    setDestinationUrls(['']);  // Clear input like main
+    setSelectedDestinationPair({ 
+      url, 
+      sheet_name: sheet,
+      doc_name: workbookCache[url]?.doc_name
+    });
+    setDestinationUrls(['']);
 
     if (url && sheet) {
       const cachedWorkbook = workbookCache[url];
@@ -541,8 +545,12 @@ export function useDashboard(initialData?: UserPreferences) {
         throw new Error('Workbook information not found in cache');
       }
 
-      // Create new URL pair with selected sheet
-      const newPair: InputUrl = { url, sheet_name: selectedSheet };
+      // Create new URL pair with selected sheet and doc_name
+      const newPair: InputUrl = { 
+        url, 
+        sheet_name: selectedSheet,
+        doc_name: cachedWorkbook.doc_name
+      };
       setSelectedUrlPairs(prev => [...prev, newPair]);
       setUrls(['']); // Reset URL input field
 
@@ -611,7 +619,10 @@ export function useDashboard(initialData?: UserPreferences) {
       setIsProcessing(false);
       setShowResultDialog(false);
       setProcessedResult(null);
-      setError('Request was canceled');
+      setProcessingState({
+        status: 'canceled',
+        message: 'Request was canceled'
+      });
       
       // Log the cancellation
       if (user?.id) {
@@ -635,22 +646,25 @@ export function useDashboard(initialData?: UserPreferences) {
     e.preventDefault();
     
     if (hasReachedRequestLimit) {
-      setError(
-        currentPlan === 'free' 
-          ? 'Monthly request limit reached. Please upgrade to Pro for more requests.' 
-          : 'Overage limit reached. Please increase your limit in account settings.'
-      )
-      return
+      const limitMessage = currentPlan === 'free' 
+        ? 'Monthly request limit reached. Please upgrade to Pro for more requests.' 
+        : 'Overage limit reached. Please increase your limit in account settings.';
+      
+      setProcessingState({
+        status: 'error',
+        message: limitMessage
+      });
+      return;
     }
 
-    // Reset all relevant states at the start
-    setError('');
-    setOutputTypeError(null);
-    setProcessedResult(null);
-    setProcessingState({ // Reset processing state
+    // Reset states
+    setProcessingState({
       status: null,
       message: ''
     });
+    setError(''); // Keep this to ensure all error states are cleared
+    setOutputTypeError(null);
+    setProcessedResult(null);
 
     // Clean up any existing abort controller
     if (abortController) {
@@ -703,7 +717,8 @@ export function useDashboard(initialData?: UserPreferences) {
         ...(outputType === 'online' && {
           destination_url: selectedDestinationPair?.url ?? outputUrl,
           modify_existing: allowSheetModification,
-          sheet_name: selectedDestinationPair?.sheet_name ?? selectedOutputSheet
+          sheet_name: selectedDestinationPair?.sheet_name ?? selectedOutputSheet,
+          doc_name: selectedDestinationPair?.doc_name ?? selectedOutputSheet
         })
       };
 
@@ -723,19 +738,18 @@ export function useDashboard(initialData?: UserPreferences) {
         setProcessedResult(result);
         
         if (result.error) {
-          setError(result.error);
-          // Log error
-          await supabase
-            .from('error_log')
-            .insert({
-              user_id: user?.id,
-              message: result.error,
-              error_code: 'QUERY_PROCESSING_ERROR',
-              resolved: false,
-              original_query: result.original_query
-            });
+          setProcessingState({
+            status: 'error',
+            message: result.message || result.error
+          });
           return;
         }
+
+        // Handle successful completion
+        setProcessingState({
+          status: 'completed',
+          message: result.message || 'Processing complete'
+        });
 
         // Handle download if needed
         if (outputType === 'download' && result.status === 'completed' && result.files?.[0]) {
@@ -744,7 +758,10 @@ export function useDashboard(initialData?: UserPreferences) {
           } catch (downloadError) {
             if (!handleAuthError(downloadError)) {
               console.error('Error downloading file:', downloadError);
-              setError('Failed to download the result file');
+              setProcessingState({
+                status: 'error',
+                message: 'Failed to download the result file'
+              });
               
               // Log download error
               await supabase
@@ -760,14 +777,26 @@ export function useDashboard(initialData?: UserPreferences) {
           }
         }
       }
-    } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.log('Request was cancelled');
+    } catch (error: any) {
+      if (error?.name === 'AbortError') {
+        setProcessingState({
+          status: 'canceled',
+          message: 'Request was cancelled'
+        });
         return;
       }
-      console.error('Error processing query:', error);
-      setError('An error occurred while processing your request');
+
+      // Use error message from response if available
+      const errorMessage = error?.response?.data?.message || 
+                         error?.message || 
+                         'An unexpected error occurred';
       
+      setProcessingState({
+        status: 'error',
+        message: errorMessage
+      });
+
+      // Log error
       if (error instanceof Error) {
         await supabase
           .from('error_log')

@@ -294,11 +294,15 @@ class QueryService {
         return initialResult;
       }
 
-    } catch (error) {
-      // Update processing state for error
+    } catch (error: any) {
+      // Update processing state with server error message if available
+      const errorMessage = error?.response?.data?.message || 
+                         error?.message || 
+                         'An unexpected error occurred';
+      
       const errorState: ProcessingState = {
         status: 'error',
-        message: error instanceof Error ? error.message : 'An unexpected error occurred'
+        message: errorMessage
       };
       onProgress?.(errorState);
 
@@ -326,7 +330,7 @@ class QueryService {
       // Update user usage statistics for failed request
       await updateUserUsage(userId, false);
       
-      // Log failed request
+      // Log failed request with error message
       const processingTime = Date.now() - startTime;
       await supabase.from('request_log').insert({
         user_id: userId,
@@ -334,8 +338,9 @@ class QueryService {
         file_names: files?.map(f => f.name) || [],
         doc_names: webUrls.map(url => url.url),
         processing_time_ms: processingTime,
-        status: error instanceof Error ? error.name : 'error',
-        success: false
+        status: error?.response?.status || error?.name || 'error',
+        success: false,
+        error_message: errorMessage
       });
 
       throw error;

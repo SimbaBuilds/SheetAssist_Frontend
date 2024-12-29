@@ -605,11 +605,11 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {error && (
+            {processingState.status === 'error' && (
               <div className="text-red-500 text-sm">
-                {error.toLowerCase().includes('reconnect') ? (
+                {processingState.message.toLowerCase().includes('reconnect') ? (
                   <div className="flex items-center gap-2">
-                    <span>{error}</span>
+                    <span>{processingState.message}</span>
                     <Button
                       variant="link"
                       className="h-auto p-0 text-sm font-medium text-blue-600 hover:text-blue-800"
@@ -619,7 +619,7 @@ export default function DashboardPage() {
                     </Button>
                   </div>
                 ) : (
-                  error
+                  processingState.message
                 )}
               </div>
             )}

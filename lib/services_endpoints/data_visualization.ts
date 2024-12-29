@@ -122,15 +122,16 @@ export const processDataVisualization = async (
     // Update usage statistics
     await updateVisualizationUsage(userId, response.data.success)
 
-    // Log the visualization request in request_log instead of visualization_log
+    // Log the visualization request
     const processingTime = Date.now() - startTime
     await supabase.from('request_log').insert({
       user_id: userId,
-      query: `visualization_${options.chart_type}`, // Add chart type to query for better tracking
+      query: `visualization_${options.chart_type}`,
       doc_names: webUrls.map(url => url.url),
       file_names: files?.map(f => f.name) || [],
       processing_time_ms: processingTime,
-      success: response.data.success
+      success: response.data.success,
+      message: response.data.message
     })
 
     return response.data
@@ -138,18 +139,10 @@ export const processDataVisualization = async (
   } catch (error) {
     if (error && typeof error === 'object' && 'code' in error) {
       if (error.code === 'ERR_CANCELED') {
-        console.log('Request was cancelled by user')
-        const processingTime = Date.now() - startTime
-        await supabase.from('request_log').insert({
-          user_id: userId,
-          query: `visualization_cancelled`,
-          doc_names: webUrls.map(url => url.url),
-          file_names: files?.map(f => f.name) || [],
-          processing_time_ms: processingTime,
-          status: 'cancelled',
-          success: false
-        })
-        throw new Error('AbortError')
+        return {
+          success: false,
+          message: 'Request was cancelled by user'
+        }
       }
     }
 
@@ -157,18 +150,25 @@ export const processDataVisualization = async (
     
     // Update usage statistics for failed request
     await updateVisualizationUsage(userId, false)
-    // Log failed request
+
+    // Log failed request with error message
     const processingTime = Date.now() - startTime
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+    
     await supabase.from('request_log').insert({
       user_id: userId,
-      query: `visualization_error`, // Updated to be more specific
+      query: 'visualization_error',
       doc_names: webUrls.map(url => url.url),
       file_names: files?.map(f => f.name) || [],
       processing_time_ms: processingTime,
       status: error instanceof Error ? error.name : 'error',
-      success: false
+      success: false,
+      message: errorMessage
     })
 
-    throw error
+    return {
+      success: false,
+      message: errorMessage
+    }
   }
 }
