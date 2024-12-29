@@ -30,11 +30,12 @@ export default function LandingPage() {
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
       {/* Hero Section */}
       <div className="container mx-auto px-4 py-20 text-center">
-        <h1 className="text-4xl md:text-6xl font-bold mb-6">Sheet Assist</h1>
+        <h1 className="text-4xl md:text-6xl font-bold mb-6">SheetAssist</h1>
         <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto mb-12">
           AI tool for your spreadsheets, pdfs, text documents, and images. <br/> 
-          Delivers consistent, reliable results. <br/> 
           Integrates with Google and Microsoft services. <br/> 
+          Delivers consistent, reliable results. <br/>
+          Saves you hours. 
         </p>
         <Button size="lg" asChild>
           <Link href="/login">Get Started</Link>

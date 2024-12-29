@@ -1,3 +1,5 @@
+'use server';
+
 import { createClient } from '@/lib/supabase/server';
 import { InputUrl, FileMetadata } from '@/lib/types/dashboard';
 
@@ -28,13 +30,10 @@ export async function logRequest({
   totalTokens,
   numImagesProcessed
 }: LogRequestParams) {
-  'use server';
-  
   const supabase = await createClient();
   const processingTime = Date.now() - startTime;
 
   try {
-    // Just log to request_log table
     await supabase.from('request_log').insert({
       user_id: userId,
       query,

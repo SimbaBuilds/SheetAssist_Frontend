@@ -1,3 +1,5 @@
+'use server';
+
 import { createClient } from '@/lib/supabase/server';
 
 interface LogErrorParams {
@@ -23,8 +25,6 @@ export async function logError({
   errorMessage,
   startTime
 }: LogErrorParams) {
-  'use server';
-
   const supabase = await createClient();
   const processingTime = startTime ? Date.now() - startTime : null;
 
