@@ -2,8 +2,8 @@ import type { SeabornSequentialPalette } from '@/lib/types/dashboard'
 
 import { useState } from 'react'
 import { useFilePicker } from '@/hooks/useFilePicker'
-import { processDataVisualization } from '@/lib/services_endpoints/data_visualization'
-import { getDocumentTitle } from '@/lib/services_endpoints/get_document_title'
+import { processDataVisualization } from '@/lib/services/data_visualization'
+import { getDocumentTitle } from '@/lib/services/get_document_title'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
 import { 
@@ -271,23 +271,6 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
       setShowVisualizationDialog(false)
       setVisualizationError('Request was canceled')
       
-      // Log the cancellation
-      const user = await supabase.auth.getUser()
-      const userId = user.data.user?.id
-      if (userId) {
-        try {
-          await supabase.from('request_log').insert({
-            user_id: userId,
-            query: 'visualization_cancelled',
-            doc_names: selectedVisualizationPair ? [selectedVisualizationPair.url] : [],
-            file_names: visualizationFile ? [visualizationFile.name] : [],
-            status: 'canceled',
-            success: false
-          })
-        } catch (error) {
-          console.error('Error logging cancellation:', error)
-        }
-      }
     }
   }
 

@@ -23,7 +23,8 @@ export async function DELETE(request: Request) {
       'user_usage',
       'error_log',
       'request_log',
-      'user_documents_access'
+      'user_documents_access',
+      'batch_jobs'
     ]
 
     // Delete data from all tables using admin client

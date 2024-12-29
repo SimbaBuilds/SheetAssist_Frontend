@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
-import type { UserProfile, UserUsage } from '@/lib/supabase/supabase_tables'
+import type { UserProfile, UserUsage } from '@/lib/supabase/tables'
 import { PLAN_REQUEST_LIMITS, VIS_GEN_LIMITS } from '@/lib/constants/pricing'
 
 interface UsageLimits {

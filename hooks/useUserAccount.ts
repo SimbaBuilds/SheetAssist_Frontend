@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useSetupPermissions } from './useSetupPermissions'
-import { UserProfile, UserUsage } from '@/lib/supabase/supabase_tables'
+import { UserProfile, UserUsage } from '@/lib/supabase/tables'
 import { useToast } from '@/components/ui/use-toast'
 import { createClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'

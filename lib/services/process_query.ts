@@ -5,6 +5,8 @@ import { AcceptedMimeType } from '@/lib/constants/file-types';
 import { createClient } from '@/lib/supabase/client';
 import { isUserOnProPlan, getUserSubscriptionId, trackUsage } from '@/lib/stripe/usage'
 import { PLAN_REQUEST_LIMITS, PLAN_IMAGE_LIMITS } from '@/lib/constants/pricing'
+import { logRequest } from '@/lib/services/loggers/request-logger';
+import { logError } from '@/lib/services/loggers/error-logger';
 
 // Helper function to update user usage statistics
 async function updateUserUsage(userId: string, success: boolean, numImagesProcessed: number = 0) {
@@ -251,9 +253,31 @@ class QueryService {
             
             // Add specific handling for different batch processing states
             if (result.status === 'error') {
+              await logRequest({
+                userId,
+                query,
+                fileMetadata: filesMetadata,
+                inputUrls: webUrls,
+                startTime,
+                status: result.status,
+                success: false,
+                errorMessage: result.message,
+                requestType: 'query',
+                numImagesProcessed: result.num_images_processed
+              });
               throw new Error(result.message || 'Batch processing failed');
             } else if (result.status === 'completed') {
-              // Update user usage statistics for successful batch processing
+              await logRequest({
+                userId,
+                query,
+                fileMetadata: filesMetadata,
+                inputUrls: webUrls,
+                startTime,
+                status: 'completed',
+                success: true,
+                requestType: 'query',
+                numImagesProcessed: result.num_images_processed
+              });
               await updateUserUsage(userId, true, result.num_images_processed || 0);
               return result;  // Return the final result
             } else if (result.status === 'processing') {
@@ -264,7 +288,16 @@ class QueryService {
           // Type guard for Error objects
           if (error instanceof Error) {
             if (error.message === 'AbortError') {
-              throw error;
+              await logRequest({
+                userId,
+                query,
+                fileMetadata: filesMetadata,
+                inputUrls: webUrls,
+                startTime,
+                status: 'canceled',
+                success: false,
+                requestType: 'query'
+              });
             }
             // Handle polling errors gracefully
             console.error('Polling error:', error);
@@ -279,69 +312,62 @@ class QueryService {
         }
       } else {
         // Handle non-batch processing result
-        // Update processing state for completion
-        const processingState: ProcessingState = {
+        await logRequest({
+          userId,
+          query,
+          fileMetadata: filesMetadata,
+          inputUrls: webUrls,
+          startTime,
           status: initialResult.status || 'completed',
-          message: initialResult.message || 'Processing complete',
-          progress: initialResult.num_images_processed ? {
-            processed: initialResult.num_images_processed,
-            total: initialResult.total_pages || null
-          } : undefined
-        };
-        
-        onProgress?.(processingState);
+          success: true,
+          requestType: 'query',
+          numImagesProcessed: initialResult.num_images_processed
+        });
         await updateUserUsage(userId, true, initialResult.num_images_processed || 0);
         return initialResult;
       }
 
     } catch (error: any) {
-      // Update processing state with server error message if available
       const errorMessage = error?.response?.data?.message || 
                          error?.message || 
                          'An unexpected error occurred';
       
-      const errorState: ProcessingState = {
+      onProgress?.({
         status: 'error',
         message: errorMessage
-      };
-      onProgress?.(errorState);
+      });
 
-      // Check if the error is from axios
-      if (error && typeof error === 'object' && 'code' in error) {
-        // Handle specific axios error codes
-        if (error.code === 'ERR_CANCELED') {
-          console.log('Request was cancelled by user');
-          const processingTime = Date.now() - startTime;
-          await supabase.from('request_log').insert({
-            user_id: userId,
-            query,
-            file_names: files?.map(f => f.name) || [],
-            doc_names: webUrls.map(url => url.url),
-            processing_time_ms: processingTime,
-            status: 'cancelled',
-            success: false
-          });
-          throw new Error('AbortError');
-        }
-      }
-      
-      console.error('Error processing query:', error);
-      
+      // Log error to both tables
+      const errorCode = error?.response?.status?.toString() || error?.code || 'UNKNOWN';
+      await Promise.all([
+        // Log to error_log table
+        logError({
+          userId,
+          originalQuery: query,
+          fileNames: files?.map(f => f.name),
+          docNames: webUrls.map(url => url.url),
+          message: errorMessage,
+          errorCode,
+          requestType: 'query',
+          errorMessage: error?.stack,
+          startTime
+        }),
+        // Log to request_log table (existing)
+        logRequest({
+          userId,
+          query,
+          fileMetadata: filesMetadata,
+          inputUrls: webUrls,
+          startTime,
+          status: error?.response?.status || error?.name || 'error',
+          success: false,
+          errorMessage,
+          requestType: 'query'
+        })
+      ]);
+
       // Update user usage statistics for failed request
       await updateUserUsage(userId, false);
-      
-      // Log failed request with error message
-      const processingTime = Date.now() - startTime;
-      await supabase.from('request_log').insert({
-        user_id: userId,
-        query,
-        file_names: files?.map(f => f.name) || [],
-        doc_names: webUrls.map(url => url.url),
-        processing_time_ms: processingTime,
-        status: error?.response?.status || error?.name || 'error',
-        success: false,
-        error_message: errorMessage
-      });
 
       throw error;
     }

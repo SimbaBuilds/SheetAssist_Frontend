@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
-import {downloadFile} from '@/lib/services_endpoints/download_file'
-import {getDocumentTitle} from '@/lib/services_endpoints/get_document_title'
+import {downloadFile} from '@/lib/services/download_file'
+import {getDocumentTitle} from '@/lib/services/get_document_title'
 import { createClient } from '@/lib/supabase/client'
 import type { DownloadFileType, DashboardInitialData, OutputPreferences, QueryResponse, SheetTitleKey, InputUrl, OnlineSheet, ProcessingState } from '@/lib/types/dashboard'
 import { MAX_FILES } from '@/lib/constants/file-types'
@@ -19,7 +19,7 @@ import {
   handleUrlValidation,
   fetchAndHandleSheets
 } from '@/lib/utils/dashboard-utils'
-import { queryService } from '@/lib/services_endpoints/process_query'
+import { queryService } from '@/lib/services/process_query'
 import { useUsageLimits } from '@/hooks/useUsageLimits'
 
 
@@ -624,21 +624,6 @@ export function useDashboard(initialData?: UserPreferences) {
         message: 'Request was canceled'
       });
       
-      // Log the cancellation
-      if (user?.id) {
-        try {
-          await supabase.from('request_log').insert({
-            user_id: user.id,
-            query,
-            file_names: files?.map(f => f.name) || [],
-            doc_names: selectedUrlPairs.map(url => url.url),
-            status: 'canceled',
-            success: false
-          });
-        } catch (error) {
-          console.error('Error logging cancellation:', error);
-        }
-      }
     }
   }
 
@@ -762,17 +747,6 @@ export function useDashboard(initialData?: UserPreferences) {
                 status: 'error',
                 message: 'Failed to download the result file'
               });
-              
-              // Log download error
-              await supabase
-                .from('error_log')
-                .insert({
-                  user_id: user?.id,
-                  message: downloadError instanceof Error ? downloadError.message : 'Download failed',
-                  error_code: 'DOWNLOAD_ERROR',
-                  resolved: false,
-                  original_query: result.original_query
-                });
             }
           }
         }
@@ -795,18 +769,6 @@ export function useDashboard(initialData?: UserPreferences) {
         status: 'error',
         message: errorMessage
       });
-
-      // Log error
-      if (error instanceof Error) {
-        await supabase
-          .from('error_log')
-          .insert({
-            user_id: user?.id,
-            message: error.message,
-            error_code: 'UNKNOWN_ERROR',
-            resolved: false,
-          });
-      }
       if (!controller.signal.aborted) {
         setProcessedResult(null); // Clear result on error
       }

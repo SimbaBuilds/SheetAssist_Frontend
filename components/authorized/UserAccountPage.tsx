@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useUserAccount } from '@/hooks/useUserAccount'
 import { useState } from 'react'
-import type { UserProfile, UserUsage } from '@/lib/supabase/supabase_tables'
+import type { UserProfile, UserUsage } from '@/lib/supabase/tables'
 import type { User } from '@supabase/supabase-js'
 import { PLAN_REQUEST_LIMITS, PLAN_IMAGE_LIMITS, VIS_GEN_LIMITS } from '@/lib/constants/pricing'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"

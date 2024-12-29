@@ -37,24 +37,31 @@ export interface ErrorLog {
   id: string // UUID
   user_id: string // UUID
   original_query: string | null
-  file_names: string[]
-  doc_names: string[]
+  file_names?: string[]
+  doc_names?: string[]
   message: string
   created_at: string // ISO timestamp
-  error_code: string | null
+  error_code?: string | null
+  request_type?: 'query' | 'visualization'
+  error_message?: string
+  processing_time_ms?: number | null
 }
 
 // request_log table
 export interface RequestLog {
   id: string // UUID
   user_id: string // UUID
-  query: string
-  file_names: string[]
-  doc_names: string[]
+  query?: string
+  file_names?: string[]
+  doc_names?: string[]
   created_at: string // ISO timestamp
-  processing_time_ms: number | null
+  processing_time_ms?: number | null
   status: string
   success: boolean
+  error_message?: string
+  request_type: 'query' | 'visualization'
+  total_tokens?: number
+  num_images_processed?: number
 }
 
 

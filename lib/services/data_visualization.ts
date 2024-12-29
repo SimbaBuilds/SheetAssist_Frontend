@@ -11,6 +11,8 @@ import {
 } from '@/lib/types/dashboard'
 import { isUserOnProPlan, getUserSubscriptionId, trackUsage } from '@/lib/stripe/usage'
 import { VIS_GEN_LIMITS } from '@/lib/constants/pricing'
+import { logRequest } from '@/lib/services/loggers/request-logger'
+import { logError } from '@/lib/services/loggers/error-logger'
 
 // Helper function to update user visualization usage statistics
 async function updateVisualizationUsage(userId: string, success: boolean) {
@@ -122,16 +124,17 @@ export const processDataVisualization = async (
     // Update usage statistics
     await updateVisualizationUsage(userId, response.data.success)
 
-    // Log the visualization request
-    const processingTime = Date.now() - startTime
-    await supabase.from('request_log').insert({
-      user_id: userId,
+    // Log the successful visualization request
+    await logRequest({
+      userId,
       query: `visualization_${options.chart_type}`,
-      doc_names: webUrls.map(url => url.url),
-      file_names: files?.map(f => f.name) || [],
-      processing_time_ms: processingTime,
+      fileMetadata: filesMetadata,
+      inputUrls: webUrls,
+      startTime,
+      status: 'completed',
       success: response.data.success,
-      message: response.data.message
+      errorMessage: response.data.message,
+      requestType: 'visualization'
     })
 
     return response.data
@@ -139,36 +142,62 @@ export const processDataVisualization = async (
   } catch (error) {
     if (error && typeof error === 'object' && 'code' in error) {
       if (error.code === 'ERR_CANCELED') {
+        // Log canceled request
+        await logRequest({
+          userId,
+          query: `visualization_${options.chart_type}`,
+          fileMetadata: filesMetadata,
+          inputUrls: webUrls,
+          startTime,
+          status: 'canceled',
+          success: false,
+          requestType: 'visualization'
+        });
+
         return {
           success: false,
           message: 'Request was cancelled by user'
-        }
+        };
       }
     }
 
-    console.error('Error processing visualization:', error)
+    console.error('Error processing visualization:', error);
     
     // Update usage statistics for failed request
-    await updateVisualizationUsage(userId, false)
+    await updateVisualizationUsage(userId, false);
 
-    // Log failed request with error message
-    const processingTime = Date.now() - startTime
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const errorCode = error instanceof Error ? error.name : 'UNKNOWN';
     
-    await supabase.from('request_log').insert({
-      user_id: userId,
-      query: 'visualization_error',
-      doc_names: webUrls.map(url => url.url),
-      file_names: files?.map(f => f.name) || [],
-      processing_time_ms: processingTime,
-      status: error instanceof Error ? error.name : 'error',
-      success: false,
-      message: errorMessage
-    })
+    // Log error to both tables
+    await Promise.all([
+      logError({
+        userId,
+        originalQuery: `visualization_${options.chart_type}`,
+        fileNames: files?.map(f => f.name),
+        docNames: webUrls.map(url => url.url),
+        message: errorMessage,
+        errorCode,
+        requestType: 'visualization',
+        errorMessage: error instanceof Error ? error.stack : undefined,
+        startTime
+      }),
+      logRequest({
+        userId,
+        query: `visualization_${options.chart_type}`,
+        fileMetadata: filesMetadata,
+        inputUrls: webUrls,
+        startTime,
+        status: errorCode,
+        success: false,
+        errorMessage,
+        requestType: 'visualization'
+      })
+    ]);
 
     return {
       success: false,
       message: errorMessage
-    }
+    };
   }
 }
