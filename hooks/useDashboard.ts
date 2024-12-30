@@ -303,19 +303,23 @@ export function useDashboard(initialData?: UserPreferences) {
 
       let updatedUrls = data?.recent_sheets || [];
       
-      // Remove any existing entries for this URL and sheet combination
-      updatedUrls = updatedUrls.filter((sheet: OnlineSheet) => 
-        !(sheet.url === newUrl && sheet.sheet_name === sheetName)
-      );
+      // Create unique key for the new entry
+      const newKey = JSON.stringify({ url: newUrl, sheet_name: sheetName });
       
-      // Create new sheet entry with explicit sheet name
+      // Remove any existing entries with the same URL and sheet name
+      updatedUrls = updatedUrls.filter((sheet: OnlineSheet) => {
+        const existingKey = JSON.stringify({ url: sheet.url, sheet_name: sheet.sheet_name });
+        return existingKey !== newKey;
+      });
+      
+      // Create new sheet entry
       const newSheet: OnlineSheet = {
         url: newUrl,
         doc_name: docName,
         sheet_name: sheetName
       };
       
-      // Add to the beginning of the list
+      // Add to the beginning of the list and limit to 6 entries
       updatedUrls = [newSheet, ...updatedUrls].slice(0, 6);
 
       // Update database
@@ -328,8 +332,18 @@ export function useDashboard(initialData?: UserPreferences) {
 
       if (updateError) throw updateError;
 
-      // Update local state with new URLs
+      // Update local state
       setRecentUrls(updatedUrls);
+
+      // Update document titles mapping only if it doesn't exist
+      const titleKey = formatTitleKey(newUrl, sheetName);
+      if (!documentTitles[titleKey]) {
+        const displayTitle = formatDisplayTitle(docName, sheetName);
+        setDocumentTitles(prev => ({
+          ...prev,
+          [titleKey]: displayTitle
+        }));
+      }
 
     } catch (error) {
       console.error('Error updating recent URLs:', error);
@@ -355,13 +369,27 @@ export function useDashboard(initialData?: UserPreferences) {
         try {
           const { url, sheet_name } = JSON.parse(titleKey);
           const displayTitle = documentTitles[titleKey];
-          // Extract doc_name from displayTitle (format is "doc_name - sheet_name")
           const doc_name = displayTitle.split(' - ')[0];
           
+          // Check for duplicates before adding
+          const isDuplicate = selectedUrlPairs.some(
+            pair => pair.url === url && pair.sheet_name === sheet_name
+          );
+
+          if (isDuplicate) {
+            toast({
+              title: "Already Selected",
+              description: "This sheet has already been selected.",
+              className: "destructive"
+            });
+            setUrls(['']);
+            return;
+          }
+
           const newPair: InputUrl = { 
             url, 
             sheet_name,
-            doc_name // Use doc_name from display title
+            doc_name
           };
           
           setSelectedUrlPairs(prev => [...prev, newPair]);
@@ -581,7 +609,21 @@ export function useDashboard(initialData?: UserPreferences) {
         throw new Error('Workbook information not found in cache');
       }
 
-      // Create new URL pair with doc_name from API response
+      // Check if this URL + sheet combination already exists
+      const isDuplicate = selectedUrlPairs.some(
+        pair => pair.url === url && pair.sheet_name === selectedSheet
+      );
+
+      if (isDuplicate) {
+        toast({
+          title: "Already Selected",
+          description: "This sheet has already been selected.",
+          className: "destructive"
+        });
+        return;
+      }
+
+      // Create new URL pair with doc_name from cache
       const newPair: InputUrl = { 
         url, 
         sheet_name: selectedSheet,
