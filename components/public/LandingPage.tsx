@@ -32,7 +32,7 @@ export default function LandingPage() {
       <div className="container mx-auto px-4 py-20 text-center">
         <h1 className="text-4xl md:text-6xl font-bold mb-6">SheetAssist</h1>
         <p className="text-xl md:text-1xl text-muted-foreground max-w-3xl mx-auto mb-12">
-          Automates data entry, spreadsheet operations, and data visualization with AI<br/> 
+          Automates data entry, spreadsheet operations, and data visualization with AI.<br/> 
           Integrates with Google and Microsoft services. <br/> 
           Delivers consistent, reliable results. <br/>
           Saves you hours. 
