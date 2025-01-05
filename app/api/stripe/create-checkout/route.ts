@@ -11,28 +11,36 @@ export async function POST(req: Request) {
         }
 
         const supabase = await createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-        const userId = user?.id;
-        const { priceId } = body;
-
-        if (!userId) {
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        
+        if (authError || !user?.id) {
             return new NextResponse('Unauthorized', { status: 401 });
         }
 
+        // Check if user already has an active subscription
+        const { data: profile } = await supabase
+            .from('user_profile')
+            .select('subscription_status, price_id')
+            .eq('id', user.id)
+            .single();
+
+        // Prevent duplicate subscriptions
+        if (profile?.subscription_status === 'active' && profile?.price_id === body.priceId) {
+            return new NextResponse('Already subscribed to this plan', { status: 400 });
+        }
+
         const session = await createCheckoutSession({
-            userId,
-            priceId,
+            userId: user.id,
+            priceId: body.priceId,
             returnUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard`,
         });
 
         return NextResponse.json({ sessionId: session.id });
     } catch (error) {
         console.error('Stripe checkout error:', error);
-        
-        // Return more specific error messages when possible
-        if (error instanceof Error) {
-            return new NextResponse(error.message, { status: 400 });
-        }
-        return new NextResponse('Internal Error', { status: 500 });
+        return new NextResponse(
+            error instanceof Error ? error.message : 'Internal Error', 
+            { status: error instanceof Error ? 400 : 500 }
+        );
     }
 }

@@ -12,6 +12,7 @@ import type { User } from '@supabase/supabase-js'
 import { PLAN_REQUEST_LIMITS, PLAN_IMAGE_LIMITS, VIS_GEN_LIMITS } from '@/lib/constants/pricing'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Switch } from "@/components/ui/switch"
+import { toast } from '@/components/ui/use-toast'
 
 import { useSubscription } from '@/hooks/useSubscription'
 import { SUBSCRIPTION_PLANS } from '@/lib/types/stripe'
@@ -75,6 +76,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
     isLoading: isSubscriptionLoading,
     checkout,
     openPortal,
+    isPortalLoading,
   } = useSubscription()
 
   if (isLoading) {
@@ -322,30 +324,52 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
         {/* Subscription Plan */}
         <Card>
           <CardHeader>
-            <CardTitle>Subscription Plan</CardTitle>
-            <CardDescription>Manage your subscription and billing</CardDescription>
+            <CardTitle>Manage Subscription</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-medium">Current Plan</h3>
-                <p className="text-2xl font-bold capitalize">{plan}</p>
+                <p className="text-2xl font-bold capitalize">{plan} Tier</p>
               </div>
               <div className="space-x-2">
                 {plan === 'free' ? (
                   <Button
-                    onClick={() => checkout(SUBSCRIPTION_PLANS.PRO.priceId!)}
-                    disabled={isLoading}
+                    onClick={() => {
+                      if (!SUBSCRIPTION_PLANS.PRO.priceId) {
+                        toast({
+                          title: "Error",
+                          description: "Invalid subscription plan configuration",
+                          className: "destructive",
+                        })
+                        return
+                      }
+                      checkout(SUBSCRIPTION_PLANS.PRO.priceId)
+                    }}
+                    disabled={isLoading || isSubscriptionLoading}
                   >
-                    Upgrade to Pro
+                    {isSubscriptionLoading ? (
+                      <div className="flex items-center gap-2">
+                        <span className="loading loading-spinner loading-sm"></span>
+                        Processing...
+                      </div>
+                    ) : (
+                      'Upgrade to Pro'
+                    )}
                   </Button>
                 ) : (
                   <Button
                     variant="outline"
                     onClick={openPortal}
-                    disabled={isLoading}
+                    disabled={isLoading || isPortalLoading}
                   >
-                    Manage Subscription
+                    {isPortalLoading ? (
+                      <div className="flex items-center gap-2">
+                        <span className="loading loading-spinner loading-sm"></span>
+                        Loading Portal...
+                      </div>
+                    ) : (
+                      'Manage Subscription'
+                    )}
                   </Button>
                 )}
               </div>

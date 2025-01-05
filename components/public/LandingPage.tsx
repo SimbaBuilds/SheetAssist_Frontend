@@ -45,13 +45,7 @@ export default function LandingPage() {
       {/* Example Use Cases Section */}
       <div className="container mx-auto px-4 py-20">
         <h2 className="text-3xl font-bold text-center mb-12">Capabilities</h2>
-        <div className="h-20 mb-8 flex items-center justify-center">
-          <span 
-            ref={typedRef}
-            className="text-xl md:text-2xl text-primary"
-          />
-        </div>
-        <div className="grid md:grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid md:grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto mb-12">
           <Card>
             <CardHeader>
               <CardTitle>Spreadsheet Operations</CardTitle>
@@ -90,6 +84,17 @@ export default function LandingPage() {
           </Card>
 
 
+        </div>
+
+        <div className="text-center mb-6">
+          <p className="text-muted-foreground">Example Requests:</p>
+        </div>
+        
+        <div className="h-20 flex items-center justify-center">
+          <span 
+            ref={typedRef}
+            className="text-xl md:text-2xl text-primary"
+          />
         </div>
       </div>
 

@@ -81,6 +81,8 @@ class QueryService {
 
   private async pollJobStatus(
     jobId: string,
+    userId: string,
+    query: string,
     signal?: AbortSignal,
     onProgress?: (state: ProcessingState) => void
   ): Promise<QueryResponse> {
@@ -127,10 +129,22 @@ class QueryService {
           } : undefined
         };
         
-        // Update UI through callback
         onProgress?.(processingState);
 
-        if (result.status === 'completed' || result.status === 'error') {
+        if (result.status === 'error') {
+          // Add error logging here
+          await logError({
+            userId,
+            originalQuery: query,
+            message: result.message || 'Backend processing error',
+            errorCode: 'BACKEND_ERROR',
+            requestType: 'query',
+            startTime
+          });
+          return result;
+        }
+
+        if (result.status === 'completed') {
           return result;
         }
 
@@ -242,7 +256,13 @@ class QueryService {
         
         try {
           while (true) {
-            const result = await this.pollJobStatus(initialResult.job_id, signal, onProgress);
+            const result = await this.pollJobStatus(
+              initialResult.job_id,
+              userId,
+              query,
+              signal,
+              onProgress
+            );
             
             console.log('[process_query] Polling result:', {
               status: result.status,
@@ -253,18 +273,30 @@ class QueryService {
             
             // Add specific handling for different batch processing states
             if (result.status === 'error') {
-              await logRequest({
-                userId,
-                query,
-                fileMetadata: filesMetadata,
-                inputUrls: webUrls,
-                startTime,
-                status: result.status,
-                success: false,
-                errorMessage: result.message,
-                requestType: 'query',
-                numImagesProcessed: result.num_images_processed
-              });
+              await Promise.all([
+                logError({
+                  userId,
+                  originalQuery: query,
+                  fileNames: files?.map(f => f.name),
+                  docNames: webUrls.map(url => url.url),
+                  message: result.message || 'Batch processing error',
+                  errorCode: 'BATCH_ERROR',
+                  requestType: 'query',
+                  startTime
+                }),
+                logRequest({
+                  userId,
+                  query,
+                  fileMetadata: filesMetadata,
+                  inputUrls: webUrls,
+                  startTime,
+                  status: result.status,
+                  success: false,
+                  errorMessage: result.message,
+                  requestType: 'query',
+                  numImagesProcessed: result.num_images_processed
+                })
+              ]);
               throw new Error(result.message || 'Batch processing failed');
             } else if (result.status === 'completed') {
               await logRequest({
@@ -312,6 +344,22 @@ class QueryService {
         }
       } else {
         // Handle non-batch processing result
+        if (initialResult.status === 'error') {
+          await Promise.all([
+            logError({
+              userId,
+              originalQuery: query,
+              fileNames: files?.map(f => f.name),
+              docNames: webUrls.map(url => url.url),
+              message: initialResult.message || 'Processing error',
+              errorCode: 'PROCESSING_ERROR',
+              requestType: 'query',
+              startTime
+            })
+          ]);
+          throw new Error(initialResult.message || 'Processing failed');
+        }
+
         await logRequest({
           userId,
           query,
@@ -319,7 +367,7 @@ class QueryService {
           inputUrls: webUrls,
           startTime,
           status: initialResult.status || 'completed',
-          success: true,
+          success: initialResult.status === 'completed',
           requestType: 'query',
           numImagesProcessed: initialResult.num_images_processed
         });

@@ -9,7 +9,10 @@ export async function POST(req: Request) {
     const userId = user?.id;
 
     if (!userId) {
-      return new NextResponse('Unauthorized', { status: 401 });
+      return NextResponse.json(
+        { message: 'Unauthorized' },
+        { status: 401 }
+      );
     }
 
     const session = await createPortalSession({
@@ -21,10 +24,10 @@ export async function POST(req: Request) {
   } catch (error) {
     console.error('Stripe portal error:', error);
     
-    // Return more specific error messages when possible
-    if (error instanceof Error) {
-      return new NextResponse(error.message, { status: 400 });
-    }
-    return new NextResponse('Internal Error', { status: 500 });
+    return NextResponse.json({ 
+      message: error instanceof Error ? error.message : 'Internal Error'
+    }, { 
+      status: error instanceof Error ? 400 : 500 
+    });
   }
 }
