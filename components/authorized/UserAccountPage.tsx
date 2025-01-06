@@ -131,7 +131,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
             <CardTitle>Connected Services</CardTitle>
             <CardDescription className="space-y-2">
               <span className="block">
-                Please accept all permissions to get the most out of this application.<br/>
+                Please accept all permissions to get the most out of this application. <br/>
                 Changes to your sheets will only be additive; <br/> 
                 no deletions or modifications 
                 will be made to your files or their contents. <br/>

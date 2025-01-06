@@ -403,7 +403,6 @@ export function useDashboard(initialData?: UserPreferences) {
 
     setIsRetrievingData(true);
     try {
-      // Use the utility function for URL validation
       const isValid = await handleUrlValidation(
         value,
         verifyFileAccess,
@@ -418,6 +417,13 @@ export function useDashboard(initialData?: UserPreferences) {
 
       // Fetch document title and handle sheet selection
       const workbook = await getDocumentTitle(value);
+      
+      if (workbook?.error) {
+        setUrlPermissionError(workbook.error);
+        setUrls(['']);
+        return;
+      }
+
       if (workbook?.success) {
         // Cache workbook data
         setWorkbookCache(prev => ({
@@ -507,6 +513,13 @@ export function useDashboard(initialData?: UserPreferences) {
       }
 
       const workbook = await getDocumentTitle(value);
+      
+      if (workbook?.error) {
+        setDestinationUrlError(workbook.error);
+        setOutputUrl('');
+        return;
+      }
+
       if (workbook?.success) {
         console.log('Workbook response:', workbook);
         

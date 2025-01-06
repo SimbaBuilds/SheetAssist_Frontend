@@ -50,8 +50,9 @@ export function SetupPermissionsPage() {
           <div className="bg-primary/10 border-2 border-primary rounded-lg p-4">
             <p className="text-primary font-medium leading-relaxed">
               Please accept all permissions to get the most out of this application. <br/>
-              Changes to your sheets will only be additive; no deletions or modifications will be made to your files or their contents.
-              < br/>Verification for this app is pending.
+              Changes to your sheets will only be additive; <br/> 
+              no deletions or modifications will be made to your files or their contents. <br/>
+              Verification for this app is pending.
             </p>
           </div>
         </div>
