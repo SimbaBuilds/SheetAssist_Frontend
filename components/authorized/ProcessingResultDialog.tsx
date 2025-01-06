@@ -83,6 +83,17 @@ export function ProcessingResultDialog({
                     We've lost connection to your Google or Microsoft account. Please <strong>reconnect</strong> the necessary service in your account settings to continue.
                   </p>
                 </>
+              ) : state.message?.includes("attempts exhausted") ? (
+                <>
+                  <div className="text-sm text-destructive">
+                    <div className="max-h-20 overflow-y-auto break-all text-xs mt-1">
+                      {state.message}
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2 text-base">
+                    There was an error processing your request.  This application may not have the ability to complete your request.  You can also try rephrasing your request or breaking it down into multiple requests.
+                  </p>
+                </>
               ) : (
                 <p className="text-sm text-destructive break-words">
                   {state.message || 'An error occurred while processing your request'}
