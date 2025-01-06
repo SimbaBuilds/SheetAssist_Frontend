@@ -102,12 +102,20 @@ class QueryService {
           message: 'Maximum polling time exceeded'
         };
         onProgress?.(errorState);
-        throw new Error('Maximum polling time exceeded');
+        return {
+          status: 'error',
+          message: errorState.message,
+          num_images_processed: 0
+        };
       }
 
       if (signal?.aborted) {
         console.log('[process_query] Polling aborted by signal');
-        throw new Error('AbortError');
+        return {
+          status: 'canceled',
+          message: 'Request was canceled',
+          num_images_processed: 0
+        };
       }
 
       try {
@@ -119,20 +127,14 @@ class QueryService {
 
         const result = response.data;
         
-        // Create processing state from result
-        const processingState: ProcessingState = {
-          status: result.status || 'processing',
-          message: result.message || `Processing page ${result.num_images_processed || 0} of ${result.total_pages || '?'}`,
-          progress: result.num_images_processed ? {
-            processed: result.num_images_processed,
-            total: result.total_pages || null
-          } : undefined
-        };
-        
-        onProgress?.(processingState);
+        // Important: Check for error indicators in both status and message
+        const hasError = 
+          result.status === 'error' || 
+          result.error || 
+          (result.message && result.message.toLowerCase().includes('error'));
 
-        if (result.status === 'error') {
-          // Add error logging here
+        if (hasError) {
+          const errorMessage = result.error || result.message || 'Backend processing error';
           await logError({
             userId,
             originalQuery: query,
@@ -141,11 +143,50 @@ class QueryService {
             requestType: 'query',
             startTime
           });
-          return result;
+          
+          const errorState: ProcessingState = {
+            status: 'error',
+            message: errorMessage
+          };
+          onProgress?.(errorState);
+          
+          return {
+            status: 'error',
+            message: errorMessage,
+            num_images_processed: result.num_images_processed || 0,
+            error: errorMessage
+          };
         }
+
+        // Create processing state from result
+        const processingState: ProcessingState = {
+          status: result.status,
+          message: result.message || `Processing page ${result.num_images_processed || 0} of ${result.total_pages || '?'}`,
+          progress: result.num_images_processed ? {
+            processed: result.num_images_processed,
+            total: result.total_pages || null
+          } : undefined
+        };
+
+        // Update progress for non-error states
+        onProgress?.(processingState);
 
         if (result.status === 'completed') {
           return result;
+        }
+
+        // Only continue polling if status is 'processing' or 'created'
+        if (result.status !== 'processing' && result.status !== 'created') {
+          const errorState: ProcessingState = {
+            status: 'error',
+            message: `Unexpected status: ${result.status}`
+          };
+          onProgress?.(errorState);
+          return {
+            status: 'error',
+            message: errorState.message,
+            num_images_processed: result.num_images_processed || 0
+          };
         }
 
         const backoffTime = Math.min(
@@ -163,11 +204,21 @@ class QueryService {
           retries
         });
 
-        // More specific error handling
+        // Handle connection timeouts
         if (error?.code === 'ECONNABORTED') {
           retries++;
           if (retries >= this.MAX_RETRIES) {
-            throw new Error('Connection timeout - max retries exceeded');
+            const errorState: ProcessingState = {
+              status: 'error',
+              message: 'Connection timeout',
+
+            };
+            onProgress?.(errorState);
+            return {
+              status: 'error',
+              message: errorState.message,
+              num_images_processed: 0
+            };
           }
           // Wait longer between retries on timeout
           await new Promise(resolve => setTimeout(resolve, this.POLLING_INTERVAL * 2));
@@ -177,7 +228,17 @@ class QueryService {
         // For other errors
         retries++;
         if (retries >= this.MAX_RETRIES) {
-          throw new Error('Max polling retries exceeded');
+          const errorState: ProcessingState = {
+            status: 'error',
+            message: 'Maximum retry attempts exceeded',
+            details: 'There was a problem processing your request. Please try again later.'
+          };
+          onProgress?.(errorState);
+          return {
+            status: 'error',
+            message: errorState.message,
+            num_images_processed: 0
+          };
         }
         await new Promise(resolve => setTimeout(resolve, this.POLLING_INTERVAL));
       }
@@ -255,89 +316,70 @@ class QueryService {
         let lastProgress = 0;
         
         try {
-          while (true) {
-            const result = await this.pollJobStatus(
-              initialResult.job_id,
-              userId,
-              query,
-              signal,
-              onProgress
-            );
-            
-            console.log('[process_query] Polling result:', {
-              status: result.status,
-              message: result.message,
-              processed: result.num_images_processed,
-              total: result.total_pages
-            });
-            
-            // Add specific handling for different batch processing states
-            if (result.status === 'error') {
-              await Promise.all([
-                logError({
-                  userId,
-                  originalQuery: query,
-                  fileNames: files?.map(f => f.name),
-                  docNames: webUrls.map(url => url.url),
-                  message: result.message || 'Batch processing error',
-                  errorCode: 'BATCH_ERROR',
-                  requestType: 'query',
-                  startTime
-                }),
-                logRequest({
-                  userId,
-                  query,
-                  fileMetadata: filesMetadata,
-                  inputUrls: webUrls,
-                  startTime,
-                  status: result.status,
-                  success: false,
-                  errorMessage: result.message,
-                  requestType: 'query',
-                  numImagesProcessed: result.num_images_processed
-                })
-              ]);
-              throw new Error(result.message || 'Batch processing failed');
-            } else if (result.status === 'completed') {
-              await logRequest({
+          const result = await this.pollJobStatus(
+            initialResult.job_id,
+            userId,
+            query,
+            signal,
+            onProgress
+          );
+
+          // Handle the polling result
+          if (result.status === 'error' || result.status === 'canceled') {
+            await Promise.all([
+              logError({
+                userId,
+                originalQuery: query,
+                fileNames: files?.map(f => f.name),
+                docNames: webUrls.map(url => url.url),
+                message: result.message || 'Batch processing error',
+                errorCode: 'BATCH_ERROR',
+                requestType: 'query',
+                startTime
+              }),
+              logRequest({
                 userId,
                 query,
                 fileMetadata: filesMetadata,
                 inputUrls: webUrls,
                 startTime,
-                status: 'completed',
-                success: true,
+                status: result.status,
+                success: false,
+                errorMessage: result.message,
                 requestType: 'query',
                 numImagesProcessed: result.num_images_processed
-              });
-              await updateUserUsage(userId, true, result.num_images_processed || 0);
-              return result;  // Return the final result
-            } else if (result.status === 'processing') {
-              continue;  // Just continue polling
-            }
+              })
+            ]);
+            return result;
           }
-        } catch (error: unknown) {
-          // Type guard for Error objects
-          if (error instanceof Error) {
-            if (error.message === 'AbortError') {
-              await logRequest({
-                userId,
-                query,
-                fileMetadata: filesMetadata,
-                inputUrls: webUrls,
-                startTime,
-                status: 'canceled',
-                success: false,
-                requestType: 'query'
-              });
-            }
-            // Handle polling errors gracefully
-            console.error('Polling error:', error);
-            throw new Error('Failed to get batch processing status');
-          }
-          // Handle non-Error objects
-          console.error('Unknown polling error:', error);
-          throw new Error('An unexpected error occurred during batch processing');
+
+          await logRequest({
+            userId,
+            query,
+            fileMetadata: filesMetadata,
+            inputUrls: webUrls,
+            startTime,
+            status: 'completed',
+            success: true,
+            requestType: 'query',
+            numImagesProcessed: result.num_images_processed
+          });
+          await updateUserUsage(userId, true, result.num_images_processed || 0);
+          return result;  // Return the final result
+        } catch (error) {
+          // This should rarely happen now as errors are handled in pollJobStatus
+          console.error('Unexpected error during polling:', error);
+          const errorState: ProcessingState = {
+            status: 'error',
+            message: 'An unexpected error occurred',
+            details: 'Please try again later or contact support if the problem persists.'
+          };
+          onProgress?.(errorState);
+          return {
+            status: 'error',
+            message: errorState.message,
+            num_images_processed: 0
+          };
         } finally {
           // Reset timeout to standard
           api.defaults.timeout = this.STANDARD_TIMEOUT;

@@ -132,7 +132,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
             <CardDescription className="space-y-2">
               <span className="block">
                 Please accept all permissions to get the most out of this application.<br/>
-                Changes to your sheets will only be additive -- <br/> 
+                Changes to your sheets will only be additive; <br/> 
                 no deletions or modifications 
                 will be made to your files or their contents. <br/>
                 Verification for this app is pending.
@@ -146,7 +146,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
           <CardContent className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-medium">Google Sheets Integration</h3>
+                <h3 className="font-medium">Google Sheets</h3>
                 <p className="text-xs text-muted-foreground">
                   {profile?.google_permissions_set ?? false ? 'Connected' : 'Not connected'}
                 </p>
@@ -173,7 +173,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
 
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-medium">Microsoft Excel Online Integration</h3>
+                <h3 className="font-medium">Microsoft Excel Online</h3>
                 <p className="text-xs text-muted-foreground">
                   {profile?.microsoft_permissions_set ?? false ? 'Connected' : 'Not connected'}
                 </p>
@@ -277,7 +277,6 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
                     <Label htmlFor="overageLimit">Monthly Overage Limit</Label>
                     <div className="text-xs text-muted-foreground">
                       Set a maximum monthly spending limit for usage beyond your plan's included quantities.
-                      Leave empty for no limit.
                     </div>
                     <span className="text-sm text-muted-foreground">
                       Current overage: ${((currentUsage?.overage_this_month ?? 0)).toFixed(2)} / 
@@ -292,7 +291,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
                           min="0"
                           step="1"
                           className="pl-7"
-                          placeholder="No limit"
+                          placeholder="0"
                           value={currentUsage?.overage_hard_limit || ''}
                           onChange={(e) => {
                             const value = e.target.value === '' ? null : parseInt(e.target.value, 10);

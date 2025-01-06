@@ -68,12 +68,26 @@ export function ProcessingResultDialog({
     switch (state.status) {
       case 'error':
         return (
-          <div className="flex flex-col items-center justify-center py-8 space-y-4">
-            <AlertCircle className="h-8 w-8 text-destructive" />
+          <div className="flex flex-col items-center justify-center py-6 space-y-4">
+            <AlertCircle className="h-8 w-8 text-destructive shrink-0" />
             <div className="text-center space-y-2">
-              <p className="text-sm text-destructive">
-                {state.message || 'An error occurred while processing your request'}
-              </p>
+              {state.message?.includes("Error processing URL") ? (
+                <>
+                  <div className="text-sm text-destructive">
+                    <p>Error processing URL</p>
+                    <div className="max-h-20 overflow-y-auto break-all text-xs mt-1">
+                      {state.message.replace("Error processing URL: ", "")}
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2 text-base">
+                    We've lost connection to your Google or Microsoft account. Please <strong>reconnect</strong> the necessary service in your account settings to continue.
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-destructive break-words">
+                  {state.message || 'An error occurred while processing your request'}
+                </p>
+              )}
             </div>
           </div>
         )

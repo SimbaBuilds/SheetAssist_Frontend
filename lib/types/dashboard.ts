@@ -113,6 +113,7 @@ export interface DocumentTitleMap {
 export interface ProcessingState {
   status: 'created' | 'processing' | 'completed' | 'error' | 'canceled' | null;
   message: string;
+  details?: string;
   progress?: {
     processed: number;
     total: number | null;
