@@ -900,7 +900,7 @@ export function useDashboard(initialData?: UserPreferences) {
       
       toast({
         title: "Success",
-        description: `Direct sheet modification ${allow ? 'enabled' : 'disabled'}.`,
+        description: `Append to existing sheet ${allow ? 'enabled' : 'disabled'}.`,
       })
     } catch (error) {
       console.error('[useDashboard] Failed to update sheet modification preference:', error)

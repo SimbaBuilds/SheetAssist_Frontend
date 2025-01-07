@@ -199,7 +199,7 @@ export function useUserAccount({
       
       toast({
         title: "Success",
-        description: `Direct sheet modification ${allow ? 'enabled' : 'disabled'}.`,
+        description: `Append to existing sheet ${allow ? 'enabled' : 'disabled'}.`,
       })
     } catch (error) {
       console.error('[useUserAccount] Failed to update sheet modification preference:', error)
