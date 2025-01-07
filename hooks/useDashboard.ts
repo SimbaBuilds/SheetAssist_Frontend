@@ -800,7 +800,12 @@ export function useDashboard(initialData?: UserPreferences) {
         controller.signal,
         (state) => {
           setProcessingState(state);
-          setIsProcessing(state.status === 'processing' || state.status === 'created');
+          // Add explicit handling of retry exhaustion
+          if (state.status === 'error' && state.message?.includes('Maximum retry attempts')) {
+            setIsProcessing(false);
+          } else {
+            setIsProcessing(state.status === 'processing' || state.status === 'created');
+          }
         }
       );
 

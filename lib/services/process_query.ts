@@ -71,13 +71,13 @@ async function updateUserUsage(userId: string, success: boolean, numImagesProces
 
 class QueryService {
   // Increase polling interval to reduce server load
-  private readonly POLLING_INTERVAL = 10000; // 10 seconds
-  private readonly MAX_RETRIES = 50;
+  private readonly POLLING_INTERVAL = 5000; // 5 seconds
+  private readonly MAX_RETRIES = 15;
   
   // Add new timeout constants
-  private readonly BATCH_TIMEOUT = 3600000; // 1 hour for batch processes
-  private readonly STANDARD_TIMEOUT = 600000; // Increase to 10 minutes
-  private readonly POLLING_TIMEOUT = 60000;   // Increase status check timeout to 1 minute
+  private readonly BATCH_TIMEOUT = 7200000; // 2 hours for batch processes
+  private readonly STANDARD_TIMEOUT = 600000; // 10 minutes
+  private readonly POLLING_TIMEOUT = 180000;   // 3 minutes
 
   private async pollJobStatus(
     jobId: string,
@@ -236,7 +236,7 @@ class QueryService {
           onProgress?.(errorState);
           return {
             status: 'error',
-            message: errorState.message,
+            message: 'Maximum retry attempts exceeded. Please try rephrasing your request or breaking it down into multiple steps.',
             num_images_processed: 0
           };
         }
