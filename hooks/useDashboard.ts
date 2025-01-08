@@ -7,7 +7,6 @@ import type { DownloadFileType, DashboardInitialData, OutputPreferences, QueryRe
 import { MAX_FILES } from '@/lib/constants/file-types'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/use-toast'
-import { useFilePicker } from '@/hooks/useFilePicker'
 import { useDataVisualization } from '@/hooks/useDataVisualization'
 import {
   getUrlProvider,
@@ -78,7 +77,6 @@ export function useDashboard(initialData?: UserPreferences) {
   const [selectedOutputSheet, setSelectedOutputSheet] = useState<string | null>(null)
   const [isUpdating, setIsUpdating] = useState(false)
   const { toast } = useToast()
-  const { verifyFileAccess, launchPicker } = useFilePicker()
   const [isInitializing, setIsInitializing] = useState(true)
   const [abortController, setAbortController] = useState<AbortController | null>(null)
   const [isDestinationUrlProcessing, setIsDestinationUrlProcessing] = useState(false)
@@ -355,14 +353,12 @@ export function useDashboard(initialData?: UserPreferences) {
     setUrlPermissionError(null);
     setUrlValidationError(null);
 
-    // Update the URLs array at the specified index
     const newUrls = [...urls];
     newUrls[index] = value;
     setUrls(newUrls);
 
     if (!value) return;
 
-    // Handle dropdown selection
     if (fromDropdown) {
       const titleKey = value;
       if (documentTitles[titleKey]) {
@@ -403,19 +399,10 @@ export function useDashboard(initialData?: UserPreferences) {
 
     setIsRetrievingData(true);
     try {
-      const isValid = await handleUrlValidation(
-        value,
-        verifyFileAccess,
-        launchPicker,
-        setUrlValidationError
-      );
-
+      const isValid = handleUrlValidation(value, setUrlValidationError);
       if (!isValid) return;
 
-      // Set the selected URL for sheet selection
       setSelectedUrl(value);
-
-      // Fetch document title and handle sheet selection
       const workbook = await getDocumentTitle(value);
       
       if (workbook?.error) {
@@ -501,8 +488,6 @@ export function useDashboard(initialData?: UserPreferences) {
     try {
       const isValid = await handleUrlValidation(
         value,
-        verifyFileAccess,
-        launchPicker,
         setDestinationUrlError
       );
 
@@ -763,8 +748,6 @@ export function useDashboard(initialData?: UserPreferences) {
     if (outputType === 'online' && !selectedDestinationPair && outputUrl.trim()) {
       const isValid = await handleUrlValidation(
         outputUrl,
-        verifyFileAccess,
-        launchPicker,
         setDestinationUrlError
       );
       if (!isValid) return;

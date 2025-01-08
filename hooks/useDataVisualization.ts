@@ -1,7 +1,6 @@
 import type { SeabornSequentialPalette } from '@/lib/types/dashboard'
 
 import { useState } from 'react'
-import { useFilePicker } from '@/hooks/useFilePicker'
 import { processDataVisualization } from '@/lib/services/data_visualization'
 import { getDocumentTitle } from '@/lib/services/get_document_title'
 import { createClient } from '@/lib/supabase/client'
@@ -60,7 +59,6 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
 
   const { user } = useAuth()
   const supabase = createClient()
-  const { verifyFileAccess, launchPicker } = useFilePicker()
   const { 
     hasReachedVisualizationLimit, 
     hasReachedOverageLimit, 
@@ -164,13 +162,7 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
 
     setIsVisualizationUrlProcessing(true);
     try {
-      const isValid = await handleUrlValidation(
-        value,
-        verifyFileAccess,
-        launchPicker,
-        setVisualizationUrlError
-      );
-
+      const isValid = handleUrlValidation(value, setVisualizationUrlError);
       if (!isValid) {
         setVisualizationUrl('');
         setIsVisualizationUrlProcessing(false);
@@ -178,10 +170,12 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
       }
 
       setVisualizationUrl(value);
-
       const workbook = await getDocumentTitle(value);
-      if (!workbook?.success) {
-        throw new Error(workbook?.error || 'Failed to fetch document information');
+      
+      if (workbook?.error) {
+        setVisualizationUrlError(workbook.error);
+        setVisualizationUrls(['']);
+        return;
       }
 
       const sheetNames = workbook.sheet_names ?? [];

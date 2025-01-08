@@ -100,18 +100,10 @@ export const handleAuthError = (error: unknown): boolean => {
 
 // Add these new utility functions:
 
-interface FileAccessResult {
-  hasPermission: boolean;
-  fileInfo: { provider: string } | null;
-  error?: string;
-}
-
-export async function handleUrlValidation(
+export function handleUrlValidation(
   value: string,
-  verifyFileAccess: Function,
-  launchPicker: Function,
   setError: (error: string | null) => void
-): Promise<boolean> {
+): boolean {
   setError(null);
 
   if (!value) {
@@ -119,31 +111,18 @@ export async function handleUrlValidation(
     return false;
   }
 
-  // Basic URL validation
   try {
     new URL(value);
+    const provider = getUrlProvider(value);
+    if (!provider) {
+      setError('Invalid URL. Please use a Google Sheets or Microsoft Excel URL');
+      return false;
+    }
+    return true;
   } catch {
     setError('Please enter a valid URL starting with http:// or https://');
     return false;
   }
-
-  // Verify file access
-  const { hasPermission, fileInfo, error } = await verifyFileAccess(value);
-  
-  if (!fileInfo) {
-    setError('Invalid URL format');
-    return false;
-  }
-
-  if (!hasPermission) {
-    const pickerResult = await launchPicker(fileInfo.provider);
-    if (!pickerResult.success) {
-      setError(pickerResult.error || 'Failed to get file permission');
-      return false;
-    }
-  }
-
-  return true;
 }
 
 export async function fetchAndHandleSheets(
