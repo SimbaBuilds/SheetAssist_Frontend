@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { GoogleIcon, MicrosoftIcon, LoadingSpinner } from '@/components/icons'
 import { useSetupPermissions } from '@/hooks/useSetupPermissions'
+import Link from 'next/link'
 
 export function SetupPermissionsPage() {
   const {
@@ -48,12 +49,10 @@ export function SetupPermissionsPage() {
         <div className="space-y-4 text-center">
           <h1 className="text-2xl font-bold">Set Up Permissions</h1>
           <div className="bg-primary/10 border-2 border-primary rounded-lg p-4">
-            <p className="text-primary font-medium leading-relaxed">
-              Please accept all permissions to get the most out of this application. <br/>
-              Changes to your sheets will only be additive; <br/> 
-              no deletions or modifications will be made to your files or their contents. <br/>
-              Verification for this app is pending.
-            </p>
+          <p className="text-xs text-foreground">
+                  Please accept all permissions to get the most out of this application.<br/>
+                  See <Link href="/scopes-note" className="underline">here</Link> for a note on drive permissions. <br/>
+                </p>
           </div>
         </div>
 

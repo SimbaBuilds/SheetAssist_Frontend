@@ -16,6 +16,7 @@ import { toast } from '@/components/ui/use-toast'
 
 import { useSubscription } from '@/hooks/useSubscription'
 import { SUBSCRIPTION_PLANS } from '@/lib/types/stripe'
+import Link from 'next/link'
 
 interface UserAccountPageProps {
   profile: UserProfile & {
@@ -131,11 +132,10 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
             <CardTitle>Connected Services</CardTitle>
             <CardDescription className="space-y-2">
               <span className="block">
-                Please accept all permissions to get the most out of this application. <br/>
-                Changes to your sheets will only be additive; <br/> 
-                no deletions or modifications 
-                will be made to your files or their contents. <br/>
-                Verification for this app is pending.
+                <p className="text-xs text-foreground">
+                  Please accept all permissions to get the most out of this application.<br/>
+                  See <Link href="/scopes-note" className="underline">here</Link> for a note on drive permissions. <br/>
+                </p>
               </span>
               <span className="block">
               </span>
