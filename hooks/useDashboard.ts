@@ -683,7 +683,7 @@ export function useDashboard(initialData?: UserPreferences) {
 
   const handleCancel = async () => {
     if (abortController) {
-      console.log('Cancelling request...');
+      console.log('Request canceled');
       abortController.abort();
       setAbortController(null);
       setIsProcessing(false);
