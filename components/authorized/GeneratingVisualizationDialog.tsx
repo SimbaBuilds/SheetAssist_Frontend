@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Loader2, XCircle } from "lucide-react"
 import { Button } from '@/components/ui/button'
 import { useState } from 'react'
@@ -31,6 +31,9 @@ export function GeneratingVisualizationDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Generating Visualization</DialogTitle>
+          <DialogDescription>
+             Generating visualization...
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4">

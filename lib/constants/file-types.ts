@@ -24,7 +24,6 @@ export const ACCEPTED_FILE_TYPES = {
   documents: [
     { extension: '.txt', mimeType: MIME_TYPES.TEXT },
     { extension: '.docx', mimeType: MIME_TYPES.DOCX },
-    { extension: '.json', mimeType: MIME_TYPES.JSON },
     { extension: '.pdf', mimeType: MIME_TYPES.PDF },
     { extension: '.csv', mimeType: MIME_TYPES.CSV },
     { extension: '.xlsx', mimeType: MIME_TYPES.XLSX }

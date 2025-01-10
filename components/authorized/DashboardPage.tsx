@@ -238,7 +238,7 @@ export default function DashboardPage() {
                 )}
 
                 <div className="text-sm text-gray-500">
-                  Accepted file types: .txt, .docx, .json, .pdf, .csv, .xlsx, .png, .jpeg, .jpg
+                  Accepted file types: .txt, .docx, .pdf, .csv, .xlsx, .png, .jpeg, .jpg
                 </div>
 
                 {files.length > 0 && (
