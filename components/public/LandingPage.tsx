@@ -38,12 +38,12 @@ export default function LandingPage() {
           Saves you hours. 
         </p>
         <Button size="lg" asChild>
-          <Link href="/login">Get Started</Link>
+          <Link href="/auth/signup">Get Started</Link>
         </Button>
       </div>
 
       {/* Example Use Cases Section */}
-      <div className="container mx-auto px-4 py-20">
+      <div className="container mx-auto px-4 py-10">
         <h2 className="text-3xl font-bold text-center mb-12">Capabilities</h2>
         <div className="grid md:grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto mb-12">
           <Card>
@@ -123,9 +123,9 @@ export default function LandingPage() {
                   <span>{PLAN_IMAGE_LIMITS.free} input images per month</span>
                 </li>
               </ul>
-              <Button className="w-full mt-6" asChild>
+              {/* <Button className="w-full mt-6" asChild>
                 <Link href="/login">Get Started</Link>
-              </Button>
+              </Button> */}
             </CardContent>
           </Card>
 
@@ -158,9 +158,9 @@ export default function LandingPage() {
                   <span>Cancel any time</span>
                 </li>
               </ul>
-              <Button className="w-full mt-6" asChild>
-                <Link href="/login">Get Started</Link>
-              </Button>
+              {/* <Button className="w-full mt-6" asChild>
+                <Link href="/auth/signup">Get Started</Link>
+              </Button> */}
             </CardContent>
           </Card>
 
@@ -182,7 +182,7 @@ export default function LandingPage() {
                 </li>
               </ul>
               <Button className="w-full mt-6" variant="outline" asChild>
-                <Link href="/contact">Contact Us</Link>
+                <Link href="/contact-us">Contact Us</Link>
               </Button>
             </CardContent>
           </Card>

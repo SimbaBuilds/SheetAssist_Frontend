@@ -6,6 +6,15 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 
+interface FormData {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+}
+
+const MAX_LENGTH = 1000;
+
 export default function ContactUsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
@@ -20,8 +29,18 @@ export default function ContactUsPage() {
     setIsSubmitting(true)
 
     try {
-      // TODO: Implement contact form submission
-      await new Promise(resolve => setTimeout(resolve, 1000)) // Simulated API call
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to send message')
+      }
+
       toast.success('Message sent successfully!')
       setFormData({ name: '', email: '', subject: '', message: '' })
     } catch (error) {
@@ -29,6 +48,14 @@ export default function ContactUsPage() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    field: keyof FormData
+  ) => {
+    const value = e.target.value.slice(0, MAX_LENGTH);
+    setFormData(prev => ({ ...prev, [field]: value }));
   }
 
   return (
@@ -44,10 +71,14 @@ export default function ContactUsPage() {
             <Input
               id="name"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) => handleChange(e, 'name')}
               required
+              maxLength={MAX_LENGTH}
               placeholder=""
             />
+            {/* <p className="text-xs text-muted-foreground mt-1">
+              {formData.name.length}/{MAX_LENGTH}
+            </p> */}
           </div>
 
           <div>
@@ -58,10 +89,14 @@ export default function ContactUsPage() {
               id="email"
               type="email"
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onChange={(e) => handleChange(e, 'email')}
               required
+              maxLength={MAX_LENGTH}
               placeholder=""
             />
+            {/* <p className="text-xs text-muted-foreground mt-1">
+              {formData.email.length}/{MAX_LENGTH}
+            </p> */}
           </div>
 
           <div>
@@ -71,10 +106,14 @@ export default function ContactUsPage() {
             <Input
               id="subject"
               value={formData.subject}
-              onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+              onChange={(e) => handleChange(e, 'subject')}
               required
+              maxLength={MAX_LENGTH}
               placeholder=""
             />
+            {/* <p className="text-xs text-muted-foreground mt-1">
+              {formData.subject.length}/{MAX_LENGTH}
+            </p> */}
           </div>
 
           <div>
@@ -84,11 +123,15 @@ export default function ContactUsPage() {
             <Textarea
               id="message"
               value={formData.message}
-              onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+              onChange={(e) => handleChange(e, 'message')}
               required
+              maxLength={MAX_LENGTH}
               placeholder=""
               rows={5}
             />
+            <p className="text-xs text-muted-foreground mt-1 text-right">
+              {formData.message.length}/{MAX_LENGTH}
+            </p>
           </div>
 
           <Button
