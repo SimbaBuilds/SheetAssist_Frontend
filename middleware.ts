@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
-const PUBLIC_PATHS = [
+export const PUBLIC_PATHS = [
   '/',
   '/auth/login',
   '/auth/signup',

@@ -2,6 +2,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
 import { useState, useEffect } from 'react'
+import { PUBLIC_PATHS } from '@/middleware'
 
 export function useAuth() {
   const router = useRouter()
@@ -30,8 +31,10 @@ export function useAuth() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
       if (!session?.user) {
-        // Only redirect if we're not already on an auth page
-        if (!window.location.pathname.startsWith('/auth/')) {
+        // Check if current path is not in PUBLIC_PATHS before redirecting
+        const currentPath = window.location.pathname
+        const isPublicPath = PUBLIC_PATHS.includes(currentPath as any)
+        if (!isPublicPath) {
           router.push('/auth/login')
         }
       }
