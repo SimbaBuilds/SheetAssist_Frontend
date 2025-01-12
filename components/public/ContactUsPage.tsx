@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
+import Script from 'next/script'
 
 interface FormData {
   name: string;
@@ -15,6 +16,15 @@ interface FormData {
 
 const MAX_LENGTH = 1000;
 
+declare global {
+  interface Window {
+    grecaptcha: {
+      ready: (cb: () => void) => void
+      execute: (siteKey: string, options: { action: string }) => Promise<string>
+    }
+  }
+}
+
 export default function ContactUsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
@@ -24,27 +34,48 @@ export default function ContactUsPage() {
     message: ''
   })
 
+  useEffect(() => {
+    // Load reCAPTCHA script
+    const script = document.createElement('script')
+    script.src = `https://www.google.com/recaptcha/api.js?render=${process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}`
+    document.body.appendChild(script)
+
+    return () => {
+      document.body.removeChild(script)
+    }
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
 
     try {
+      // Get reCAPTCHA token
+      const token = await window.grecaptcha.execute(
+        process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!,
+        { action: 'contact_form' }
+      )
+
       const response = await fetch('/api/contact', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          recaptchaToken: token,
+        }),
       })
 
       if (!response.ok) {
-        throw new Error('Failed to send message')
+        const error = await response.json()
+        throw new Error(error.message || 'Failed to send message')
       }
 
       toast.success('Message sent successfully!')
       setFormData({ name: '', email: '', subject: '', message: '' })
     } catch (error) {
-      toast.error('Failed to send message. Please try again.')
+      toast.error(error instanceof Error ? error.message : 'Failed to send message. Please try again.')
     } finally {
       setIsSubmitting(false)
     }

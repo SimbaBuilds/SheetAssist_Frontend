@@ -1,6 +1,19 @@
 import { NextResponse } from 'next/server'
 import nodemailer from 'nodemailer'
 
+async function verifyRecaptcha(token: string) {
+  const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: `secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${token}`,
+  })
+
+  const data = await response.json()
+  return data.success && data.score >= 0.5 // Adjust threshold as needed
+}
+
 // Create a transporter using SMTP
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -26,7 +39,16 @@ export async function POST(request: Request) {
     console.log('SMTP connection verified successfully')
 
     const body = await request.json()
-    const { name, email, subject, message } = body
+    const { name, email, subject, message, recaptchaToken } = body
+
+    // Verify reCAPTCHA
+    const isHuman = await verifyRecaptcha(recaptchaToken)
+    if (!isHuman) {
+      return NextResponse.json(
+        { error: 'reCAPTCHA verification failed' },
+        { status: 400 }
+      )
+    }
 
     const info = await transporter.sendMail({
       from: {
