@@ -32,16 +32,7 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold mb-3">3. Data Security</h2>
-          <p className="text-muted-foreground">
-            We implement appropriate security measures to protect your personal information. 
-            However, no method of transmission over the Internet is 100% secure, and we cannot 
-            guarantee absolute security.
-          </p>
-        </section>
-
-        <section>
-          <h2 className="text-lg font-semibold mb-3">4. Third-Party Services</h2>
+          <h2 className="text-lg font-semibold mb-3">3. Third-Party Services</h2>
           <p className="text-muted-foreground">
             Our service integrates with third-party services like Google Sheets and Microsoft Excel. 
             When you connect these services, their respective privacy policies also apply to your data.
@@ -55,7 +46,7 @@ export default function PrivacyPolicyPage() {
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold mb-3">5. Contact Us</h2>
+          <h2 className="text-lg font-semibold mb-3">4. Contact Us</h2>
           <p className="text-muted-foreground">
             If you have any questions about this Privacy Policy, please <Link href="/contact-us" className="underline hover:text-primary">contact us</Link>.
           </p>

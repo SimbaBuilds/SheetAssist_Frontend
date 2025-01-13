@@ -91,7 +91,7 @@ export default function ContactUsPage() {
 
   return (
     <div className="container mx-auto px-6 py-12 max-w-2xl">
-      <h1 className="text-3xl font-bold mb-8 text-center">Contact Us</h1>
+      <h1 className="text-3xl font-bold mb-8 text-center">Contact Form</h1>
       
       <div className="bg-background rounded-lg shadow-lg p-6">
         <form onSubmit={handleSubmit} className="space-y-6">

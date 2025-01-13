@@ -8,7 +8,7 @@ export default function TermsOfServicePage() {
           <h2 className="text-lg font-semibold mb-3">1. Acceptance of Terms</h2>
           <p className="text-muted-foreground">
             By accessing and using this website, you accept and agree to be bound by the terms and 
-            provisions of this agreement.
+            provisions of the agreement below.
           </p>
         </section>
 

@@ -31,11 +31,6 @@ export default function LoginPage() {
         throw error
       }
 
-      if (data.session) {
-        router.refresh()
-        router.push('/dashboard')
-        toast.success('Successfully logged in!')
-      }
     } catch (error) {
       console.error('Error logging in:', error)
       toast.error('Invalid email or password')

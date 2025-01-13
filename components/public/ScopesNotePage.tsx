@@ -1,6 +1,7 @@
 'use client'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import Link from "next/link"
 
 const googleScopes = [
   {
@@ -47,6 +48,9 @@ export default function ScopesNotePage() {
             <li>This application can only append (using "true append" functions) data to an online sheet or add data to a newly created sheet in a workbook. <strong>This application cannot delete, store, or modify your online files.</strong></li>
             <li>Furthermore, the AI language models working on the backend do not have direct access to your files.  They work only with preprocessed versions of your data, and they are given some of your request details as context—the models cannot "go rogue" and perform direct actions on your files.</li>
           </ul>
+          <p className="text-sm text-foreground">
+           If you have any questions about the above, please <Link href="/contact-us" className="underline hover:text-primary">contact us</Link>.
+          </p>
         </div>
       </div>
     </div>

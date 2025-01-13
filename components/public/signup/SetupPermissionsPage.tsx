@@ -4,6 +4,9 @@ import { Button } from '@/components/ui/button'
 import { GoogleIcon, MicrosoftIcon, LoadingSpinner } from '@/components/icons'
 import { useSetupPermissions } from '@/hooks/useSetupPermissions'
 import Link from 'next/link'
+import { useState } from 'react'
+import { toast } from '@/components/ui/use-toast'
+import { Checkbox } from '@/components/ui/checkbox'
 
 export function SetupPermissionsPage() {
   const {
@@ -13,6 +16,20 @@ export function SetupPermissionsPage() {
     handleMicrosoftSetup,
     handleSkip
   } = useSetupPermissions()
+  
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
+
+  const handleAction = (action: () => void) => {
+    if (!acceptedTerms) {
+      toast({
+        title: "Please accept the terms",
+        description: "You must accept the terms and conditions to continue.",
+        className: "destructive",
+      })
+      return
+    }
+    action()
+  }
 
   if (isLoading) {
     return (
@@ -57,8 +74,23 @@ export function SetupPermissionsPage() {
         </div>
 
         <div className="space-y-4">
+          <div className="flex items-center gap-2 p-4 border rounded-lg">
+            <Checkbox 
+              id="terms" 
+              checked={acceptedTerms}
+              onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)}
+            />
+            <label htmlFor="terms" className="text-sm text-muted-foreground">
+              I understand and agree to grant the requested permissions. See our{" "}
+              <Link href="/terms-of-service" className="text-primary hover:underline" target="_blank">
+                Terms of Service
+              </Link>
+              {" "}for details.
+            </label>
+          </div>
+
           <Button
-            onClick={handleGoogleSetup}
+            onClick={() => handleAction(handleGoogleSetup)}
             variant="outline"
             className="w-full flex items-center gap-2"
           >
@@ -67,7 +99,7 @@ export function SetupPermissionsPage() {
           </Button>
 
           <Button
-            onClick={handleMicrosoftSetup}
+            onClick={() => handleAction(handleMicrosoftSetup)}
             variant="outline"
             className="w-full flex items-center gap-2"
           >
@@ -76,7 +108,7 @@ export function SetupPermissionsPage() {
           </Button>
 
           <Button
-            onClick={handleSkip}
+            onClick={() => handleAction(handleSkip)}
             variant="ghost"
             className="w-full"
           >

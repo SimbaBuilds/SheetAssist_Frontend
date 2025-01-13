@@ -16,6 +16,7 @@ export interface UserProfile {
   subscription_status?: 'active' | 'canceled' | 'incomplete' | 'incomplete_expired' | 'past_due' | 'trialing' | 'unpaid'
   current_period_end?: string
   price_id?: string
+  terms_acceptance: Record<string, unknown> // jsonb in Postgres
 }
 
 // user_usage table

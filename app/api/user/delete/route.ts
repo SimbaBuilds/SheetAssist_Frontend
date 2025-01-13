@@ -23,6 +23,7 @@ export async function DELETE(request: Request) {
       'user_usage',
       'error_log',
       'request_log',
+      'file_permissions',
       'user_documents_access',
       'batch_jobs'
     ]
