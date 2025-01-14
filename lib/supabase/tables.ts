@@ -60,7 +60,7 @@ export interface RequestLog {
   status: string
   success: boolean
   error_message?: string
-  request_type: 'query' | 'visualization'
+  request_type: string
   total_tokens?: number
   num_images_processed?: number
 }

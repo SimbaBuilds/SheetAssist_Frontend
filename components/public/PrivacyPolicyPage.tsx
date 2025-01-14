@@ -39,7 +39,7 @@ export default function PrivacyPolicyPage() {
           </p>
           <p className="text-muted-foreground mt-2">
             For optimal functionality, we request specific permissions from these services. 
-            Please accept all permissions to get the most out of this application. 
+            Please accept all Google or Microsoft permissions to get the most out of this application. 
             See <Link href="/scopes-note" className="underline hover:text-primary">here</Link> for 
             a detailed note on drive permissions.
           </p>

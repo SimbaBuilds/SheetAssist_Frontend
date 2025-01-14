@@ -133,7 +133,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
             <CardDescription className="space-y-2">
               <span className="block">
                 <p className="text-xs text-foreground">
-                  Please accept all permissions to get the most out of this application.<br/>
+                  Please accept all Google or Microsoft permissions to get the most out of this application.<br/>
                   See <Link href="/scopes-note" className="underline">here</Link> for a note on drive permissions. <br/>
                 </p>
               </span>

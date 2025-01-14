@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { ProcessingState, QueryResponse } from '@/lib/types/dashboard'
-import { AlertCircle, CheckCircle, Loader2, XCircle } from "lucide-react"
+import { AlertCircle, CheckCircle, Link, Loader2, XCircle } from "lucide-react"
 import { Button } from '@/components/ui/button'
 import { useState, useEffect } from 'react'
 
@@ -80,7 +80,7 @@ export function ProcessingResultDialog({
                     </div>
                   </div>
                   <p className="text-sm text-muted-foreground mt-2 text-base">
-                    We've lost connection to your Google or Microsoft account. Please <strong>reconnect</strong> the necessary service in your account settings to continue.
+                      We've lost connection to your Google or Microsoft account. Please <Link href="/user-account" className="font-bold hover:underline">reconnect</Link> the necessary service in your account settings to continue.
                   </p>
                 </>
               ) : state.message?.includes("attempts exhausted") ? (

@@ -333,8 +333,9 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
 
       // Only update if request wasn't cancelled
       if (!controller.signal.aborted) {
-        if (result.error) {
-          setVisualizationError(result.message || result.error);
+        if (!result.success) {
+          // Check both error and message fields
+          setVisualizationError(result.error || result.message || 'An error occurred');
           return;
         }
         
@@ -346,12 +347,12 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
         setVisualizationResult(result);
       }
     } catch (error) {
-      if (error instanceof Error && error.message === 'AbortError') {
-        setVisualizationError('Request was cancelled');
-        return;
+      if (!controller.signal.aborted) {
+        console.error('Error processing visualization:', error);
+        setVisualizationError(
+          error instanceof Error ? error.message : 'An error occurred while processing your request'
+        );
       }
-      console.error('Error processing visualization:', error);
-      setVisualizationError(error instanceof Error ? error.message : 'An error occurred while processing your request');
     } finally {
       // Only clean up if not aborted
       if (!controller.signal.aborted) {

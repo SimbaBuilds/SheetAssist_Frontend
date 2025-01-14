@@ -140,6 +140,7 @@ export const processDataVisualization = async (
     return response.data
 
   } catch (error) {
+    // Handle canceled requests first
     if (error && typeof error === 'object' && 'code' in error) {
       if (error.code === 'ERR_CANCELED') {
         // Log canceled request
@@ -156,6 +157,7 @@ export const processDataVisualization = async (
 
         return {
           success: false,
+          error: 'Request was cancelled by user',
           message: 'Request was cancelled by user'
         };
       }
@@ -166,10 +168,22 @@ export const processDataVisualization = async (
     // Update usage statistics for failed request
     await updateVisualizationUsage(userId, false);
 
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    const errorCode = error instanceof Error ? error.name : 'UNKNOWN';
+    // Enhanced error handling to capture backend error messages
+    let errorMessage = 'Unknown error occurred';
     
-    // Log error to both tables
+    if (error && typeof error === 'object' && 'response' in error) {
+      // Log the full response for debugging
+      const axiosError = error as { response?: { data?: any } };
+      console.log('Backend Error Response:', axiosError.response?.data);
+      
+      // Extract error from response data
+      const responseData = axiosError.response?.data;
+      errorMessage = responseData?.error || responseData?.message || errorMessage;
+    } else if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+
+    // Log errors
     await Promise.all([
       logError({
         userId,
@@ -177,7 +191,7 @@ export const processDataVisualization = async (
         fileNames: files?.map(f => f.name),
         docNames: webUrls.map(url => url.url),
         message: errorMessage,
-        errorCode,
+        errorCode: error instanceof Error ? error.name : 'UNKNOWN',
         requestType: 'visualization',
         errorMessage: error instanceof Error ? error.stack : undefined,
         startTime
@@ -188,7 +202,7 @@ export const processDataVisualization = async (
         fileMetadata: filesMetadata,
         inputUrls: webUrls,
         startTime,
-        status: errorCode,
+        status: error instanceof Error ? error.name : 'UNKNOWN',
         success: false,
         errorMessage,
         requestType: 'visualization'
@@ -197,6 +211,7 @@ export const processDataVisualization = async (
 
     return {
       success: false,
+      error: errorMessage,
       message: errorMessage
     };
   }

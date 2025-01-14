@@ -326,30 +326,18 @@ class QueryService {
 
           // Handle the polling result
           if (result.status === 'error' || result.status === 'canceled') {
-            await Promise.all([
-              logError({
-                userId,
-                originalQuery: query,
-                fileNames: files?.map(f => f.name),
-                docNames: webUrls.map(url => url.url),
-                message: result.message || 'Batch processing error',
-                errorCode: 'BATCH_ERROR',
-                requestType: 'query',
-                startTime
-              }),
-              logRequest({
-                userId,
-                query,
-                fileMetadata: filesMetadata,
-                inputUrls: webUrls,
-                startTime,
-                status: result.status,
-                success: false,
-                errorMessage: result.message,
-                requestType: 'query',
-                numImagesProcessed: result.num_images_processed
-              })
-            ]);
+            await logRequest({
+              userId,
+              query,
+              fileMetadata: filesMetadata,
+              inputUrls: webUrls,
+              startTime,
+              status: result.status,
+              success: false,
+              errorMessage: result.message,
+              requestType: 'query',
+              numImagesProcessed: result.num_images_processed
+            });
             return result;
           }
 
@@ -387,18 +375,18 @@ class QueryService {
       } else {
         // Handle non-batch processing result
         if (initialResult.status === 'error') {
-          await Promise.all([
-            logError({
-              userId,
-              originalQuery: query,
-              fileNames: files?.map(f => f.name),
-              docNames: webUrls.map(url => url.url),
-              message: initialResult.message || 'Processing error',
-              errorCode: 'PROCESSING_ERROR',
-              requestType: 'query',
-              startTime
-            })
-          ]);
+          // await Promise.all([
+          //   logError({
+          //     userId,
+          //     originalQuery: query,
+          //     fileNames: files?.map(f => f.name),
+          //     docNames: webUrls.map(url => url.url),
+          //     message: initialResult.message || 'Processing error',
+          //     errorCode: 'PROCESSING_ERROR',
+          //     requestType: 'query',
+          //     startTime
+          //   })
+          // ]);
           throw new Error(initialResult.message || 'Processing failed');
         }
 

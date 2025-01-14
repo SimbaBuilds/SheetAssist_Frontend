@@ -27,6 +27,7 @@ import { useDataVisualization } from '@/hooks/useDataVisualization'
 import { GeneratingVisualizationDialog } from '@/components/authorized/GeneratingVisualizationDialog'
 import { SEABORN_SEQUENTIAL_PALETTES, SeabornSequentialPalette } from '@/lib/types/dashboard'
 import { useUsageLimits } from '@/hooks/useUsageLimits'
+import Link from 'next/link'
 
 
 export const EXAMPLE_QUERIES = [
@@ -908,7 +909,18 @@ export default function DashboardPage() {
 
                 {/* Error Display */}
                 {visualizationError && (
-                  <div className="text-red-500 text-sm mt-4">{visualizationError}</div>
+                  <div className="text-red-500 text-sm mt-4">
+                    {visualizationError.includes('Error processing URL') ? (
+                      <>
+                        <p>Error processing URL</p>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          We've lost connection to your Google or Microsoft account. Please <Link href="/user-account" className="font-bold hover:underline">reconnect</Link> the necessary service in your account settings to continue.
+                        </p>
+                      </>
+                    ) : (
+                      visualizationError
+                    )}
+                  </div>
                 )}
 
                 {/* Submit Button */}
@@ -952,11 +964,12 @@ export default function DashboardPage() {
                   </div>
                 )}
 
-                {/* Add this before the visualization result display */}
                 <GeneratingVisualizationDialog
                   isOpen={showVisualizationDialog}
                   onClose={() => setShowVisualizationDialog(false)}
                   onCancel={handleVisualizationCancel}
+                  error={visualizationError}
+                  isProcessing={isVisualizationProcessing}
                 />
 
                 {/* Result Display */}

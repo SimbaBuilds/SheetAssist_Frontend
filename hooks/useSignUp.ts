@@ -54,32 +54,32 @@ export function useSignUp() {
 
       if (error) throw error
       
-      if (authData.user) {
-        const { error: profileError } = await supabase
-          .from('user_profile')
-          .insert({
-            id: authData.user.id,
-            first_name: data.firstName,
-            last_name: data.lastName,
-            google_permissions_set: false,
-            microsoft_permissions_set: false,
-            plan: 'free'
-          })
+      // if (authData.user) {
+      //   const { error: profileError } = await supabase
+      //     .from('user_profile')
+      //     .insert({
+      //       id: authData.user.id,
+      //       first_name: data.firstName,
+      //       last_name: data.lastName,
+      //       google_permissions_set: false,
+      //       microsoft_permissions_set: false,
+      //       plan: 'free'
+      //     })
 
-        if (profileError) throw profileError
+      //   if (profileError) throw profileError
 
-        const { error: usageError } = await supabase
-          .from('user_usage')
-          .insert({
-            user_id: authData.user.id,
-            recent_queries: [],
-            requests_this_week: 0,
-            requests_this_month: 0,
-            requests_previous_3_months: 0
-          })
+      //   const { error: usageError } = await supabase
+      //     .from('user_usage')
+      //     .insert({
+      //       user_id: authData.user.id,
+      //       recent_queries: [],
+      //       requests_this_week: 0,
+      //       requests_this_month: 0,
+      //       requests_previous_3_months: 0
+      //     })
 
-        if (usageError) throw usageError
-      }
+      //   if (usageError) throw usageError
+      // }
 
       router.push('/auth/verify-email')
     } catch (error) {
