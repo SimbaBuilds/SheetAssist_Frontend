@@ -22,7 +22,12 @@ export const PUBLIC_PATHS = [
 ] as const
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
+  const { pathname, searchParams } = request.nextUrl
+  
+  // Special handling for password reset
+  if (pathname === '/auth/reset-password' && searchParams.has('code')) {
+    return NextResponse.next()
+  }
 
   if (PUBLIC_PATHS.includes(pathname as any)) {
     return NextResponse.next()

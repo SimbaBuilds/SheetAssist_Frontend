@@ -8,6 +8,7 @@ import * as LabelPrimitive from "@radix-ui/react-label"
 import { useAuth } from '@/hooks/useAuth'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
+import Link from 'next/link'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -31,10 +32,12 @@ export default function LoginPage() {
         throw error
       }
 
+      await router.push('/dashboard')
+      router.refresh()
+
     } catch (error) {
       console.error('Error logging in:', error)
       toast.error('Invalid email or password')
-    } finally {
       setIsLoading(false)
     }
   }
@@ -42,12 +45,13 @@ export default function LoginPage() {
 
   
   const handleGoogleLogin = async () => {
+    setIsLoading(true)
     try {
       await signInWithGoogle()
-      router.refresh()
     } catch (error) {
       console.error('Error logging in with Google:', error)
       toast.error('Error logging in with Google')
+      setIsLoading(false)
     }
   }
 
@@ -67,7 +71,7 @@ export default function LoginPage() {
               className="border-2 border-gray-300 focus:border-primary"
             />
           </div>
-          <div>
+          <div className="space-y-2">
             <LabelPrimitive.Root htmlFor="password">Password</LabelPrimitive.Root>
             <Input
               id="password"
@@ -77,6 +81,14 @@ export default function LoginPage() {
               required
               className="border-2 border-gray-300 focus:border-primary"
             />
+            <div className="text-right">
+              <Link 
+                href="/auth/forgot-password" 
+                className="text-sm text-primary hover:text-primary/90"
+              >
+                Forgot Password?
+              </Link>
+            </div>
           </div>
           <div className="flex flex-col gap-4">
             <Button 
