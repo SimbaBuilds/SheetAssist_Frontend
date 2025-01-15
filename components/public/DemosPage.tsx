@@ -14,7 +14,7 @@ interface VideoDemo {
 const demoVideos: Record<string, VideoDemo[]> = {
   "Batch Processing with AI": [
     {
-      title: "SheetAssist Batch Processing Example",
+      title: "",
       description: "",
       youtubeId: "MWcOGVkues4",
       url: "https://youtu.be/MWcOGVkues4"
@@ -22,33 +22,33 @@ const demoVideos: Record<string, VideoDemo[]> = {
   ],
   "Spreadsheet Operations": [
     {
-      title: "SheetAssist Text-Based PDF Example",
+      title: "Text-Based PDF",
       description: "Convert long text-based PDFs to sheets",
       youtubeId: "tQ7oQQkNo3U",
       url: "https://youtu.be/tQ7oQQkNo3U"
     },
     {
-      title: "SheetAssist Sheet Operation Example (Student Data)",
+      title: "Sheet Operation (Mock Student Data)",
       description: "",
       youtubeId: "bPjA79I2vas",
       url: "https://youtu.be/bPjA79I2vas"
     },
     {
-      title: "SheetAssist Sheet Operation (Merge -- .csv to .xlsx)",
-      description: "If you are not comfortable or cannot give us access to your Google/Microsoft files, SheetAssist can still save you hours",
+      title: "Sheet Operation (Merge -- .csv to .xlsx)",
+      description: "If you are not comfortable or cannot give us access to your Google/Microsoft files, SheetAssist can still automate your workflows",
       youtubeId: "n8Azg2f1ghU",
       url: "https://youtu.be/n8Azg2f1ghU"
     },
     {
-      title: "SheetAssist Complex Prompt Example",
-      description: "Give nuanced requests to our AI powered application.  We look forward to seeing what you can get it to do!",
+      title: "Complex Prompt",
+      description: "Give nuanced requests to our AI powered application -- we look forward to seeing what interesting requests you come up with!",
       youtubeId: "3ifN5SSA22Q",
       url: "https://youtu.be/3ifN5SSA22Q"
     }
   ],
   "Data Visualization": [
     {
-      title: "SheetAssist Data Visualization Example",
+      title: "",
       description: "",
       youtubeId: "pWZ7yMLMaQg",
       url: "https://youtu.be/pWZ7yMLMaQg"

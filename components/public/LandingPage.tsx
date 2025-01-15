@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import Typed from 'typed.js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PLAN_REQUEST_LIMITS, PLAN_IMAGE_LIMITS, VIS_GEN_LIMITS } from '@/lib/constants/pricing';
+import { PLAN_REQUEST_LIMITS, PLAN_IMAGE_LIMITS, VIS_GEN_LIMITS, PLAN_PRICES } from '@/lib/constants/pricing';
 import Link from 'next/link';
 import { EXAMPLE_QUERIES } from '@/components/authorized/DashboardPage';
 
@@ -106,7 +106,7 @@ export default function LandingPage() {
           <Card className="relative">
             <CardHeader>
               <CardTitle>Free</CardTitle>
-              <div className="text-3xl font-bold">$0</div>
+              <div className="text-3xl font-bold">${PLAN_PRICES.free}</div>
             </CardHeader>
             <CardContent>
               <ul className="space-y-4">
@@ -133,7 +133,7 @@ export default function LandingPage() {
           <Card className="relative border-primary">
             <CardHeader>
               <CardTitle>Pro</CardTitle>
-              <div className="text-3xl font-bold">$10<span className="text-xl font-normal">/mo</span></div>
+              <div className="text-3xl font-bold">${PLAN_PRICES.pro}<span className="text-xl font-normal">/mo</span></div>
             </CardHeader>
             <CardContent>
               <ul className="space-y-4">

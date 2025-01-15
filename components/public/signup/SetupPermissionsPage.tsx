@@ -17,49 +17,6 @@ export function SetupPermissionsPage() {
     handleSkip
   } = useSetupPermissions()
   
-  const [acceptedTerms, setAcceptedTerms] = useState(false)
-
-  const handleAction = (action: () => void) => {
-    if (!acceptedTerms) {
-      toast({
-        title: "Please accept the terms",
-        description: "You must accept the terms and conditions to continue.",
-        className: "destructive",
-      })
-      return
-    }
-    action()
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center space-y-4">
-          <LoadingSpinner />
-          <p className="text-muted-foreground">Loading permissions setup...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="container mx-auto px-4 py-8 max-w-md">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <h2 className="text-red-600 font-semibold mb-2">Error</h2>
-          <p className="text-red-700">{error}</p>
-          <Button
-            onClick={() => window.location.reload()}
-            variant="outline"
-            className="mt-4"
-          >
-            Try Again
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="container mx-auto px-4 py-8 max-w-md">
       <div className="bg-background rounded-lg shadow-lg p-6 space-y-6">
@@ -74,23 +31,8 @@ export function SetupPermissionsPage() {
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center gap-2 p-4 border rounded-lg">
-            <Checkbox 
-              id="terms" 
-              checked={acceptedTerms}
-              onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)}
-            />
-            <label htmlFor="terms" className="text-sm text-muted-foreground">
-              I understand and agree to grant the requested permissions. See our{" "}
-              <Link href="/terms-of-service" className="text-primary hover:underline" target="_blank">
-                Terms of Service
-              </Link>
-              {" "}for details.
-            </label>
-          </div>
-
           <Button
-            onClick={() => handleAction(handleGoogleSetup)}
+            onClick={handleGoogleSetup}
             variant="outline"
             className="w-full flex items-center gap-2"
           >
@@ -99,7 +41,7 @@ export function SetupPermissionsPage() {
           </Button>
 
           <Button
-            onClick={() => handleAction(handleMicrosoftSetup)}
+            onClick={handleMicrosoftSetup}
             variant="outline"
             className="w-full flex items-center gap-2"
           >
@@ -108,7 +50,7 @@ export function SetupPermissionsPage() {
           </Button>
 
           <Button
-            onClick={() => handleAction(handleSkip)}
+            onClick={handleSkip}
             variant="ghost"
             className="w-full"
           >

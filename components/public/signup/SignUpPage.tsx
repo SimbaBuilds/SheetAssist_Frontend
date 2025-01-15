@@ -14,6 +14,10 @@ import Link from "next/link"
 import { useSignUp } from '@/hooks/useSignUp'
 import { ErrorBoundary } from '@/components/public/ErrorBoundary'
 import { LoadingSpinner } from '@/components/public/signup/LoadingSpinner'
+import { Checkbox } from "@/components/ui/checkbox"
+import { toast } from "@/components/ui/use-toast"
+import { useState } from "react"
+import type { SignUpFormValues } from '@/lib/types/auth'
 
 export default function SignUpPage() {
   const {
@@ -22,6 +26,31 @@ export default function SignUpPage() {
     handleEmailSignUp,
     handleGoogleSignUp,
   } = useSignUp()
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
+
+  const handleSubmitWithTermsCheck = async (data: SignUpFormValues) => {
+    if (!acceptedTerms) {
+      toast({
+        title: "Please accept the terms",
+        description: "You must accept the terms and conditions to continue.",
+        className: "destructive",
+      })
+      return
+    }
+    await handleEmailSignUp(data)
+  }
+
+  const handleGoogleSignUpWithTermsCheck = () => {
+    if (!acceptedTerms) {
+      toast({
+        title: "Please accept the terms",
+        description: "You must accept the terms and conditions to continue.",
+        className: "destructive",
+      })
+      return
+    }
+    handleGoogleSignUp()
+  }
 
   const formErrors = form.formState.errors
 
@@ -43,7 +72,7 @@ export default function SignUpPage() {
           )}
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleEmailSignUp)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(handleSubmitWithTermsCheck)} className="space-y-4">
               <FormField
                 control={form.control}
                 name="firstName"
@@ -137,6 +166,20 @@ export default function SignUpPage() {
                 )}
               />
 
+              <div className="flex items-center gap-2 p-4 border rounded-lg">
+                <Checkbox 
+                  id="terms" 
+                  checked={acceptedTerms}
+                  onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)}
+                />
+                <label htmlFor="terms" className="text-sm text-muted-foreground">
+                  I understand and agree to the{" "}
+                  <Link href="/terms-of-service" className="text-primary hover:underline" target="_blank">
+                    Terms of Service
+                  </Link>
+                </label>
+              </div>
+
               <Button 
                 type="submit" 
                 className="w-full relative" 
@@ -164,7 +207,7 @@ export default function SignUpPage() {
               <button
                 type="button"
                 className="w-full flex items-center justify-center gap-2 bg-white text-gray-700 hover:bg-gray-50 py-2 px-4 rounded border border-gray-300 font-medium transition duration-150 ease-in-out"
-                onClick={handleGoogleSignUp}
+                onClick={handleGoogleSignUpWithTermsCheck}
               >
                 <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
                   <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
