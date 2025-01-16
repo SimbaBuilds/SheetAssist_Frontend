@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import ResetPasswordPage from '@/components/public/ResetPasswordPage'
 import { Toaster } from 'sonner'

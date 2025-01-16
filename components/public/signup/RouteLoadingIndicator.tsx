@@ -9,7 +9,6 @@ export function RouteLoadingIndicator() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const handleStart = () => setLoading(true)
     const handleStop = () => setLoading(false)
 
     handleStop()

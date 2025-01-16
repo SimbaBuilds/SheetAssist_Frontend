@@ -61,12 +61,8 @@ export async function trackUsage({
 
 // Helper function to check if user is approaching usage limits
 export async function checkUsageLimits({
-  subscriptionId,
-  type,
-  currentUsage,
+  currentUsage
 }: {
-  subscriptionId: string
-  type: UsageType['type']
   currentUsage: number
 }): Promise<{
   isApproachingLimit: boolean

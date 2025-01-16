@@ -1,6 +1,6 @@
 import { AxiosResponse } from 'axios';
 import api from './api';
-import { OutputPreferences, FileMetadata, QueryRequest, QueryResponse, FileInfo, Workbook, InputUrl, ProcessingState } from '@/lib/types/dashboard';
+import { OutputPreferences, FileMetadata, QueryRequest, QueryResponse, InputUrl, ProcessingState } from '@/lib/types/dashboard';
 import { AcceptedMimeType } from '@/lib/constants/file-types';
 import { createClient } from '@/lib/supabase/client';
 import { isUserOnProPlan, getUserSubscriptionId, trackUsage } from '@/lib/stripe/usage'
@@ -197,15 +197,16 @@ class QueryService {
         await new Promise(resolve => setTimeout(resolve, backoffTime));
         continue;
 
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const typedError = error as { code?: string; message?: string };
         console.error('[process_query] Polling error:', {
-          code: error?.code,
-          message: error?.message,
+          code: typedError?.code,
+          message: typedError?.message,
           retries
         });
 
         // Handle connection timeouts
-        if (error?.code === 'ECONNABORTED') {
+        if (typedError?.code === 'ECONNABORTED') {
           retries++;
           if (retries >= this.MAX_RETRIES) {
             const errorState: ProcessingState = {
@@ -313,8 +314,6 @@ class QueryService {
         // Update timeout for batch processing
         api.defaults.timeout = this.BATCH_TIMEOUT;
         
-        let lastProgress = 0;
-        
         try {
           const result = await this.pollJobStatus(
             initialResult.job_id,
@@ -405,9 +404,19 @@ class QueryService {
         return initialResult;
       }
 
-    } catch (error: any) {
-      const errorMessage = error?.response?.data?.message || 
-                         error?.message || 
+    } catch (error: unknown) {
+      const typedError = error as { 
+        response?: { 
+          data?: { message?: string }, 
+          status?: number 
+        }, 
+        message?: string, 
+        code?: string, 
+        stack?: string,
+        name?: string 
+      };
+      const errorMessage = typedError?.response?.data?.message || 
+                         typedError?.message || 
                          'An unexpected error occurred';
       
       onProgress?.({
@@ -416,7 +425,7 @@ class QueryService {
       });
 
       // Log error to both tables
-      const errorCode = error?.response?.status?.toString() || error?.code || 'UNKNOWN';
+      const errorCode = typedError?.response?.status?.toString() || typedError?.code || 'UNKNOWN';
       await Promise.all([
         // Log to error_log table
         logError({
@@ -427,7 +436,7 @@ class QueryService {
           message: errorMessage,
           errorCode,
           requestType: 'query',
-          errorMessage: error?.stack,
+          errorMessage: typedError?.stack,
           startTime
         }),
         // Log to request_log table (existing)
@@ -437,7 +446,7 @@ class QueryService {
           fileMetadata: filesMetadata,
           inputUrls: webUrls,
           startTime,
-          status: error?.response?.status || error?.name || 'error',
+          status: (typedError?.response?.status?.toString() || typedError?.name || 'error') as string,
           success: false,
           errorMessage,
           requestType: 'query'

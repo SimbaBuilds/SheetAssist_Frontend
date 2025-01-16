@@ -1,17 +1,12 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { GoogleIcon, MicrosoftIcon, LoadingSpinner } from '@/components/icons'
+import { GoogleIcon, MicrosoftIcon } from '@/components/icons'
 import { useSetupPermissions } from '@/hooks/useSetupPermissions'
 import Link from 'next/link'
-import { useState } from 'react'
-import { toast } from '@/components/ui/use-toast'
-import { Checkbox } from '@/components/ui/checkbox'
 
 export function SetupPermissionsPage() {
   const {
-    isLoading,
-    error,
     handleGoogleSetup,
     handleMicrosoftSetup,
     handleSkip

@@ -173,7 +173,7 @@ export const processDataVisualization = async (
     
     if (error && typeof error === 'object' && 'response' in error) {
       // Log the full response for debugging
-      const axiosError = error as { response?: { data?: any } };
+      const axiosError = error as { response?: { data?: { error?: string; message?: string } } };
       console.log('Backend Error Response:', axiosError.response?.data);
       
       // Extract error from response data

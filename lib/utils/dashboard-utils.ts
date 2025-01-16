@@ -1,4 +1,4 @@
-import type { SheetTitleKey } from '@/lib/types/dashboard'
+import type { SheetTitleKey, Workbook } from '@/lib/types/dashboard'
 import { MAX_FILE_SIZE, ACCEPTED_FILE_TYPES } from '@/lib/constants/file-types'
 
 // URL-related utilities
@@ -126,7 +126,7 @@ export function handleUrlValidation(
 }
 
 export async function fetchAndHandleSheets(
-  workbook: any,
+  workbook: Workbook,
   setSheets: (sheets: string[]) => void,
   setSheet: (sheet: string | null) => void,
   setShowSelector: (show: boolean) => void

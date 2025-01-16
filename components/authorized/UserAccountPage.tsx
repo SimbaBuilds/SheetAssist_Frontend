@@ -253,7 +253,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
               <div className="mt-4">
                 <Label>Visualizations Generated This Month</Label>
                 <p className="text-xs text-muted-foreground mt-1 mb-3">
-                  Any time you click "Generate Visualization"
+                  Any time you click &quot;Generate Visualization&quot;
                 </p>
                 <div className="mt-2 flex items-center justify-between">
                   <div className="text-sm">
@@ -276,7 +276,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
                   <div className="flex flex-col space-y-2">
                     <Label htmlFor="overageLimit">Monthly Overage Limit</Label>
                     <div className="text-xs text-muted-foreground">
-                      Set a maximum monthly spending limit for usage beyond your plan's included quantities.
+                      Set a maximum monthly spending limit for usage beyond your plan&apos;s included quantities.
                     </div>
                     <span className="text-sm text-muted-foreground">
                       Current overage: ${((currentUsage?.overage_this_month ?? 0)).toFixed(2)} / 

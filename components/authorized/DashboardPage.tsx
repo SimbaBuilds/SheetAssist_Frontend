@@ -155,18 +155,12 @@ export default function DashboardPage() {
   const router = useRouter()
 
   const {
-    isLoading: isLoadingUsage,
     hasReachedRequestLimit,
     hasReachedVisualizationLimit,
-    requestsRemaining,
-    visualizationsRemaining,
-    requestsUsed,
-    visualizationsUsed,
     requestLimit,
     visualizationLimit,
     currentPlan,
-    overageHardLimit,
-    overageRemaining
+    overageHardLimit
   } = useUsageLimits()
 
   return (
@@ -617,7 +611,7 @@ export default function DashboardPage() {
               <div className="text-red-500 text-sm mt-2">
                 {currentPlan === 'free' ? (
                   <>
-                    You've reached your monthly request limit ({requestLimit} requests).
+                    You&apos;ve reached your monthly request limit ({requestLimit} requests).
                     <Button
                       variant="link"
                       className="p-0 h-auto text-sm text-blue-600 hover:text-blue-800"
@@ -628,7 +622,7 @@ export default function DashboardPage() {
                   </>
                 ) : (
                   <>
-                    You've reached your overage limit (${overageHardLimit.toFixed(2)}).
+                    You&apos;ve reached your overage limit (${overageHardLimit.toFixed(2)}).
                     <Button
                       variant="link"
                       className="p-0 h-auto text-sm text-blue-600 hover:text-blue-800"
@@ -914,7 +908,7 @@ export default function DashboardPage() {
                       <>
                         <p>Error processing URL</p>
                         <p className="text-sm text-muted-foreground mt-2">
-                          We've lost connection to your Google or Microsoft account. Please <Link href="/user-account" className="font-bold hover:underline">reconnect</Link> the necessary service in your account settings to continue.
+                        We&apos;ve lost connection to your Google or Microsoft account. Please <Link href="/user-account" className="font-bold hover:underline">reconnect</Link> the necessary service in your account settings to continue.
                         </p>
                       </>
                     ) : (
@@ -940,7 +934,7 @@ export default function DashboardPage() {
                   <div className="text-red-500 text-sm mt-2">
                     {currentPlan === 'free' ? (
                       <>
-                        You've reached your monthly visualization limit ({visualizationLimit} visualizations).
+                        You&apos;ve reached your monthly visualization limit ({visualizationLimit} visualizations).
                         <Button
                           variant="link"
                           className="p-0 h-auto text-sm text-blue-600 hover:text-blue-800"
@@ -951,7 +945,7 @@ export default function DashboardPage() {
                       </>
                     ) : (
                       <>
-                        You've reached your overage limit (${overageHardLimit.toFixed(2)}).
+                        You&apos;ve reached your overage limit (${overageHardLimit.toFixed(2)}).
                         <Button
                           variant="link"
                           className="p-0 h-auto text-sm text-blue-600 hover:text-blue-800"

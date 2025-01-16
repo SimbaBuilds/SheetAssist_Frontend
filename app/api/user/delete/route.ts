@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
-export async function DELETE(request: Request) {
+export async function DELETE() {
   try {
     const supabase = await createClient()
     const adminClient = createAdminClient()
