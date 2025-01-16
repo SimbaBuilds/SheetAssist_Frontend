@@ -1,3 +1,5 @@
+import { ErrorDisplay } from '@/components/public/ErrorDisplay'
+
 export default function ErrorPage() {
-    return <p>Sorry, something went wrong</p>
-  }
+  return <ErrorDisplay errorDescription="Sorry, something went wrong" />
+}
