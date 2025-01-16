@@ -1,20 +1,18 @@
-'use client'
-
 import { ErrorDisplay } from '@/components/public/ErrorDisplay'
-import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 
-function NotFoundContent() {
-  const searchParams = useSearchParams()
-  const message = searchParams.get('message') || 'Page not found'
-  
-  return <ErrorDisplay errorDescription={message} />
+interface Props {
+  searchParams: {
+    message?: string
+  }
 }
 
-export default function NotFound() {
+export default function NotFound({ searchParams }: Props) {
+  const message = searchParams?.message || 'Page not found'
+  
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <NotFoundContent />
+      <ErrorDisplay errorDescription={message} />
     </Suspense>
   )
 } 

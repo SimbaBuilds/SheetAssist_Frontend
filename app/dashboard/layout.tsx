@@ -1,7 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { Suspense } from 'react'
-import { RouteLoadingIndicator } from '@/components/public/signup/RouteLoadingIndicator'
 
 export default async function DashboardLayout({
   children,
@@ -17,9 +15,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-background">
-      <Suspense fallback={<RouteLoadingIndicator />}>
       {children}
-      </Suspense>
     </div>
   )
 }

@@ -8,9 +8,7 @@ export default function ScopesNoteLayout({
 }) {
   return (
     <div className="min-h-screen bg-background">
-      <Suspense fallback={<RouteLoadingIndicator />}>
-        {children}
-      </Suspense>
+      {children}
     </div>
   )
 } 

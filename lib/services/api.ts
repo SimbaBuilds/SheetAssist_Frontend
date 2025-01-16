@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client';
 const supabase = createClient();
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  baseURL: process.env.NEXT_PUBLIC_PYTHON_BACKEND_URL,
 });
 
 // Add request interceptor to add auth token

@@ -1,7 +1,5 @@
-'use client'
-
-import { Suspense } from 'react'
 import DashboardPage from '@/components/authorized/DashboardPage'
+import { Suspense } from 'react'
 
 export default function Dashboard() {
   return (
