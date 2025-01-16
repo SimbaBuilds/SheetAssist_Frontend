@@ -1,5 +1,10 @@
 import { ErrorDisplay } from '@/components/public/ErrorDisplay'
+import { Suspense } from 'react'
 
-export default function ErrorPage() {
-  return <ErrorDisplay errorDescription="Sorry, something went wrong" />
+export default function Error() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ErrorDisplay />
+    </Suspense>
+  )
 }

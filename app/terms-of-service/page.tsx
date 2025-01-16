@@ -1,5 +1,10 @@
 import TermsOfServicePage from '@/components/public/TermsOfServicePage'
+import { Suspense } from 'react'
 
 export default function TermsOfService() {
-  return <TermsOfServicePage />
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <TermsOfServicePage />
+    </Suspense>
+  )
 } 

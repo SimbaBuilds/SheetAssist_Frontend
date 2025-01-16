@@ -1,5 +1,10 @@
 import { DemosPage } from '@/components/public/DemosPage'
+import { Suspense } from 'react'
 
 export default function Demos() {
-  return <DemosPage />
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <DemosPage />
+    </Suspense>
+  )
 } 
