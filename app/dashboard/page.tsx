@@ -1,9 +1,12 @@
 'use client'
 
+import { Suspense } from 'react'
 import DashboardPage from '@/components/authorized/DashboardPage'
 
 export default function Dashboard() {
-
-  // Pass the initial data to the client component
-  return <DashboardPage/>
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <DashboardPage />
+    </Suspense>
+  )
 } 

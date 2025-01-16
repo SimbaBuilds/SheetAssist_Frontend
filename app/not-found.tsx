@@ -1,9 +1,15 @@
 'use client'
-export const dynamic = "force-dynamic"
 
 import { ErrorDisplay } from '@/components/public/ErrorDisplay'
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
+
+function NotFoundContent() {
+  const searchParams = useSearchParams()
+  const message = searchParams.get('message') || 'Page not found'
+  
+  return <ErrorDisplay errorDescription={message} />
+}
 
 export default function NotFound() {
   return (
@@ -11,11 +17,4 @@ export default function NotFound() {
       <NotFoundContent />
     </Suspense>
   )
-}
-
-function NotFoundContent() {
-  const searchParams = useSearchParams()
-  const message = searchParams.get('message') || 'Page not found'
-  
-  return <ErrorDisplay errorDescription={message} />
 } 
