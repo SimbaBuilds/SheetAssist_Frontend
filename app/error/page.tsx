@@ -1,14 +1,27 @@
-import dynamic from 'next/dynamic'
+'use client'
+
+import { ErrorDisplay } from '@/components/public/ErrorDisplay'
 import { Suspense } from 'react'
+import { useEffect } from 'react'
 
-const ErrorDisplay = dynamic(() => import('@/components/public/ErrorDisplay').then(mod => mod.ErrorDisplay), {
-  loading: () => <div>Loading...</div>
-})
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string }
+  reset: () => void
+}) {
+  useEffect(() => {
+    // Log the error to an error reporting service
+    console.error(error)
+  }, [error])
 
-export default function Error() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <ErrorDisplay />
+      <ErrorDisplay 
+        errorDescription={error.message || 'Something went wrong'} 
+        error={error.digest}
+      />
     </Suspense>
   )
 }

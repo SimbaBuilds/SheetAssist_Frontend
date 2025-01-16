@@ -1,9 +1,5 @@
-import dynamic from 'next/dynamic'
+import ScopesNotePage from '@/components/public/ScopesNotePage'
 import { Suspense } from 'react'
-
-const ScopesNotePage = dynamic(() => import('@/components/public/ScopesNotePage'), {
-  loading: () => <div>Loading...</div>
-})
 
 export default function ScopesNote() {
   return (

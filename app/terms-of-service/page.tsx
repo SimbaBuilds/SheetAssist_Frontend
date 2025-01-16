@@ -1,9 +1,5 @@
-import dynamic from 'next/dynamic'
+import TermsOfServicePage from '@/components/public/TermsOfServicePage'
 import { Suspense } from 'react'
-
-const TermsOfServicePage = dynamic(() => import('@/components/public/TermsOfServicePage'), {
-  loading: () => <div>Loading...</div>
-})
 
 export default function TermsOfService() {
   return (
