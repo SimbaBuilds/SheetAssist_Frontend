@@ -16,7 +16,7 @@ interface ToastProps {
   description?: React.ReactNode
   action?: React.ReactNode
   open?: boolean
-  [key: string]: any
+  [key: string]: React.ReactNode | string | boolean | undefined
 }
 
 export function Toaster() {

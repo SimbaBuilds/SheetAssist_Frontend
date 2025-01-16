@@ -28,6 +28,7 @@ import { GeneratingVisualizationDialog } from '@/components/authorized/Generatin
 import { SEABORN_SEQUENTIAL_PALETTES, SeabornSequentialPalette } from '@/lib/types/dashboard'
 import { useUsageLimits } from '@/hooks/useUsageLimits'
 import Link from 'next/link'
+import Image from 'next/image'
 
 
 export const EXAMPLE_QUERIES = [
@@ -969,13 +970,19 @@ export default function DashboardPage() {
                 {/* Result Display */}
                 {visualizationResult && (
                   <div className="relative group mt-6">
-                    <img
-                      src={visualizationResult.image_data?.startsWith('data:image/') 
-                        ? visualizationResult.image_data 
-                        : `data:image/png;base64,${visualizationResult.image_data}`}
-                      alt="Data Visualization"
-                      className="w-full rounded-lg"
-                    />
+                    <div className="relative w-full aspect-auto">
+                      <Image
+                        src={visualizationResult.image_data?.startsWith('data:image/') 
+                          ? visualizationResult.image_data 
+                          : `data:image/png;base64,${visualizationResult.image_data}`}
+                        alt="Data Visualization"
+                        className="rounded-lg"
+                        width={1200}
+                        height={800}
+                        style={{ width: '100%', height: 'auto' }}
+                        priority
+                      />
+                    </div>
                     <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
                       <Button
                         variant="secondary"
