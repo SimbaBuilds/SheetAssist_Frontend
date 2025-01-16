@@ -19,6 +19,7 @@ export const PUBLIC_PATHS = [
   '/privacy-policy',
   '/scopes-note',
   '/api/contact',
+  '.well-known/microsoft-identity-association.json',
 ] as const
 
 export async function middleware(request: NextRequest) {
