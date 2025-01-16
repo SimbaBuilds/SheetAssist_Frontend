@@ -210,4 +210,4 @@ export function Toaster() {
   )
 }
 
-export { useToast, toast }
+export { useToast, toast, type ToasterToast }

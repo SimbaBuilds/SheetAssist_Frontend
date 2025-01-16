@@ -8,23 +8,14 @@ import {
   ToastTitle,
   ToastViewport,
 } from "@/components/ui/toast"
-import { useToast } from "@/components/ui/use-toast"
-
-interface ToastProps {
-  id: string
-  title?: React.ReactNode
-  description?: React.ReactNode
-  action?: React.ReactNode
-  open?: boolean
-  [key: string]: React.ReactNode | string | boolean | undefined
-}
+import { useToast, type ToasterToast } from "@/components/ui/use-toast"
 
 export function Toaster() {
   const { toasts } = useToast()
 
   return (
     <ToastProvider>
-      {toasts.map(function ({ id, title, description, action, ...props }: ToastProps) {
+      {toasts.map(function ({ id, title, description, action, ...props }: ToasterToast) {
         return (
           <Toast key={id} {...props}>
             <div className="grid gap-1">
