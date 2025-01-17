@@ -28,11 +28,15 @@ export async function trackUsage({
   subscriptionId,
   type,
   quantity,
+  userId
 }: {
   subscriptionId: string
   type: UsageType['type']
   quantity: number
+  userId: string
 }) {
+  const supabase = createClient()
+  
   // Get subscription items to find the correct price ID
   const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
     expand: ['items']
@@ -40,7 +44,7 @@ export async function trackUsage({
 
   // Find the correct subscription item based on the usage type
   const subscriptionItem = subscription.items.data.find(item => 
-    item.price.id === process.env[`STRIPE_${type.toUpperCase()}_OVERAGE_PRICE_ID`]
+    item.price.id === process.env[`NEXT_PUBLIC_STRIPE_${type.toUpperCase()}_OVERAGE_PRICE_ID`]
   )
 
   if (!subscriptionItem) {
@@ -52,10 +56,28 @@ export async function trackUsage({
   const overageQuantity = Math.max(0, quantity - includedQuantity)
 
   if (overageQuantity > 0) {
+    // Report usage to Stripe
     await reportUsage({
       subscriptionItemId: subscriptionItem.id,
       quantity: overageQuantity,
     })
+
+    // Calculate overage amount based on price per unit
+    const pricePerUnit = subscriptionItem.price.unit_amount! / 100 // Convert cents to dollars
+    const overageAmount = overageQuantity * pricePerUnit
+
+    // Update user_usage table with new overage amount
+    const { error } = await supabase
+      .from('user_usage')
+      .update({
+        overage_this_month: overageAmount
+      })
+      .eq('user_id', userId)
+
+    if (error) {
+      console.error('Error updating overage amount:', error)
+      throw error
+    }
   }
 }
 

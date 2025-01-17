@@ -20,6 +20,10 @@ export const PUBLIC_PATHS = [
   '/scopes-note',
   '/api/contact',
   '/.well-known/microsoft-identity-association.json',
+  '/api/stripe/webhooks',
+  '/api/stripe/create-portal',
+  '/api/stripe/create-checkout',
+
 ] as const
 
 export async function middleware(request: NextRequest) {

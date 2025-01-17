@@ -10,6 +10,7 @@ interface UserProfileUpdate {
   current_period_end?: Date | null;
   price_id?: string | null;
   stripe_customer_id?: string;
+  plan?: 'free' | 'pro';
 }
 
 export async function handleStripeWebhook(event: Stripe.Event) {
@@ -26,7 +27,8 @@ export async function handleStripeWebhook(event: Stripe.Event) {
           subscription_id: subscription.id,
           subscription_status: subscription.status as SubscriptionStatus,
           current_period_end: new Date(subscription.current_period_end * 1000),
-          price_id: subscription.items.data[0]?.price.id
+          price_id: subscription.items.data[0]?.price.id,
+          plan: subscription.status === 'active' ? 'pro' : 'free'
         };
         
         const { error } = await supabase
@@ -52,7 +54,8 @@ export async function handleStripeWebhook(event: Stripe.Event) {
             subscription_status: 'inactive',
             subscription_id: null,
             current_period_end: null,
-            price_id: null
+            price_id: null,
+            plan: 'free'
           })
           .eq('stripe_customer_id', stripeCustomerId);
 
