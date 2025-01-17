@@ -49,7 +49,8 @@ async function updateVisualizationUsage(userId: string, success: boolean) {
         await trackUsage({
           subscriptionId,
           type: 'visualizations',
-          quantity: newCount
+          quantity: newCount,
+          userId
         })
       }
     }
