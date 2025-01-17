@@ -52,7 +52,8 @@ async function updateUserUsage(userId: string, success: boolean, numImagesProces
           await trackUsage({
             subscriptionId,
             type: 'processing',
-            quantity: newRequestCount
+            quantity: newRequestCount,
+            userId
           });
         }
         
@@ -61,7 +62,8 @@ async function updateUserUsage(userId: string, success: boolean, numImagesProces
           await trackUsage({
             subscriptionId,
             type: 'images',
-            quantity: newImageCount
+            quantity: newImageCount,
+            userId
           });
         }
       }
