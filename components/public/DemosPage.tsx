@@ -14,7 +14,7 @@ interface VideoDemo {
 const demoVideos: Record<string, VideoDemo[]> = {
   "Batch Processing with AI": [
     {
-      title: "",
+      title: "Batch Processing Example",
       description: "",
       youtubeId: "MWcOGVkues4",
       url: "https://youtu.be/MWcOGVkues4"
@@ -48,7 +48,7 @@ const demoVideos: Record<string, VideoDemo[]> = {
   ],
   "Data Visualization": [
     {
-      title: "",
+      title: "Data Visualization Example",
       description: "",
       youtubeId: "pWZ7yMLMaQg",
       url: "https://youtu.be/pWZ7yMLMaQg"
@@ -142,6 +142,24 @@ export function DemosPage() {
         <p className="text-sm text-foreground">
           Ready to get started? <Link href="/auth/signup" className="underline hover:text-primary">Sign up now</Link> or <Link href="/contact-us" className="underline hover:text-primary">contact us</Link> to learn more about how we can help streamline your workflow.
         </p>
+      </div>
+
+      <div className="border-t pt-8 mt-8">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Data Security & Privacy</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              We take your data security seriously. Our application:
+            </p>
+            <ul className="list-disc pl-6 text-sm text-foreground space-y-2">
+              <li>Can only append data to your online sheets or add data to newly created sheets</li>
+              <li>Cannot delete, store, or modify your existing online files</li>
+              <li>Uses secure authentication and adheres to strict data privacy policies</li>
+            </ul>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

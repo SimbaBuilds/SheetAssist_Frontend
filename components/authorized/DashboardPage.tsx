@@ -16,6 +16,7 @@ import {
   Command,
   CommandGroup,
   CommandItem,
+  CommandList,
 } from "@/components/ui/command"
 import {
   Popover,
@@ -300,22 +301,27 @@ export default function DashboardPage() {
                       </PopoverTrigger>
                       <PopoverContent className="p-0" align="end">
                         <Command>
-                          <CommandGroup>
-                            {recentUrls.map((sheet, index) => {
-                              const titleKey = sheet.sheet_name ? formatTitleKey(sheet.url, sheet.sheet_name) : '';
-                              const displayTitle = titleKey && documentTitles[titleKey] 
-                                ? documentTitles[titleKey] 
-                                : formatDisplayTitle(sheet.doc_name, sheet.sheet_name || '');
-                              return (
-                                <CommandItem
-                                  key={index}
-                                  onSelect={() => handleUrlChange(0, titleKey, true)}
-                                >
-                                  {displayTitle}
-                                </CommandItem>
-                              );
-                            })}
-                          </CommandGroup>
+                          <CommandList>
+                            <CommandGroup>
+                              {Array.isArray(recentUrls) && recentUrls.map((sheet, index) => {
+                                const titleKey = sheet.sheet_name ? formatTitleKey(sheet.url, sheet.sheet_name) : '';
+                                const displayTitle = titleKey && documentTitles[titleKey] 
+                                  ? documentTitles[titleKey] 
+                                  : formatDisplayTitle(sheet.doc_name, sheet.sheet_name || '');
+                                return (
+                                  <CommandItem
+                                    key={index}
+                                    onSelect={() => handleUrlChange(0, titleKey, true)}
+                                  >
+                                    {displayTitle}
+                                  </CommandItem>
+                                );
+                              })}
+                              {(!recentUrls?.length) && (
+                                <CommandItem disabled>No recent documents</CommandItem>
+                              )}
+                            </CommandGroup>
+                          </CommandList>
                         </Command>
                       </PopoverContent>
                     </Popover>
@@ -524,20 +530,25 @@ export default function DashboardPage() {
                           </PopoverTrigger>
                           <PopoverContent className="p-0" align="end">
                             <Command>
-                              <CommandGroup>
-                                {recentUrls.map((sheet, index) => {
-                                  const titleKey = formatTitleKey(sheet.url, sheet.sheet_name);
-                                  const displayTitle = documentTitles[titleKey] || formatDisplayTitle(sheet.doc_name, sheet.sheet_name);
-                                  return (
-                                    <CommandItem
-                                      key={index}
-                                      onSelect={() => handleOutputUrlChange(titleKey, true)}
-                                    >
-                                      {displayTitle}
-                                    </CommandItem>
-                                  );
-                                })}
-                              </CommandGroup>
+                              <CommandList>
+                                <CommandGroup>
+                                  {Array.isArray(recentUrls) && recentUrls.map((sheet, index) => {
+                                    const titleKey = formatTitleKey(sheet.url, sheet.sheet_name);
+                                    const displayTitle = documentTitles[titleKey] || formatDisplayTitle(sheet.doc_name, sheet.sheet_name);
+                                    return (
+                                      <CommandItem
+                                        key={index}
+                                        onSelect={() => handleOutputUrlChange(titleKey, true)}
+                                      >
+                                        {displayTitle}
+                                      </CommandItem>
+                                    );
+                                  })}
+                                  {(!recentUrls?.length) && (
+                                    <CommandItem disabled>No recent documents</CommandItem>
+                                  )}
+                                </CommandGroup>
+                              </CommandList>
                             </Command>
                           </PopoverContent>
                         </Popover>
@@ -716,22 +727,27 @@ export default function DashboardPage() {
                         </PopoverTrigger>
                         <PopoverContent className="p-0" align="end">
                           <Command>
-                            <CommandGroup>
-                              {recentUrls.map((sheet, index) => {
-                                const titleKey = sheet.sheet_name ? formatTitleKey(sheet.url, sheet.sheet_name) : '';
-                                const displayTitle = titleKey && documentTitles[titleKey] 
-                                  ? documentTitles[titleKey] 
-                                  : formatDisplayTitle(sheet.doc_name, sheet.sheet_name || '');
-                                return (
-                                  <CommandItem
-                                    key={index}
-                                    onSelect={() => handleVisualizationUrlChange(titleKey, true)}
-                                  >
-                                    {displayTitle}
-                                  </CommandItem>
-                                );
-                              })}
-                            </CommandGroup>
+                            <CommandList>
+                              <CommandGroup>
+                                {Array.isArray(recentUrls) && recentUrls.map((sheet, index) => {
+                                  const titleKey = sheet.sheet_name ? formatTitleKey(sheet.url, sheet.sheet_name) : '';
+                                  const displayTitle = titleKey && documentTitles[titleKey] 
+                                    ? documentTitles[titleKey] 
+                                    : formatDisplayTitle(sheet.doc_name, sheet.sheet_name || '');
+                                  return (
+                                    <CommandItem
+                                      key={index}
+                                      onSelect={() => handleVisualizationUrlChange(titleKey, true)}
+                                    >
+                                      {displayTitle}
+                                    </CommandItem>
+                                  );
+                                })}
+                                {(!recentUrls?.length) && (
+                                  <CommandItem disabled>No recent documents</CommandItem>
+                                )}
+                              </CommandGroup>
+                            </CommandList>
                           </Command>
                         </PopoverContent>
                       </Popover>

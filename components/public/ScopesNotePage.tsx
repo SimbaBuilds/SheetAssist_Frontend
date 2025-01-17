@@ -23,7 +23,7 @@ export default function ScopesNotePage() {
            All the above notwithstanding:
           </p>
           <ul className="list-disc pl-10 text-sm text-foreground space-y-2">
-            <li>This application can only append (using &quot;true append&quot; functions) data to an online sheet or add data to a newly created sheet in a workbook. <strong>This application cannot delete, store, or modify your online files.</strong></li>
+            <li>This application can only append (using &quot;true append&quot; functions) data to your online sheet or add data to a newly created sheet in the workbook. <strong>This application cannot delete, store, or modify your online files.</strong></li>
             <li>Furthermore, the AI language models working on the backend do not have direct access to your files.  They work only with preprocessed versions of your data, and they are given some of your request details as context—the models cannot &quot;go rogue&quot; and perform direct actions on your files.</li>
           </ul>
           <p className="text-sm text-foreground">
