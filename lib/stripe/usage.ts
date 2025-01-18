@@ -1,3 +1,5 @@
+'use server';
+
 import { stripe } from '@/lib/stripe';
 import { createClient } from '@/lib/supabase/client';
 
@@ -44,7 +46,7 @@ export async function trackUsage({
 
   // Find the correct subscription item based on the usage type
   const subscriptionItem = subscription.items.data.find(item => 
-    item.price.id === process.env[`NEXT_PUBLIC_STRIPE_${type.toUpperCase()}_OVERAGE_PRICE_ID`]
+    item.price.id === process.env[`STRIPE_${type.toUpperCase()}_OVERAGE_PRICE_ID`]
   )
 
   if (!subscriptionItem) {

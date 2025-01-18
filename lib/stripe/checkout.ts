@@ -1,3 +1,5 @@
+'use server';
+
 import { stripe } from '@/lib/stripe';
 import { createClient } from '@/lib/supabase/server';
 

@@ -2,6 +2,10 @@ import { createCheckoutSession } from '@/lib/stripe/checkout';
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
+// Route Segment Config
+export const runtime = 'nodejs'; // Using Node.js runtime for Stripe operations
+export const dynamic = 'force-dynamic'; // Always process checkout dynamically
+
 export async function POST(req: Request) {
     try {
         // Validate request body
