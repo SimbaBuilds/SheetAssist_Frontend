@@ -37,49 +37,74 @@ export async function trackUsage({
   quantity: number
   userId: string
 }) {
-  const supabase = createClient()
+  console.log(`[Stripe Usage] Starting usage tracking for ${type}:`, {
+    userId,
+    subscriptionId,
+    quantity
+  });
   
-  // Get subscription items to find the correct price ID
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
-    expand: ['items']
-  })
-
-  // Find the correct subscription item based on the usage type
-  const subscriptionItem = subscription.items.data.find(item => 
-    item.price.id === process.env[`STRIPE_${type.toUpperCase()}_OVERAGE_PRICE_ID`]
-  )
-
-  if (!subscriptionItem) {
-    throw new Error(`No subscription item found for ${type}`)
-  }
-
-  // Only report usage beyond the included 200
-  const includedQuantity = 200
-  const overageQuantity = Math.max(0, quantity - includedQuantity)
-
-  if (overageQuantity > 0) {
-    // Report usage to Stripe
-    await reportUsage({
-      subscriptionItemId: subscriptionItem.id,
-      quantity: overageQuantity,
+  try {
+    // Get subscription items to find the correct price ID
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+      expand: ['items']
     })
+    console.log(`[Stripe Usage] Retrieved subscription:`, {
+      subscriptionId,
+      itemsCount: subscription.items.data.length
+    });
 
-    // Calculate overage amount based on price per unit
-    const pricePerUnit = subscriptionItem.price.unit_amount! / 100 // Convert cents to dollars
-    const overageAmount = overageQuantity * pricePerUnit
+    // Find the correct subscription item based on the usage type
+    const subscriptionItem = subscription.items.data.find(item => 
+      item.price.id === process.env[`STRIPE_${type.toUpperCase()}_OVERAGE_PRICE_ID`]
+    )
 
-    // Update user_usage table with new overage amount
-    const { error } = await supabase
-      .from('user_usage')
-      .update({
-        overage_this_month: overageAmount
-      })
-      .eq('user_id', userId)
-
-    if (error) {
-      console.error('Error updating overage amount:', error)
-      throw error
+    if (!subscriptionItem) {
+      console.error(`[Stripe Usage] No subscription item found for ${type}`, {
+        availablePriceIds: subscription.items.data.map(item => item.price.id)
+      });
+      throw new Error(`No subscription item found for ${type}`)
     }
+    console.log(`[Stripe Usage] Found subscription item:`, {
+      itemId: subscriptionItem.id,
+      priceId: subscriptionItem.price.id
+    });
+
+    // Only report usage beyond the included 200
+    const includedQuantity = 200
+    const overageQuantity = Math.max(0, quantity - includedQuantity)
+
+    if (overageQuantity > 0) {
+      console.log(`[Stripe Usage] Reporting overage:`, {
+        type,
+        totalQuantity: quantity,
+        includedQuantity,
+        overageQuantity
+      });
+      
+      // Report usage to Stripe
+      const usageRecord = await reportUsage({
+        subscriptionItemId: subscriptionItem.id,
+        quantity: overageQuantity,
+      })
+      console.log(`[Stripe Usage] Successfully reported usage:`, {
+        usageRecordId: usageRecord.id,
+        timestamp: usageRecord.timestamp
+      });
+    } else {
+      console.log(`[Stripe Usage] No overage to report:`, {
+        type,
+        quantity,
+        includedQuantity
+      });
+    }
+  } catch (error) {
+    console.error(`[Stripe Usage] Error tracking usage:`, {
+      type,
+      userId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    throw error;
   }
 }
 

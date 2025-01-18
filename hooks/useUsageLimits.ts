@@ -21,7 +21,7 @@ interface UsageLimits {
   overageThisMonth: number
 }
 
-const OVERAGE_BUFFER = 0.08 // 8 cents buffer
+const COST_PER_OVERAGE = 0.08 // 8 cents per overage item
 
 export function useUsageLimits(): UsageLimits {
   const { user } = useAuth()
@@ -70,19 +70,26 @@ export function useUsageLimits(): UsageLimits {
   const overageHardLimit = usage?.overage_hard_limit || 0
   const overageThisMonth = usage?.overage_this_month || 0
 
-  // For pro users, check both standard limits and overage limits
+  // Calculate overage costs for requests and visualizations beyond limits
+  const requestOverages = Math.max(0, requestsUsed - requestLimit)
+  const visualizationOverages = Math.max(0, visualizationsUsed - visualizationLimit)
+  
+  // Total potential cost of next operation
+  const nextOperationCost = COST_PER_OVERAGE
+
+  // For pro users, check if next operation would exceed overage limit
   const hasReachedOverageLimit = currentPlan === 'pro' && 
-    (overageThisMonth + OVERAGE_BUFFER >= overageHardLimit)
+    (overageThisMonth + nextOperationCost > overageHardLimit)
 
   // For free users, only check standard limits
   // For pro users, check both standard limits and overage
   const hasReachedRequestLimit = currentPlan === 'free' 
     ? requestsUsed >= requestLimit
-    : requestsUsed >= requestLimit || hasReachedOverageLimit
+    : hasReachedOverageLimit
 
   const hasReachedVisualizationLimit = currentPlan === 'free'
     ? visualizationsUsed >= visualizationLimit
-    : visualizationsUsed >= visualizationLimit || hasReachedOverageLimit
+    : hasReachedOverageLimit
 
   return {
     isLoading,
@@ -96,7 +103,7 @@ export function useUsageLimits(): UsageLimits {
     visualizationsUsed,
     requestLimit,
     visualizationLimit,
-    overageRemaining: Math.max(0, overageHardLimit - overageThisMonth - OVERAGE_BUFFER),
+    overageRemaining: Math.max(0, overageHardLimit - overageThisMonth - nextOperationCost),
     overageHardLimit,
     overageThisMonth
   }
