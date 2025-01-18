@@ -18,7 +18,6 @@ export async function POST(req: Request) {
     console.log('Raw Body Length:', rawBody.length);
     console.log('Raw Body Type:', typeof rawBody);
     console.log('First 100 chars of Raw Body:', rawBody.slice(0, 100));
-    console.log('Signature:', signature);
 
     if (!signature || !process.env.STRIPE_WEBHOOK_SECRET) {
       console.error('Missing signature or webhook secret');
@@ -37,23 +36,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ received: true });
     } catch (verifyError) {
       console.error('Verification Error Details:', {
-        error: verifyError,
-        signatureHeader: signature,
+        signatureHeader: signature.slice(0, 50),
         bodyPreview: rawBody.slice(0, 50) + '...'
       });
       throw verifyError;
     }
   } catch (error) {
-    console.error('Webhook error:', error);
     if (error instanceof Error) {
       console.error('Error details:', {
-        message: error.message,
-        name: error.name,
-        stack: error.stack,
+        message: error.message.slice(0, 50),
+        name: error.name.slice(0, 50),
+        stack: error.stack?.slice(0, 50),
       });
     }
     return new NextResponse(
-      error instanceof Error ? error.message : 'Webhook handler failed',
+      error instanceof Error ? error.message.slice(0, 50) : 'Webhook handler failed',
       { status: 400 }
     );
   }
