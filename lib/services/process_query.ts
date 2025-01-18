@@ -10,6 +10,7 @@ import { logError } from '@/lib/services/loggers/error-logger';
 
 // Helper function to update user usage statistics
 async function updateUserUsage(userId: string, success: boolean, numImagesProcessed: number = 0) {
+  console.log('🔍 [process_query] Starting updateUserUsage:', { userId, success, numImagesProcessed });
   const supabase = createClient();
   
   // Get current usage data
@@ -26,6 +27,12 @@ async function updateUserUsage(userId: string, success: boolean, numImagesProces
 
   const newRequestCount = (usageData?.requests_this_month || 0) + (success ? 1 : 0);
   const newImageCount = (usageData?.images_processed_this_month || 0) + (success ? numImagesProcessed : 0);
+  console.log('🔍 [process_query] Current usage counts:', { 
+    newRequestCount, 
+    newImageCount, 
+    currentRequests: usageData?.requests_this_month,
+    currentImages: usageData?.images_processed_this_month 
+  });
 
   const updateData = {
     requests_this_month: newRequestCount,
@@ -49,22 +56,34 @@ async function updateUserUsage(userId: string, success: boolean, numImagesProces
       if (subscriptionId) {
         // Track processing usage if over limit
         if (newRequestCount > PLAN_REQUEST_LIMITS.pro) {
-          await trackUsage({
-            subscriptionId,
-            type: 'processing',
-            quantity: newRequestCount,
-            userId
-          });
+          console.log(`[process_query] Tracking processing usage overage for user ${userId}. Count: ${newRequestCount}`);
+          try {
+            await trackUsage({
+              subscriptionId,
+              type: 'processing',
+              quantity: newRequestCount,
+              userId
+            });
+            console.log(`[process_query] Successfully tracked processing usage for user ${userId}`);
+          } catch (error) {
+            console.error(`[process_query] Failed to track processing usage for user ${userId}:`, error);
+          }
         }
         
         // Track images usage if over limit
         if (newImageCount > PLAN_IMAGE_LIMITS.pro) {
-          await trackUsage({
-            subscriptionId,
-            type: 'images',
-            quantity: newImageCount,
-            userId
-          });
+          console.log(`[process_query] Tracking image usage overage for user ${userId}. Count: ${newImageCount}`);
+          try {
+            await trackUsage({
+              subscriptionId,
+              type: 'images',
+              quantity: newImageCount,
+              userId
+            });
+            console.log(`[process_query] Successfully tracked image usage for user ${userId}`);
+          } catch (error) {
+            console.error(`[process_query] Failed to track image usage for user ${userId}:`, error);
+          }
         }
       }
     }

@@ -26,8 +26,8 @@ interface UserAccountPageProps {
   }
   user: User
   usage: UserUsage & {
-    overage_this_month?: number
-    overage_hard_limit?: number
+    overage_this_month: number
+    overage_hard_limit: number
   }
 }
 
@@ -68,6 +68,8 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
   const requestsThisMonth = currentUsage?.requests_this_month ?? 0
   const imagesThisMonth = currentUsage?.images_processed_this_month ?? 0
   const visualizationsThisMonth = currentUsage?.visualizations_this_month ?? 0
+  const overageThisMonth = currentUsage?.overage_this_month ?? 0
+  const overageHardLimit = currentUsage?.overage_hard_limit ?? 0
   
   const requestUsagePercentage = (requestsThisMonth / requestLimit) * 100
   const imageUsagePercentage = (imagesThisMonth / imageLimit) * 100
@@ -223,7 +225,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
                 </div>
                 <div className="mt-2 h-2 w-full bg-secondary rounded-full overflow-hidden">
                   <div 
-                    className={`h-full ${requestUsagePercentage >= 90 ? 'bg-destructive' : 'bg-primary'}`}
+                    className="h-full bg-black"
                     style={{ width: `${Math.min(requestUsagePercentage, 100)}%` }}
                   />
                 </div>
@@ -244,7 +246,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
                 </div>
                 <div className="mt-2 h-2 w-full bg-secondary rounded-full overflow-hidden">
                   <div 
-                    className={`h-full ${imageUsagePercentage >= 90 ? 'bg-destructive' : 'bg-primary'}`}
+                    className="h-full bg-black"
                     style={{ width: `${Math.min(imageUsagePercentage, 100)}%` }}
                   />
                 </div>
@@ -265,7 +267,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
                 </div>
                 <div className="mt-2 h-2 w-full bg-secondary rounded-full overflow-hidden">
                   <div 
-                    className={`h-full ${visUsagePercentage >= 90 ? 'bg-destructive' : 'bg-primary'}`}
+                    className="h-full bg-black"
                     style={{ width: `${Math.min(visUsagePercentage, 100)}%` }}
                   />
                 </div>
@@ -279,8 +281,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
                       Set a maximum monthly spending limit for usage beyond your plan&apos;s included quantities.
                     </div>
                     <span className="text-sm text-muted-foreground">
-                      Current overage: ${((currentUsage?.overage_this_month ?? 0)).toFixed(2)} / 
-                      ${((currentUsage?.overage_hard_limit ?? 0)).toFixed(2)}
+                      Current overage: ${overageThisMonth.toFixed(2)} / ${overageHardLimit.toFixed(2)}
                     </span>
                     <div className="flex items-center space-x-2">
                       <div className="relative">
@@ -292,7 +293,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
                           step="1"
                           className="pl-7"
                           placeholder="0"
-                          value={currentUsage?.overage_hard_limit || ''}
+                          value={overageHardLimit || ''}
                           onChange={(e) => {
                             const value = e.target.value === '' ? null : parseInt(e.target.value, 10);
                             if (value === null || (value >= 0 && Number.isInteger(value))) {
@@ -302,7 +303,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
                           disabled={isUpdating}
                         />
                       </div>
-                      {currentUsage?.overage_hard_limit && (
+                      {/* {overageHardLimit > 0 && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -311,7 +312,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
                         >
                           Remove Limit
                         </Button>
-                      )}
+                      )} */}
                     </div>
                   </div>
                 </div>

@@ -16,6 +16,7 @@ import { logError } from '@/lib/services/loggers/error-logger'
 
 // Helper function to update user visualization usage statistics
 async function updateVisualizationUsage(userId: string, success: boolean) {
+  console.log('🔍 [data_visualization] Starting updateVisualizationUsage:', { userId, success });
   const supabase = createClient()
   
   const { data: usageData, error: usageError } = await supabase
@@ -30,6 +31,7 @@ async function updateVisualizationUsage(userId: string, success: boolean) {
   }
 
   const newCount = (usageData?.visualizations_this_month || 0) + (success ? 1 : 0)
+  console.log('🔍 [data_visualization] Current usage count:', { newCount, currentCount: usageData?.visualizations_this_month });
   
   const updateData = {
     visualizations_this_month: newCount,
@@ -46,12 +48,18 @@ async function updateVisualizationUsage(userId: string, success: boolean) {
     if (isProUser && newCount > VIS_GEN_LIMITS.pro) {
       const subscriptionId = await getUserSubscriptionId(userId)
       if (subscriptionId) {
-        await trackUsage({
-          subscriptionId,
-          type: 'visualizations',
-          quantity: newCount,
-          userId
-        })
+        console.log(`[data_visualization] Tracking visualization usage overage for user ${userId}. Count: ${newCount}`);
+        try {
+          await trackUsage({
+            subscriptionId,
+            type: 'visualizations',
+            quantity: newCount,
+            userId
+          });
+          console.log(`[data_visualization] Successfully tracked visualization usage for user ${userId}`);
+        } catch (error) {
+          console.error(`[data_visualization] Failed to track visualization usage for user ${userId}:`, error);
+        }
       }
     }
   }
