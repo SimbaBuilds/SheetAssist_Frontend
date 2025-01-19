@@ -13,14 +13,15 @@ import Link from 'next/link'
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+  const [isEmailLoading, setIsEmailLoading] = useState(false)
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false)
   const router = useRouter()
   const { signInWithGoogle } = useAuth()
   const supabase = createClient()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
+    setIsEmailLoading(true)
     
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -38,20 +39,20 @@ export default function LoginPage() {
     } catch (error) {
       console.error('Error logging in:', error)
       toast.error('Invalid email or password')
-      setIsLoading(false)
+      setIsEmailLoading(false)
     }
   }
 
 
   
   const handleGoogleLogin = async () => {
-    setIsLoading(true)
+    setIsGoogleLoading(true)
     try {
       await signInWithGoogle()
     } catch (error) {
       console.error('Error logging in with Google:', error)
       toast.error('Error logging in with Google')
-      setIsLoading(false)
+      setIsGoogleLoading(false)
     }
   }
 
@@ -94,9 +95,9 @@ export default function LoginPage() {
             <Button 
               type="submit" 
               className="w-full"
-              disabled={isLoading}
+              disabled={isEmailLoading}
             >
-              {isLoading ? 'Logging in...' : 'Login'}
+              {isEmailLoading ? 'Logging in...' : 'Login'}
             </Button>
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
@@ -108,8 +109,9 @@ export default function LoginPage() {
             </div>
             <button
               type="button"
-              className="w-full flex items-center justify-center gap-2 bg-white text-gray-700 hover:bg-gray-50 py-2 px-4 rounded border border-gray-300 font-medium transition duration-150 ease-in-out"
+              className="w-full flex items-center justify-center gap-2 bg-white text-gray-700 hover:bg-gray-50 py-2 px-4 rounded border border-gray-300 font-medium transition duration-150 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleGoogleLogin}
+              disabled={isGoogleLoading}
             >
               <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
                 <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>

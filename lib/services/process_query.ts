@@ -27,6 +27,7 @@ async function updateUserUsage(userId: string, success: boolean, numImagesProces
 
   const newRequestCount = (usageData?.requests_this_month || 0) + (success ? 1 : 0);
   const newImageCount = (usageData?.images_processed_this_month || 0) + (success ? numImagesProcessed : 0);
+  const imagesToLog = newImageCount - (usageData?.images_processed_this_month || 0);
   console.log('🔍 [process_query] Current usage counts:', { 
     newRequestCount, 
     newImageCount, 
@@ -62,6 +63,7 @@ async function updateUserUsage(userId: string, success: boolean, numImagesProces
               subscriptionId,
               type: 'processing',
               quantity: newRequestCount,
+              imagesToLog,
               userId
             });
             console.log(`[process_query] Successfully tracked processing usage for user ${userId}`);
@@ -78,6 +80,7 @@ async function updateUserUsage(userId: string, success: boolean, numImagesProces
               subscriptionId,
               type: 'images',
               quantity: newImageCount,
+              imagesToLog,
               userId
             });
             console.log(`[process_query] Successfully tracked image usage for user ${userId}`);

@@ -32,11 +32,13 @@ export async function trackUsage({
   subscriptionId,
   type,
   quantity,
+  imagesToLog,
   userId
 }: {
   subscriptionId: string
   type: UsageType['type']
   quantity: number
+  imagesToLog?: number
   userId: string
 }) {
   console.log(`[Stripe Usage] Starting usage tracking for ${type}:`, {
@@ -78,7 +80,7 @@ export async function trackUsage({
       const meterEvent = await reportUsage({
         stripeCustomerId,
         eventName,
-        quantity: 1,
+        quantity: eventName === 'image_input' ? imagesToLog || 1 : 1,
       });
       
       console.log(`[Stripe Usage] Successfully reported usage:`, {
