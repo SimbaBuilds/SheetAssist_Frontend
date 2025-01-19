@@ -81,15 +81,15 @@ export function useUsageLimits(): UsageLimits {
   const hasReachedOverageLimit = currentPlan === 'pro' && 
     (overageThisMonth + nextOperationCost > overageHardLimit)
 
-  // For free users, only check standard limits
-  // For pro users, check both standard limits and overage
+  // For free users, check standard limits
+  // For pro users, only show overage message after 200 requests
   const hasReachedRequestLimit = currentPlan === 'free' 
     ? requestsUsed >= requestLimit
-    : hasReachedOverageLimit
+    : requestsUsed >= requestLimit && hasReachedOverageLimit
 
   const hasReachedVisualizationLimit = currentPlan === 'free'
     ? visualizationsUsed >= visualizationLimit
-    : hasReachedOverageLimit
+    : visualizationsUsed >= visualizationLimit && hasReachedOverageLimit
 
   return {
     isLoading,

@@ -91,12 +91,13 @@ export async function handleStripeWebhook(event: Stripe.Event) {
           const subscriptionDetails = await stripe.subscriptions.retrieve(subscription);
           const stripeCustomerId = subscriptionDetails.customer as string;
           
-          // Update subscription status and period end
+          // Update subscription status, period end, and plan
           const { error } = await supabase
             .from('user_profile')
             .update({
               subscription_status: subscriptionDetails.status,
-              current_period_end: new Date(subscriptionDetails.current_period_end * 1000)
+              current_period_end: new Date(subscriptionDetails.current_period_end * 1000),
+              plan: subscriptionDetails.status === 'active' ? 'pro' : 'free'
             })
             .eq('stripe_customer_id', stripeCustomerId);
 

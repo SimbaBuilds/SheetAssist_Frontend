@@ -58,6 +58,18 @@ export async function createCheckoutSession({
         price: priceId,
         quantity: 1,
       },
+      {
+        price: process.env.NEXT_PUBLIC_STRIPE_VISUALIZATIONS_OVERAGE_PRICE_ID,
+        // For metered billing, do not pass quantity
+      },
+      {
+        price: process.env.NEXT_PUBLIC_STRIPE_PROCESSING_OVERAGE_PRICE_ID,
+        // For metered billing, do not pass quantity
+      },
+      {
+        price: process.env.NEXT_PUBLIC_STRIPE_IMAGES_OVERAGE_PRICE_ID,
+        // For metered billing, do not pass quantity
+      },
     ],
     mode: 'subscription',
     success_url: `${returnUrl}?session_id={CHECKOUT_SESSION_ID}`,

@@ -10,19 +10,21 @@ interface UsageType {
 
 // Basic usage reporting function
 export async function reportUsage({
-  subscriptionItemId,
+  stripeCustomerId,
+  eventName,
   quantity,
-  timestamp = Math.floor(Date.now() / 1000),
 }: {
-  subscriptionItemId: string
+  stripeCustomerId: string
+  eventName: string
   quantity: number
-  timestamp?: number
 }) {
-  return stripe.subscriptionItems.createUsageRecord(subscriptionItemId, {
-    quantity,
-    timestamp,
-    action: 'increment',
-  })
+  return stripe.billing.meterEvents.create({
+    event_name: eventName,
+    payload: {
+      value: quantity.toString(),
+      stripe_customer_id: stripeCustomerId,
+    },
+  });
 }
 
 // Advanced usage tracking with overage handling
@@ -44,55 +46,50 @@ export async function trackUsage({
   });
   
   try {
-    // Get subscription items to find the correct price ID
-    const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
-      expand: ['items']
-    })
-    console.log(`[Stripe Usage] Retrieved subscription:`, {
-      subscriptionId,
-      itemsCount: subscription.items.data.length
-    });
+    // Get subscription to find customer ID
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const stripeCustomerId = subscription.customer as string;
+    
+    // Map type to event name
+    const eventName = {
+      'processing': 'standard_processing',
+      'visualizations': 'visualization',
+      'images': 'image_input'
+    }[type];
 
-    // Find the correct subscription item based on the usage type
-    const subscriptionItem = subscription.items.data.find(item => 
-      item.price.id === process.env[`STRIPE_${type.toUpperCase()}_OVERAGE_PRICE_ID`]
-    )
-
-    if (!subscriptionItem) {
-      console.error(`[Stripe Usage] No subscription item found for ${type}`, {
-        availablePriceIds: subscription.items.data.map(item => item.price.id)
-      });
-      throw new Error(`No subscription item found for ${type}`)
+    if (!eventName) {
+      throw new Error(`Invalid usage type: ${type}`);
     }
-    console.log(`[Stripe Usage] Found subscription item:`, {
-      itemId: subscriptionItem.id,
-      priceId: subscriptionItem.price.id
-    });
 
     // Only report usage beyond the included 200
-    const includedQuantity = 200
-    const overageQuantity = Math.max(0, quantity - includedQuantity)
+    const includedQuantity = 200;
+    const overageQuantity = Math.max(0, quantity - includedQuantity);
 
     if (overageQuantity > 0) {
       console.log(`[Stripe Usage] Reporting overage:`, {
         type,
+        eventName,
         totalQuantity: quantity,
         includedQuantity,
         overageQuantity
       });
       
-      // Report usage to Stripe
-      const usageRecord = await reportUsage({
-        subscriptionItemId: subscriptionItem.id,
-        quantity: overageQuantity,
-      })
+      // Report usage to Stripe using meter events
+      const meterEvent = await reportUsage({
+        stripeCustomerId,
+        eventName,
+        quantity: 1,
+      });
+      
       console.log(`[Stripe Usage] Successfully reported usage:`, {
-        usageRecordId: usageRecord.id,
-        timestamp: usageRecord.timestamp
+        eventName,
+        quantity: overageQuantity,
+        timestamp: new Date().toISOString()
       });
     } else {
       console.log(`[Stripe Usage] No overage to report:`, {
         type,
+        eventName,
         quantity,
         includedQuantity
       });

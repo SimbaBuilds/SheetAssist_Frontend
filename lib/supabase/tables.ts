@@ -30,7 +30,7 @@ export interface UserUsage {
   unsuccessful_requests_this_month: number
   recent_sheets: OnlineSheet[] | null // jsonb array of max length 6
   overage_hard_limit: number // in dollars
-  overage_this_month: number // in dollars
+  overage_this_month: number | null // in dollars, stored as float in supabase
 }
 
 // error_log table

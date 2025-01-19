@@ -54,6 +54,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
 
   const [firstName, setFirstName] = useState(profile?.first_name ?? '')
   const [lastName, setLastName] = useState(profile?.last_name ?? '')
+  const [pendingOverageLimit, setPendingOverageLimit] = useState<number | null>(usage?.overage_hard_limit ?? null)
 
   const currentProfile = isLoading ? profile : (userProfile ?? profile)
   const currentUsage = isLoading ? usage : (userUsage ?? usage)
@@ -293,26 +294,22 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
                           step="1"
                           className="pl-7"
                           placeholder="0"
-                          value={overageHardLimit || ''}
+                          value={pendingOverageLimit ?? ''}
                           onChange={(e) => {
                             const value = e.target.value === '' ? null : parseInt(e.target.value, 10);
                             if (value === null || (value >= 0 && Number.isInteger(value))) {
-                              updateOverageLimit(value);
+                              setPendingOverageLimit(value);
                             }
                           }}
                           disabled={isUpdating}
                         />
                       </div>
-                      {/* {overageHardLimit > 0 && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => updateOverageLimit(null)}
-                          disabled={isUpdating}
-                        >
-                          Remove Limit
-                        </Button>
-                      )} */}
+                      <Button
+                        onClick={() => updateOverageLimit(pendingOverageLimit)}
+                        disabled={isUpdating || pendingOverageLimit === overageHardLimit}
+                      >
+                        Update Limit
+                      </Button>
                     </div>
                   </div>
                 </div>
