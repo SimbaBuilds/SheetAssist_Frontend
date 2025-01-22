@@ -151,11 +151,11 @@ export function DemosPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground mb-4">
-              We take your data security seriously. Our application:
+              Our application:
             </p>
             <ul className="list-disc pl-6 text-sm text-foreground space-y-2">
-              <li>Can only append data to your online sheets or add data to newly created sheets</li>
-              <li>Cannot delete, store, or modify your existing online files</li>
+              <li>Can only append data to your online sheets and add data to newly created sheets</li>
+              <li>Cannot delete, store, or modify the content in your existing online files</li>
               <li>Uses secure authentication and adheres to strict data privacy policies</li>
             </ul>
           </CardContent>
