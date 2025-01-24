@@ -22,31 +22,43 @@ export async function uploadFileToS3(
   file: File,
   userId: string
 ): Promise<S3UploadResult> {
+  console.log(`Starting S3 upload for file: ${file.name}`);
+  
   const timestamp = Date.now();
   const randomString = Math.random().toString(36).substring(2, 15);
   const key = `uploads/${userId}/${timestamp}-${randomString}-${file.name}`;
+  
+  console.log(`Generated S3 key: ${key}`);
 
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
 
-  const command = new PutObjectCommand({
-    Bucket: BUCKET_NAME,
-    Key: key,
-    Body: buffer,
-    ContentType: file.type,
-  });
+    const command = new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key,
+      Body: buffer,
+      ContentType: file.type,
+    });
 
-  await s3Client.send(command);
+    console.log(`Attempting to upload file to S3 bucket: ${BUCKET_NAME}`);
+    await s3Client.send(command);
+    console.log('File successfully uploaded to S3');
 
-  // Generate a signed URL that expires in 24 hours
-  const getCommand = new PutObjectCommand({
-    Bucket: BUCKET_NAME,
-    Key: key,
-  });
-  const url = await getSignedUrl(s3Client, getCommand, { expiresIn: 86400 });
+    // Generate a signed URL that expires in 24 hours
+    const getCommand = new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key,
+    });
+    const url = await getSignedUrl(s3Client, getCommand, { expiresIn: 86400 });
+    console.log('Generated signed URL for uploaded file');
 
-  return {
-    key,
-    url,
-  };
+    return {
+      key,
+      url,
+    };
+  } catch (error) {
+    console.error('Error uploading file to S3:', error);
+    throw error;
+  }
 } 
