@@ -20,7 +20,7 @@ export interface OutputPreferences {
   doc_name?: string | null;
 }
 
-export interface FileMetadata {
+export interface FileUploadMetadata {
   name: string
   type: AcceptedMimeType
   extension: string
@@ -28,6 +28,8 @@ export interface FileMetadata {
   index: number
   file_id?: string
   page_count?: number
+  s3_key?: string
+  s3_url?: string
 }
 
 export interface InputUrl {
@@ -39,7 +41,7 @@ export interface InputUrl {
 export interface QueryRequest {
   query: string
   input_urls?: InputUrl[]
-  files_metadata?: FileMetadata[]
+  files_metadata?: FileUploadMetadata[]
   output_preferences?: OutputPreferences
 }
 
@@ -147,7 +149,7 @@ export type SeabornSequentialPalette = keyof typeof SEABORN_SEQUENTIAL_PALETTES;
 
 export interface VisualizationRequest {
   input_urls?: InputUrl[]
-  files_metadata?: FileMetadata[]
+  files_metadata?: FileUploadMetadata[]
   options: VisualizationOptions
 }
 

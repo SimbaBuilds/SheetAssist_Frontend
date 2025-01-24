@@ -5,7 +5,7 @@ import { AcceptedMimeType } from '@/lib/constants/file-types'
 import { 
   VisualizationOptions, 
   VisualizationResult, 
-  FileMetadata,
+  FileUploadMetadata,
   VisualizationRequest,
   InputUrl,
 } from '@/lib/types/dashboard'
@@ -83,7 +83,7 @@ export const processDataVisualization = async (
   const formData = new FormData()
 
   // Create files metadata array with index only if files exist
-  const filesMetadata: FileMetadata[] = files?.map((file, index) => ({
+  const filesMetadata: FileUploadMetadata[] = files?.map((file, index) => ({
     name: file.name,
     type: file.type as AcceptedMimeType,
     extension: `.${file.name.split('.').pop()?.toLowerCase() || ''}`,
