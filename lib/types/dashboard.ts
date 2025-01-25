@@ -113,7 +113,7 @@ export interface DocumentTitleMap {
 
 // Add new type for processing state
 export interface ProcessingState {
-  status: 'created' | 'processing' | 'completed' | 'error' | 'canceled' | null;
+  status: 'created' | 'processing' | 'completed' | 'error' | 'canceled' | 'completed_with_error(s)' | null;
   message: string;
   details?: string;
   progress?: {

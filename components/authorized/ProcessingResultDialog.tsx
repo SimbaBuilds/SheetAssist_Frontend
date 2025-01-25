@@ -111,6 +111,18 @@ export function ProcessingResultDialog({
           </div>
         )
 
+      case 'completed_with_error(s)':
+        return (
+          <div className="flex flex-col items-center justify-center py-8 space-y-4">
+            <CheckCircle className="h-8 w-8 text-yellow-500" />
+            <div className="text-center space-y-2">
+              <p className="text-sm text-gray-600">
+                {state.message || 'Processing completed successfully'}
+              </p>
+            </div>
+          </div>
+        )  
+
       default:
         return (
           <div className="flex flex-col items-center justify-center py-8 space-y-4">
