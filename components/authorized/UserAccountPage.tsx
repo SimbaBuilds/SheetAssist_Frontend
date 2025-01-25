@@ -33,6 +33,7 @@ interface UserAccountPageProps {
 
 export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) {
   const {
+    isInitializing,
     isLoading,
     userProfile,
     userUsage,
@@ -83,8 +84,86 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
     isPortalLoading,
   } = useSubscription()
 
-  if (isLoading) {
-    return <AccountPageSkeleton />
+  if (isInitializing) {
+    return (
+      <div className="flex justify-center min-h-screen bg-background">
+        <div className="container max-w-4xl py-8 space-y-8 px-4">
+          <h1 className="text-3xl font-bold text-center">Account Settings</h1>
+          <div className="space-y-8">
+            {/* Profile Card Skeleton */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Profile Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-[200px]" />
+                  <Skeleton className="h-4 w-[150px]" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <Skeleton className="h-10" />
+                  <Skeleton className="h-10" />
+                </div>
+                <Skeleton className="h-10 w-[120px]" />
+              </CardContent>
+            </Card>
+
+            {/* Permissions Card Skeleton */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Connected Services</CardTitle>
+                <CardDescription>
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4 mt-2" />
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-8 w-[150px]" />
+                  <Skeleton className="h-10 w-[100px]" />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-8 w-[150px]" />
+                  <Skeleton className="h-10 w-[100px]" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Usage Card Skeleton */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Usage</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i}>
+                      <Skeleton className="h-4 w-[200px] mb-2" />
+                      <Skeleton className="h-2 w-full" />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Subscription Card Skeleton */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Manage Subscription</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between mb-6">
+                  <Skeleton className="h-8 w-[150px]" />
+                  <Skeleton className="h-10 w-[120px]" />
+                </div>
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4 mt-2" />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -490,17 +569,3 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
   )
 }
 
-function AccountPageSkeleton() {
-  return (
-    <div className="flex justify-center min-h-screen bg-background">
-      <div className="container max-w-4xl py-8 space-y-8 px-4">
-        <Skeleton className="h-10 w-48 mx-auto" />
-        <div className="space-y-8">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-[200px] w-full" />
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}

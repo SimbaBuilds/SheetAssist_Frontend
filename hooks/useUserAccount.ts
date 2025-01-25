@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSetupPermissions } from './useSetupPermissions'
 import { UserProfile, UserUsage } from '@/lib/supabase/tables'
 import { useToast } from '@/components/ui/use-toast'
@@ -13,6 +13,7 @@ interface UseUserAccountProps {
 }
 
 interface UseUserAccountReturn {
+  isInitializing: boolean
   isLoading: boolean
   userProfile: UserProfile
   userUsage: UserUsage
@@ -33,6 +34,7 @@ export function useUserAccount({
   initialUsage, 
   user 
 }: UseUserAccountProps): UseUserAccountReturn {
+  const [isInitializing, setIsInitializing] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
   const [userProfile, setUserProfile] = useState<UserProfile>(initialProfile)
@@ -42,6 +44,33 @@ export function useUserAccount({
   const supabase = createClient()
   const router = useRouter()
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
+
+  useEffect(() => {
+    const initializeUserAccount = async () => {
+      try {
+        const { data: profile } = await supabase
+          .from('user_profile')
+          .select('*')
+          .eq('id', user.id)
+          .single()
+        
+        const { data: usage } = await supabase
+          .from('user_usage')
+          .select('*')
+          .eq('user_id', user.id)
+          .single()
+
+        if (profile) setUserProfile(profile)
+        if (usage) setUserUsage(usage)
+      } catch (error) {
+        console.error('Error initializing user account:', error)
+      } finally {
+        setIsInitializing(false)
+      }
+    }
+
+    initializeUserAccount()
+  }, [user.id])
 
   const updateUserName = async (firstName: string, lastName: string) => {
     try {
@@ -288,6 +317,7 @@ export function useUserAccount({
   }
 
   return {
+    isInitializing,
     isLoading,
     userProfile,
     userUsage,
