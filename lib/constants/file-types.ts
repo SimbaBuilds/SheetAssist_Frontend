@@ -1,5 +1,5 @@
 export const MAX_FILES = 6
-export const MAX_FILE_SIZE = 350 * 1024 * 1024 // 350MB
+export const MAX_FILE_SIZE = 350 * 1024 * 1024 // 350MB HARDCODED IN NEXT.CONFIG.MJS
 export const MAX_QUERY_LENGTH = 500
 
 

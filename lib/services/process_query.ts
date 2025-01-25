@@ -1,7 +1,7 @@
 import { AxiosResponse } from 'axios';
 import api from './api';
 import { OutputPreferences, FileUploadMetadata, QueryRequest, QueryResponse, InputUrl, ProcessingState } from '@/lib/types/dashboard';
-import { AcceptedMimeType } from '@/lib/constants/file-types';
+import { AcceptedMimeType, MIME_TYPES } from '@/lib/constants/file-types';
 import { createClient } from '@/lib/supabase/client';
 import { isUserOnProPlan, getUserSubscriptionId, trackUsage } from '@/lib/stripe/usage'
 import { PLAN_REQUEST_LIMITS, PLAN_IMAGE_LIMITS } from '@/lib/constants/pricing'
@@ -9,14 +9,14 @@ import { logRequest } from '@/lib/services/loggers/request-logger';
 import { logError } from '@/lib/services/loggers/error-logger';
 import { uploadFileToS3 } from '@/lib/s3/s3-upload';
 
-// Size threshold for S3 upload (100KB)
-const S3_SIZE_THRESHOLD = 100 * 1024;
+// Size threshold for S3 upload (500KB)
+const S3_SIZE_THRESHOLD = 500 * 1024;
 
 
 
 // Helper function to update user usage statistics
 async function updateUserUsage(userId: string, success: boolean, numImagesProcessed: number = 0) {
-  console.log('🔍 [process_query] Starting updateUserUsage:', { userId, success, numImagesProcessed });
+  // console.log('🔍 [process_query] Starting updateUserUsage:', { userId, success, numImagesProcessed });
   const supabase = createClient();
   
   // Get current usage data
@@ -34,12 +34,12 @@ async function updateUserUsage(userId: string, success: boolean, numImagesProces
   const newRequestCount = (usageData?.requests_this_month || 0) + (success ? 1 : 0);
   const newImageCount = (usageData?.images_processed_this_month || 0) + (success ? numImagesProcessed : 0);
   const imagesToLog = newImageCount - (usageData?.images_processed_this_month || 0);
-  console.log('🔍 [process_query] Current usage counts:', { 
-    newRequestCount, 
-    newImageCount, 
-    currentRequests: usageData?.requests_this_month,
-    currentImages: usageData?.images_processed_this_month 
-  });
+  // console.log('🔍 [process_query] Current usage counts:', { 
+  //   newRequestCount, 
+  //   newImageCount, 
+  //   currentRequests: usageData?.requests_this_month,
+  //   currentImages: usageData?.images_processed_this_month 
+  // });
 
   const updateData = {
     requests_this_month: newRequestCount,
@@ -63,7 +63,7 @@ async function updateUserUsage(userId: string, success: boolean, numImagesProces
       if (subscriptionId) {
         // Track processing usage if over limit
         if (newRequestCount > PLAN_REQUEST_LIMITS.pro) {
-          console.log(`[process_query] Tracking processing usage overage for user ${userId}. Count: ${newRequestCount}`);
+          // console.log(`[process_query] Tracking processing usage overage for user ${userId}. Count: ${newRequestCount}`);
           try {
             await trackUsage({
               subscriptionId,
@@ -72,7 +72,7 @@ async function updateUserUsage(userId: string, success: boolean, numImagesProces
               imagesToLog,
               userId
             });
-            console.log(`[process_query] Successfully tracked processing usage for user ${userId}`);
+            // console.log(`[process_query] Successfully tracked processing usage for user ${userId}`);
           } catch (error) {
             console.error(`[process_query] Failed to track processing usage for user ${userId}:`, error);
           }
@@ -80,7 +80,7 @@ async function updateUserUsage(userId: string, success: boolean, numImagesProces
         
         // Track images usage if over limit
         if (newImageCount > PLAN_IMAGE_LIMITS.pro) {
-          console.log(`[process_query] Tracking image usage overage for user ${userId}. Count: ${newImageCount}`);
+          // console.log(`[process_query] Tracking image usage overage for user ${userId}. Count: ${newImageCount}`);
           try {
             await trackUsage({
               subscriptionId,
@@ -89,7 +89,7 @@ async function updateUserUsage(userId: string, success: boolean, numImagesProces
               imagesToLog,
               userId
             });
-            console.log(`[process_query] Successfully tracked image usage for user ${userId}`);
+            // console.log(`[process_query] Successfully tracked image usage for user ${userId}`);
           } catch (error) {
             console.error(`[process_query] Failed to track image usage for user ${userId}:`, error);
           }
@@ -310,17 +310,51 @@ class QueryService {
           index: originalIndex  // Keep original index in metadata
         };
 
-        if (file.size >= S3_SIZE_THRESHOLD) {
-          // Large file - upload to S3
-          const uploadPromise = uploadFileToS3(file, userId).then(result => {
-            metadata.s3_key = result.key;
-            metadata.s3_url = result.url;
+        const isImage = file.type === MIME_TYPES.PNG || file.type === MIME_TYPES.JPEG || file.type === MIME_TYPES.JPG;
+        if (file.size >= S3_SIZE_THRESHOLD || isImage) {
+          // Large file or image - upload to S3
+          console.log('[process_query] File will be uploaded to S3', {
+            fileName: file.name,
+            fileSize: file.size,
+            fileType: file.type,
+            reason: file.size >= S3_SIZE_THRESHOLD ? 'size' : 'image type',
+            userId
           });
+          
+          const uploadPromise = file.arrayBuffer()
+            .then(buffer => uploadFileToS3({
+              name: file.name,
+              type: file.type,
+              size: file.size,
+              arrayBuffer: new Uint8Array(buffer)
+            }, userId))
+            .then(result => {
+              console.log('[process_query] S3 upload completed successfully', {
+                fileName: file.name,
+                s3Key: result.key,
+                userId
+              });
+              metadata.s3_key = result.key;
+              metadata.s3_url = result.url;
+            })
+            .catch(error => {
+              console.error('[process_query] S3 upload failed', {
+                fileName: file.name,
+                error,
+                userId
+              });
+              throw error;
+            });
           fileUploads.push(uploadPromise);
         } else {
-          // Small file - append to formData with correct index
-          formData.append(`files[${formDataIndex}]`, file);
-          formDataIndex++;
+          console.log('[process_query] File below S3 threshold, including in form data', {
+            fileName: file.name,
+            fileSize: file.size,
+            formDataIndex,
+            userId
+          });
+          // Small file - append to formData directly with 'files' key
+          formData.append('files', file);
         }
 
         filesMetadata.push(metadata);

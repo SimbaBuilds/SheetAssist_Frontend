@@ -195,6 +195,8 @@ export function useDashboard(initialData?: UserPreferences) {
     // Check total files limit
     if (selectedFiles.length + files.length > MAX_FILES) {
       setError(`Maximum ${MAX_FILES} files allowed`)
+      // Reset the file input
+      e.target.value = '';
       return
     }
 
@@ -213,6 +215,9 @@ export function useDashboard(initialData?: UserPreferences) {
       setFiles(prev => [...prev, ...validFiles])
       setError('')
     }
+    
+    // Reset the file input value to allow selecting the same file again
+    e.target.value = '';
   }
 
   const handleAuthError = (error: unknown): boolean => {
