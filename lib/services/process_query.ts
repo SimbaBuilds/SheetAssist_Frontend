@@ -298,8 +298,7 @@ class QueryService {
     // Handle file uploads and metadata creation
     const filesMetadata: FileUploadMetadata[] = [];
     const fileUploads: Promise<void>[] = [];
-    let formDataIndex = 0;  // Track the actual index in formData
-
+    
     if (files?.length) {
       files.forEach((file, originalIndex) => {
         const metadata: FileUploadMetadata = {
@@ -350,7 +349,6 @@ class QueryService {
           console.log('[process_query] File below S3 threshold, including in form data', {
             fileName: file.name,
             fileSize: file.size,
-            formDataIndex,
             userId
           });
           // Small file - append to formData directly with 'files' key
