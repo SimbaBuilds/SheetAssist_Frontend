@@ -1,6 +1,8 @@
 export const MAX_FILES = 6
 export const MAX_FILE_SIZE = 350 * 1024 * 1024 // 350MB HARDCODED IN NEXT.CONFIG.MJS
 export const MAX_QUERY_LENGTH = 500
+export const S3_SIZE_THRESHOLD = 100 * 1024; // Size threshold for S3 upload (100KB)
+
 
 
 export const MIME_TYPES = {

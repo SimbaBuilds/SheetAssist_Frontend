@@ -8,9 +8,8 @@ import { PLAN_REQUEST_LIMITS, PLAN_IMAGE_LIMITS } from '@/lib/constants/pricing'
 import { logRequest } from '@/lib/services/loggers/request-logger';
 import { logError } from '@/lib/services/loggers/error-logger';
 import { uploadFileToS3 } from '@/lib/s3/s3-upload';
+import { S3_SIZE_THRESHOLD } from '@/lib/constants/file-types';
 
-// Size threshold for S3 upload (500KB)
-const S3_SIZE_THRESHOLD = 500 * 1024;
 
 
 
