@@ -14,7 +14,7 @@ interface VideoDemo {
 const demoVideos: Record<string, VideoDemo[]> = {
   "Batch Processing with AI": [
     {
-      title: "Batch Processing Example",
+      title: "Batch Processing Example (Scanned Documents)",
       description: "",
       youtubeId: "MWcOGVkues4",
       url: "https://youtu.be/MWcOGVkues4"
@@ -22,16 +22,16 @@ const demoVideos: Record<string, VideoDemo[]> = {
   ],
   "Spreadsheet Operations": [
     {
+        title: "Sheet Operation (Mock Student Data)",
+        description: "",
+        youtubeId: "bPjA79I2vas",
+        url: "https://youtu.be/bPjA79I2vas"
+      },
+    {
       title: "Text-Based PDF",
       description: "Convert long text-based PDFs to sheets",
       youtubeId: "tQ7oQQkNo3U",
       url: "https://youtu.be/tQ7oQQkNo3U"
-    },
-    {
-      title: "Sheet Operation (Mock Student Data)",
-      description: "",
-      youtubeId: "bPjA79I2vas",
-      url: "https://youtu.be/bPjA79I2vas"
     },
     {
       title: "Sheet Operation (Merge -- .csv to .xlsx)",
