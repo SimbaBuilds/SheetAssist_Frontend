@@ -14,7 +14,11 @@ export default function PrivacyPolicyPage() {
           <ul className="list-disc pl-6 mt-2 space-y-2 text-muted-foreground">
             <li>Our application employs industry-standard encryption, secure storage practices, and strict access controls to ensure user data is fully safeguarded.</li>
             <li>Our application retains data only for the duration required to provide the intended services.  All copies of user data created for processing are immediately deleted.</li>
-            <li>Our application does not use Workspace API-obtained user data to develop, improve, or train AI/ML models.</li>
+            <li>Your data is not used by this application or shared with othersto develop, improve, or train AI/ML models:
+              <ul className="list-disc pl-6 mt-2 space-y-2 text-muted-foreground">
+                <li>Large language models do not have direct access to your data or files -- they only have access to pre-processed versions.</li>
+              </ul>
+            </li>
           </ul>
         </section>
         <section>
