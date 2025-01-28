@@ -6,48 +6,42 @@ export default function PrivacyPolicyPage() {
       <h1 className="text-2xl font-bold mb-6">Privacy Policy</h1>
       
       <div className="space-y-5">
-        <section>
-          <h2 className="text-lg font-semibold mb-3">1. Information We Collect</h2>
+      <section>
+          <h2 className="text-lg font-semibold mb-3">1. Our Data Practices </h2>
           <p className="text-muted-foreground">
-            We collect information you provide directly to us when using our services, including:
+            We are committed to safeguarding your privacy and data:
           </p>
           <ul className="list-disc pl-6 mt-2 space-y-2 text-muted-foreground">
-            <li>Account information (name, email, password)</li>
-            <li>Integration data from connected services (Google Sheets, Microsoft Excel)</li>
-            <li>Usage data and analytics</li>
+            <li>Our application employs industry-standard encryption, secure storage practices, and strict access controls to ensure user data is fully safeguarded.</li>
+            <li>Our application retains data only for the duration required to provide the intended services.  All copies of user data created for processing are immediately deleted.</li>
+            <li>Our application does not use Workspace API-obtained user data to develop, improve, or train AI/ML models.</li>
           </ul>
         </section>
-
         <section>
           <h2 className="text-lg font-semibold mb-3">2. How We Use Your Information</h2>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mt-2">
             We use the collected information to:
           </p>
           <ul className="list-disc pl-6 mt-2 space-y-2 text-muted-foreground">
             <li>Provide and maintain our services</li>
             <li>Process your requests and transactions</li>
             <li>Send you technical notices and support messages</li>
-            <li>Improve and optimize our services</li>
           </ul>
         </section>
 
         <section>
           <h2 className="text-lg font-semibold mb-3">3. Third-Party Services</h2>
           <p className="text-muted-foreground">
-            Our service integrates with third-party services like Google Sheets and Microsoft Excel. 
+            Our service integrates with third-party services like Google Sheets and Microsoft Excel Online. 
             When you connect these services, their respective privacy policies also apply to your data.
           </p>
           <p className="text-muted-foreground mt-2">
-            For optimal functionality, we request specific permissions from these services. 
-            Please accept all Google or Microsoft permissions to get the most out of this application. 
+            To offer you the best experience with our application, we request specific permissions from you to access these services. 
+            Please accept all Google and/or Microsoft permissions to get the most out of this application. 
             See <Link href="/scopes-note" className="underline hover:text-primary">here</Link> for 
             a detailed note on drive permissions.
           </p>
-        </section>
-
-        <section>
-          <h2 className="text-lg font-semibold mb-3">4. Contact Us</h2>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mt-8">
             If you have any questions about this Privacy Policy, please <Link href="/contact-us" className="underline hover:text-primary">contact us</Link>.
           </p>
         </section>
