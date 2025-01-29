@@ -194,16 +194,6 @@ export default function DashboardPage() {
                 <Label htmlFor="files">
                   Upload Files (Max {MAX_FILES} files, Max {MAX_FILE_SIZE / 1024 / 1024}MB total)
                 </Label>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <InfoIcon className="h-4 w-4 text-muted-foreground" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      Supports roughly 50 page PDF of scanned documents
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
               </div>
               <div className="mt-1 space-y-2">
                 <Input

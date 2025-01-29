@@ -71,7 +71,7 @@ export function ProcessingResultDialog({
                 <>
                   <div className="text-sm text-destructive">
                     <p>Error processing URL</p>
-                    <div className="max-h-20 overflow-y-auto break-all text-xs mt-1">
+                    <div className="max-h-20 overflow-y-auto break-all text-xs mt-1 whitespace-pre-wrap">
                       {state.message.replace("Error processing URL: ", "")}
                     </div>
                   </div>
@@ -82,7 +82,7 @@ export function ProcessingResultDialog({
               ) : state.message?.includes("attempts exhausted") ? (
                 <>
                   <div className="text-sm text-destructive">
-                    <div className="max-h-20 overflow-y-auto break-all text-xs mt-1">
+                    <div className="max-h-20 overflow-y-auto break-all text-xs mt-1 whitespace-pre-wrap">
                       {state.message}
                     </div>
                   </div>
@@ -91,7 +91,7 @@ export function ProcessingResultDialog({
                   </p>
                 </>
               ) : (
-                <p className="text-sm text-destructive break-words">
+                <p className="text-sm text-destructive break-words whitespace-pre-wrap">
                   {state.message || 'An error occurred while processing your request'}
                 </p>
               )}
@@ -100,11 +100,12 @@ export function ProcessingResultDialog({
         )
 
       case 'completed':
-        return (
+        console.log('[ProcessingResultDialog] Completed message:', state.message);
+      return (
           <div className="flex flex-col items-center justify-center py-8 space-y-4">
             <CheckCircle className="h-8 w-8 text-green-500" />
             <div className="text-center space-y-2">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 whitespace-pre-wrap">
                 {state.message || 'Processing completed successfully'}
               </p>
             </div>
@@ -112,11 +113,12 @@ export function ProcessingResultDialog({
         )
 
       case 'completed_with_error(s)':
-        return (
+        console.log('[ProcessingResultDialog] Completed with error(s) message:', state.message);
+      return (
           <div className="flex flex-col items-center justify-center py-8 space-y-4">
             <CheckCircle className="h-8 w-8 text-yellow-500" />
             <div className="text-center space-y-2">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 whitespace-pre-wrap">
                 {state.message || 'Processing completed successfully'}
               </p>
             </div>
@@ -124,11 +126,12 @@ export function ProcessingResultDialog({
         )  
 
       default:
+        console.log('[ProcessingResultDialog] Processing message:', state.message);
         return (
           <div className="flex flex-col items-center justify-center py-8 space-y-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
             <div className="text-center space-y-2">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 whitespace-pre-wrap">
                 {state.message || 'Processing your request...'}
               </p>
             </div>
