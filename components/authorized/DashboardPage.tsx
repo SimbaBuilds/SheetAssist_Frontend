@@ -918,7 +918,7 @@ export default function DashboardPage() {
                       <>
                         <p>Error processing URL</p>
                         <p className="text-sm text-muted-foreground mt-2">
-                        We&apos;ve lost connection to your Google or Microsoft account. Please <Link href="/user-account" className="font-bold hover:underline">reconnect</Link> the necessary service in your account settings to continue.
+                        We&apos;ve lost connection to your Google or Microsoft account. Please <Link href="/user-account" className="font-bold hover:underline">reconnect</Link> the necessary service in your account settings and re-enter URL.
                         </p>
                       </>
                     ) : (
