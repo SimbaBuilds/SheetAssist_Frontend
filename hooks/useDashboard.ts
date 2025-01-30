@@ -722,7 +722,7 @@ export function useDashboard(initialData?: UserPreferences) {
       status: null,
       message: ''
     });
-    setError(''); // Keep this to ensure all error states are cleared
+    setError('');
     setOutputTypeError(null);
     setProcessedResult(null);
 

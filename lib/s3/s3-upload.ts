@@ -1,17 +1,6 @@
-'use server'
+'use client'
 
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION!,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
-});
-
-const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME!;
+import { generatePresignedUrl } from './generate-presigned-url';
 
 export interface S3UploadResult {
   key: string;
@@ -22,7 +11,7 @@ export interface FileData {
   name: string;
   type: string;
   size: number;
-  arrayBuffer: Uint8Array;
+  file: File;
 }
 
 export async function uploadFileToS3(
@@ -30,59 +19,79 @@ export async function uploadFileToS3(
   userId: string
 ): Promise<S3UploadResult> {
   const startTime = Date.now();
-  console.log(`[s3-upload] Starting S3 upload for file: ${fileData.name}`, {
+  console.log(`[s3-upload] Starting S3 upload process`, {
     userId,
+    fileName: fileData.name,
     fileSize: fileData.size,
     fileType: fileData.type
   });
-  
-  const timestamp = Date.now();
-  const randomString = Math.random().toString(36).substring(2, 15);
-  const key = `uploads/${userId}/${timestamp}-${randomString}-${fileData.name}`;
-  
+
   try {
-    const buffer = Buffer.from(fileData.arrayBuffer);
-
-    const command = new PutObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: key,
-      Body: buffer,
-      ContentType: fileData.type,
-    });
-
-    console.log(`[s3-upload] Attempting to upload file to S3`, {
-      bucket: BUCKET_NAME,
-      key,
-      contentType: fileData.type,
-      userId
-    });
-    
-    await s3Client.send(command);
-    
-    const uploadDuration = Date.now() - startTime;
-    console.log('[s3-upload] File successfully uploaded to S3', {
-      duration: uploadDuration,
+    console.log('[s3-upload] Requesting presigned URL', {
       userId,
-      fileSize: fileData.size
+      fileName: fileData.name,
     });
 
-    // Generate a signed URL that expires in 24 hours
-    const getCommand = new PutObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: key,
+    // Get presigned URL from server
+    const { url, key } = await generatePresignedUrl(
+      fileData.name,
+      fileData.type,
+      userId
+    );
+
+    console.log('[s3-upload] Received presigned URL, starting direct upload', {
+      userId,
+      key,
+      urlLength: url.length,
     });
-    const url = await getSignedUrl(s3Client, getCommand, { expiresIn: 86400 });
+
+    // Upload directly to S3 using the presigned URL
+    const uploadStartTime = Date.now();
+    const response = await fetch(url, {
+      method: 'PUT',
+      body: fileData.file,
+      headers: {
+        'Content-Type': fileData.type,
+      },
+    });
+
+    if (!response.ok) {
+      const errorMessage = `Upload failed: ${response.statusText}`;
+      console.error('[s3-upload] Direct upload failed', {
+        userId,
+        key,
+        status: response.status,
+        statusText: response.statusText,
+        duration: Date.now() - uploadStartTime,
+      });
+      throw new Error(errorMessage);
+    }
+
+    const uploadDuration = Date.now() - startTime;
+    const directUploadDuration = Date.now() - uploadStartTime;
+    console.log('[s3-upload] File successfully uploaded to S3', {
+      duration: {
+        total: uploadDuration,
+        directUpload: directUploadDuration,
+      },
+      userId,
+      key,
+      fileSize: fileData.size,
+      status: response.status,
+    });
 
     return {
       key,
       url,
     };
   } catch (error) {
-    console.error('[s3-upload] Error uploading file to S3:', {
+    const duration = Date.now() - startTime;
+    console.error('[s3-upload] Error in upload process:', {
       error,
       userId,
       fileName: fileData.name,
-      fileSize: fileData.size
+      fileSize: fileData.size,
+      duration,
     });
     throw error;
   }

@@ -319,13 +319,12 @@ class QueryService {
             userId
           });
           
-          const uploadPromise = file.arrayBuffer()
-            .then(buffer => uploadFileToS3({
-              name: file.name,
-              type: file.type,
-              size: file.size,
-              arrayBuffer: new Uint8Array(buffer)
-            }, userId))
+          const uploadPromise = uploadFileToS3({
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            file
+          }, userId)
             .then(result => {
               console.log('[process_query] S3 upload completed successfully', {
                 fileName: file.name,
