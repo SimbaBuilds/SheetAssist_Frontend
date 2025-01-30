@@ -40,8 +40,6 @@ export async function uploadFileToS3(
   const randomString = Math.random().toString(36).substring(2, 15);
   const key = `uploads/${userId}/${timestamp}-${randomString}-${fileData.name}`;
   
-  console.log(`[s3-upload] Generated S3 key: ${key}`);
-
   try {
     const buffer = Buffer.from(fileData.arrayBuffer);
 
@@ -74,7 +72,6 @@ export async function uploadFileToS3(
       Key: key,
     });
     const url = await getSignedUrl(s3Client, getCommand, { expiresIn: 86400 });
-    console.log('[s3-upload] Generated signed URL for uploaded file', { key });
 
     return {
       key,
