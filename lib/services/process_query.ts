@@ -122,25 +122,10 @@ class QueryService {
     const startTime = Date.now();
     const MAX_TOTAL_TIME = 3600000; // 1 hour max total polling time
 
-    console.log('[process_query] Starting status polling for job:', {
-      jobId,
-      userId,
-      timestamp: new Date().toISOString(),
-      pollingInterval: this.POLLING_INTERVAL,
-      maxRetries: this.MAX_RETRIES
-    });
+    console.log('[process_query] Starting status polling for job:', jobId);
 
     while (true) {
-      const currentTime = Date.now();
-      const elapsedTime = currentTime - startTime;
-
-      if (elapsedTime > MAX_TOTAL_TIME) {
-        console.log('[process_query] Polling exceeded maximum time', {
-          jobId,
-          elapsedTime,
-          maxTime: MAX_TOTAL_TIME,
-          timestamp: new Date().toISOString()
-        });
+      if (Date.now() - startTime > MAX_TOTAL_TIME) {
         const errorState: ProcessingState = {
           status: 'error',
           message: 'Maximum polling time exceeded'
@@ -154,11 +139,7 @@ class QueryService {
       }
 
       if (signal?.aborted) {
-        console.log('[process_query] Polling aborted by signal', {
-          jobId,
-          elapsedTime,
-          timestamp: new Date().toISOString()
-        });
+        console.log('[process_query] Polling aborted by signal');
         return {
           status: 'canceled',
           message: 'Request was canceled',
@@ -167,23 +148,10 @@ class QueryService {
       }
 
       try {
-        console.log('[process_query] Making polling request', {
-          jobId,
-          retryAttempt: retries,
-          elapsedTime,
-          timestamp: new Date().toISOString()
-        });
-
+        console.log('[process_query] Polling status...');
         const response = await api.post('/process_query/status', statusFormData, {
           signal,
           timeout: this.POLLING_TIMEOUT,
-        });
-
-        console.log('[process_query] Received polling response', {
-          jobId,
-          status: response.data.status,
-          message: response.data.message,
-          timestamp: new Date().toISOString()
         });
 
         const result = response.data;
@@ -261,12 +229,9 @@ class QueryService {
       } catch (error: unknown) {
         const typedError = error as { code?: string; message?: string };
         console.error('[process_query] Polling error:', {
-          jobId,
           code: typedError?.code,
           message: typedError?.message,
-          retries,
-          timestamp: new Date().toISOString(),
-          stack: (error as Error).stack
+          retries
         });
 
         // Handle connection timeouts
@@ -322,13 +287,6 @@ class QueryService {
     const supabase = createClient();
     const user = await supabase.auth.getUser();
     const userId = user.data.user?.id;
-
-    console.log('[process_query] Starting query processing', {
-      userId,
-      hasFiles: !!files?.length,
-      numUrls: webUrls.length,
-      timestamp: new Date().toISOString()
-    });
 
     if (!userId) {
       throw new Error('User not authenticated');
@@ -431,22 +389,37 @@ class QueryService {
       });
 
       const initialResult: QueryResponse = response.data;
-      console.log('[process_query] Initial API response:', {
+      console.log('[process_query] Received initial response:', {
         status: initialResult.status,
+        hasJobId: !!initialResult.job_id,
         jobId: initialResult.job_id,
+        responseData: JSON.stringify(initialResult),
         timestamp: new Date().toISOString()
       });
 
       // If this is a batch process, handle polling
       if (initialResult.job_id) {
-        console.log('[process_query] Starting batch process polling', {
+        console.log('[process_query] Detected batch process, preparing to poll:', {
           jobId: initialResult.job_id,
           timestamp: new Date().toISOString()
         });
+        
         // Update timeout for batch processing
+        const previousTimeout = api.defaults.timeout;
         api.defaults.timeout = this.BATCH_TIMEOUT;
+        console.log('[process_query] Updated API timeout for polling:', {
+          previousTimeout,
+          newTimeout: this.BATCH_TIMEOUT,
+          timestamp: new Date().toISOString()
+        });
         
         try {
+          console.log('[process_query] Attempting to call pollJobStatus:', {
+            jobId: initialResult.job_id,
+            userId,
+            timestamp: new Date().toISOString()
+          });
+          
           const result = await this.pollJobStatus(
             initialResult.job_id,
             userId,
@@ -454,6 +427,12 @@ class QueryService {
             signal,
             onProgress
           );
+
+          console.log('[process_query] Polling completed:', {
+            jobId: initialResult.job_id,
+            status: result.status,
+            timestamp: new Date().toISOString()
+          });
 
           // Handle the polling result
           if (result.status === 'error' || result.status === 'canceled') {
@@ -501,7 +480,7 @@ class QueryService {
           };
         } finally {
           // Reset timeout to standard
-          api.defaults.timeout = this.STANDARD_TIMEOUT;
+          api.defaults.timeout = previousTimeout;
         }
       } else {
         // Handle non-batch processing result
