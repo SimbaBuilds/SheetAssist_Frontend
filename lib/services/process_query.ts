@@ -387,6 +387,14 @@ class QueryService {
         message: 'Processing your request...'
       });
 
+      console.log('[process_query] Initiating backend request:', {
+        queryLength: query.length,
+        numFiles: files?.length || 0,
+        numUrls: webUrls.length,
+        hasOutputPreferences: !!outputPreferences,
+        userId
+      });
+
       const response: AxiosResponse<QueryResponse> = await api.post('/process_query', formData, {
         headers: { 
           'Content-Type': 'multipart/form-data'
@@ -395,6 +403,15 @@ class QueryService {
         maxContentLength: Infinity,
         signal,
         timeout: this.STANDARD_TIMEOUT,
+      }).catch(error => {
+        console.error('[process_query] Backend request failed:', {
+          error: error.message,
+          code: error.code,
+          response: error.response?.data,
+          status: error.response?.status,
+          userId
+        });
+        throw error;
       });
 
       console.log('[process_query] Initial backend response:', {
