@@ -43,7 +43,8 @@ export default function PrivacyPolicyPage() {
             To offer you the best experience with our application, we request specific permissions from you to access these services. 
             Please accept all Google and/or Microsoft permissions to get the most out of this application. 
             See <Link href="/scopes-note" className="underline hover:text-primary">here</Link> for 
-            a detailed note on drive permissions.
+            a detailed note on drive permissions.  App verification pending.
+
           </p>
           <p className="text-muted-foreground mt-8">
             If you have any questions about this Privacy Policy, please <Link href="/contact-us" className="underline hover:text-primary">contact us</Link>.

@@ -21,6 +21,7 @@ export function SetupPermissionsPage() {
           <p className="text-xs text-foreground">
                   Please accept all Google or Microsoft permissions to get the most out of this application.<br/>
                   See <Link href="/scopes-note" className="underline">here</Link> for a note on drive permissions. <br/>
+                  App verification pending.
                 </p>
           </div>
         </div>

@@ -120,11 +120,10 @@ class QueryService {
     const MAX_TOTAL_TIME = 3600000; // 1 hour max total polling time
     const supabase = createClient();
 
-    console.log('[PollJobStatus] Starting polling loop', { jobId });
+    console.log('[process_query] Starting status polling for job:', jobId);
 
     while (true) {
       if (Date.now() - startTime > MAX_TOTAL_TIME) {
-        console.warn('[PollJobStatus] Maximum polling time exceeded', { jobId, totalTime: Date.now() - startTime });
         const errorState: ProcessingState = {
           status: 'error',
           message: 'Maximum polling time exceeded'
@@ -138,7 +137,7 @@ class QueryService {
       }
 
       if (signal?.aborted) {
-        console.log('[PollJobStatus] Polling aborted by signal', { jobId });
+        console.log('[process_query] Polling aborted by signal');
         return {
           status: 'canceled',
           message: 'Request was canceled',
@@ -147,6 +146,7 @@ class QueryService {
       }
 
       try {
+        console.log('[process_query] Polling job status from database...');
         const { data: job, error } = await supabase
           .from('jobs')
           .select('*')
@@ -155,28 +155,19 @@ class QueryService {
           .single();
 
         if (error) {
-          console.error('[PollJobStatus] Error fetching job:', { jobId, error });
+          console.error('[process_query] Error fetching job:', error);
           throw error;
         }
 
         if (!job) {
-          console.error('[PollJobStatus] Job not found', { jobId });
           throw new Error('Job not found');
         }
-
-        // Log state changes
-        console.log('[PollJobStatus] Job status update', {
-          jobId,
-          status: job.status,
-          imagesProcessed: job.images_processed,
-          totalPages: job.total_pages
-        });
 
         // Map job status to response format
         const result: QueryResponse = {
           status: job.status,
           message: job.message || '',
-          num_images_processed: job.total_images__processed || 0,
+          num_images_processed: job.total_images_processed || 0,
           total_pages: job.total_pages,
           job_id: job.job_id
         };
@@ -200,12 +191,6 @@ class QueryService {
           (job.message && job.message.toLowerCase().includes('error'));
 
         if (hasError) {
-          console.error('[PollJobStatus] Job error detected', {
-            jobId,
-            status: job.status,
-            errorMessage: job.error_message || job.message
-          });
-          
           const errorMessage = job.error_message || job.message || 'Backend processing error';
           await logError({
             userId,
@@ -225,7 +210,7 @@ class QueryService {
           return {
             status: 'error',
             message: errorMessage,
-            num_images_processed: job.total_images__processed || 0,
+            num_images_processed: job.total_images_processed || 0,
             error: errorMessage
           };
         }
@@ -244,20 +229,11 @@ class QueryService {
         onProgress?.(processingState);
 
         if (job.status === 'completed') {
-          console.log('[PollJobStatus] Job completed successfully', {
-            jobId,
-            totalTime: Date.now() - startTime,
-            imagesProcessed: job.total_images__processed
-          });
           return result;
         }
 
         // Only continue polling if status is 'processing' or 'created'
         if (job.status !== 'processing' && job.status !== 'created') {
-          console.warn('[PollJobStatus] Unexpected job status', {
-            jobId,
-            status: job.status
-          });
           const errorState: ProcessingState = {
             status: 'error',
             message: `Unexpected status: ${job.status}`
@@ -280,8 +256,7 @@ class QueryService {
 
       } catch (error: unknown) {
         const typedError = error as { code?: string; message?: string };
-        console.error('[PollJobStatus] Polling error:', {
-          jobId,
+        console.error('[process_query] Polling error:', {
           code: typedError?.code,
           message: typedError?.message,
           retries
@@ -291,10 +266,10 @@ class QueryService {
         if (typedError?.code === 'ECONNABORTED') {
           retries++;
           if (retries >= this.MAX_RETRIES) {
-            console.error('[PollJobStatus] Max retries exceeded on timeout', { jobId, retries });
             const errorState: ProcessingState = {
               status: 'error',
               message: 'Connection timeout',
+
             };
             onProgress?.(errorState);
             return {
@@ -311,7 +286,6 @@ class QueryService {
         // For other errors
         retries++;
         if (retries >= this.MAX_RETRIES) {
-          console.error('[PollJobStatus] Max retries exceeded', { jobId, retries });
           const errorState: ProcessingState = {
             status: 'error',
             message: 'Maximum retry attempts exceeded',
@@ -337,12 +311,6 @@ class QueryService {
     signal?: AbortSignal,
     onProgress?: (state: ProcessingState) => void
   ): Promise<QueryResponse> {
-    console.log('[ProcessQuery] Starting query processing', {
-      hasFiles: !!files?.length,
-      numWebUrls: webUrls.length,
-      hasOutputPreferences: !!outputPreferences
-    });
-    
     const startTime = Date.now();
     const supabase = createClient();
     const user = await supabase.auth.getUser();
@@ -368,11 +336,8 @@ class QueryService {
       .single();
 
     if (jobError || !job) {
-      console.error('[ProcessQuery] Failed to initialize job:', jobError);
       throw new Error('Failed to initialize job');
     }
-
-    console.log('[ProcessQuery] Job initialized', { jobId: job.job_id });
 
     const formData = new FormData();
     
@@ -381,11 +346,6 @@ class QueryService {
     const fileUploads: Promise<void>[] = [];
     
     if (files?.length) {
-      console.log('[ProcessQuery] Processing files for upload', { 
-        numFiles: files.length,
-        totalSize: files.reduce((acc, f) => acc + f.size, 0)
-      });
-      
       files.forEach((file, originalIndex) => {
         const metadata: FileUploadMetadata = {
           name: file.name,
@@ -397,11 +357,13 @@ class QueryService {
 
         const isImage = file.type === MIME_TYPES.PNG || file.type === MIME_TYPES.JPEG || file.type === MIME_TYPES.JPG;
         if (file.size >= S3_SIZE_THRESHOLD || isImage) {
-          console.log('[ProcessQuery] File will be uploaded to S3', {
+          // Large file or image - upload to S3
+          console.log('[process_query] File will be uploaded to S3', {
             fileName: file.name,
             fileSize: file.size,
             fileType: file.type,
-            reason: file.size >= S3_SIZE_THRESHOLD ? 'size' : 'image type'
+            reason: file.size >= S3_SIZE_THRESHOLD ? 'size' : 'image type',
+            userId
           });
           
           const uploadPromise = uploadFileToS3({
@@ -464,11 +426,6 @@ class QueryService {
         message: 'Processing your request...'
       });
 
-      console.log('[ProcessQuery] Sending request to backend', {
-        hasFilesMetadata: filesMetadata.length > 0,
-        formDataSize: formData.get('files') ? 'present' : 'none'
-      });
-
       const response: AxiosResponse<QueryResponse> = await api.post('/process_query', formData, {
         headers: { 
           'Content-Type': 'multipart/form-data'
@@ -477,16 +434,12 @@ class QueryService {
         timeout: this.STANDARD_TIMEOUT,
       });
 
-      console.log('[ProcessQuery] Initial backend response received', {
-        status: response.data.status,
-        hasFiles: !!response.data.files?.length
-      });
+      console.log('[process_query] Initial response:', response.data);
       
       // Set timeout for polling
       api.defaults.timeout = this.BATCH_TIMEOUT;
       
       try {
-        console.log('[ProcessQuery] Starting job status polling', { jobId: job.job_id });
         const result = await this.pollJobStatus(
           job.job_id,
           userId,
@@ -497,10 +450,6 @@ class QueryService {
 
         // Handle the polling result
         if (result.status === 'error' || result.status === 'canceled') {
-          console.log('[ProcessQuery] Job completed with error/canceled status', {
-            status: result.status,
-            message: result.message
-          });
           await logRequest({
             userId,
             query,
@@ -525,9 +474,9 @@ class QueryService {
           status: 'completed',
           success: true,
           requestType: 'query',
-          numImagesProcessed: result.num_images_processed
+          numImagesProcessed: job.total_images_processed || 0
         });
-        await updateUserUsage(userId, true, result.num_images_processed || 0);
+        await updateUserUsage(userId, true, job.total_images_processed || 0); //only runs once on completion
         return result;
       } catch (error) {
         console.error('Unexpected error during polling:', error);
