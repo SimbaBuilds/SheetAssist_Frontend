@@ -115,17 +115,16 @@ class QueryService {
     signal?: AbortSignal,
     onProgress?: (state: ProcessingState) => void
   ): Promise<QueryResponse> {
-    const statusFormData = new FormData();
-    statusFormData.append('job_id', jobId);
     let retries = 0;
-
     const startTime = Date.now();
     const MAX_TOTAL_TIME = 3600000; // 1 hour max total polling time
+    const supabase = createClient();
 
-    console.log('[process_query] Starting status polling for job:', jobId);
+    console.log('[PollJobStatus] Starting polling loop', { jobId });
 
     while (true) {
       if (Date.now() - startTime > MAX_TOTAL_TIME) {
+        console.warn('[PollJobStatus] Maximum polling time exceeded', { jobId, totalTime: Date.now() - startTime });
         const errorState: ProcessingState = {
           status: 'error',
           message: 'Maximum polling time exceeded'
@@ -139,7 +138,7 @@ class QueryService {
       }
 
       if (signal?.aborted) {
-        console.log('[process_query] Polling aborted by signal');
+        console.log('[PollJobStatus] Polling aborted by signal', { jobId });
         return {
           status: 'canceled',
           message: 'Request was canceled',
@@ -148,26 +147,70 @@ class QueryService {
       }
 
       try {
-        console.log('[process_query] Polling status...');
-        const response = await api.post('/process_query/status', statusFormData, {
-          signal,
-          timeout: this.POLLING_TIMEOUT,
+        const { data: job, error } = await supabase
+          .from('jobs')
+          .select('*')
+          .eq('job_id', jobId)
+          .eq('user_id', userId)
+          .single();
+
+        if (error) {
+          console.error('[PollJobStatus] Error fetching job:', { jobId, error });
+          throw error;
+        }
+
+        if (!job) {
+          console.error('[PollJobStatus] Job not found', { jobId });
+          throw new Error('Job not found');
+        }
+
+        // Log state changes
+        console.log('[PollJobStatus] Job status update', {
+          jobId,
+          status: job.status,
+          imagesProcessed: job.images_processed,
+          totalPages: job.total_pages
         });
 
-        const result = response.data;
-        
-        // Important: Check for error indicators in both status and message
+        // Map job status to response format
+        const result: QueryResponse = {
+          status: job.status,
+          message: job.message || '',
+          num_images_processed: job.total_images__processed || 0,
+          total_pages: job.total_pages,
+          job_id: job.job_id
+        };
+
+        if (job.error_message) {
+          result.error = job.error_message;
+        }
+
+        if (job.result_file_path) {
+          result.files = [{
+            file_path: job.result_file_path,
+            media_type: job.result_media_type || 'application/octet-stream',
+            filename: job.result_file_path.split('/').pop() || 'result',
+            download_url: job.result_file_path
+          }];
+        }
+
         const hasError = 
-          result.status === 'error' || 
-          result.error || 
-          (result.message && result.message.toLowerCase().includes('error'));
+          job.status === 'error' || 
+          job.error_message || 
+          (job.message && job.message.toLowerCase().includes('error'));
 
         if (hasError) {
-          const errorMessage = result.error || result.message || 'Backend processing error';
+          console.error('[PollJobStatus] Job error detected', {
+            jobId,
+            status: job.status,
+            errorMessage: job.error_message || job.message
+          });
+          
+          const errorMessage = job.error_message || job.message || 'Backend processing error';
           await logError({
             userId,
             originalQuery: query,
-            message: result.message || 'Backend processing error',
+            message: job.message || 'Backend processing error',
             errorCode: 'BACKEND_ERROR',
             requestType: 'query',
             startTime
@@ -182,39 +225,48 @@ class QueryService {
           return {
             status: 'error',
             message: errorMessage,
-            num_images_processed: result.num_images_processed || 0,
+            num_images_processed: job.total_images__processed || 0,
             error: errorMessage
           };
         }
 
-        // Create processing state from result
+        // Create processing state from job
         const processingState: ProcessingState = {
-          status: result.status,
-          message: result.message || `Processing page ${result.num_images_processed || 0} of ${result.total_pages || '?'}`,
-          progress: result.num_images_processed ? {
-            processed: result.num_images_processed,
-            total: result.total_pages || null
+          status: job.status,
+          message: job.message || `Processing page ${job.images_processed || 0} of ${job.total_pages || '?'}`,
+          progress: job.images_processed ? {
+            processed: job.images_processed,
+            total: job.total_pages || null
           } : undefined
         };
 
         // Update progress for non-error states
         onProgress?.(processingState);
 
-        if (result.status === 'completed') {
+        if (job.status === 'completed') {
+          console.log('[PollJobStatus] Job completed successfully', {
+            jobId,
+            totalTime: Date.now() - startTime,
+            imagesProcessed: job.total_images__processed
+          });
           return result;
         }
 
         // Only continue polling if status is 'processing' or 'created'
-        if (result.status !== 'processing' && result.status !== 'created') {
+        if (job.status !== 'processing' && job.status !== 'created') {
+          console.warn('[PollJobStatus] Unexpected job status', {
+            jobId,
+            status: job.status
+          });
           const errorState: ProcessingState = {
             status: 'error',
-            message: `Unexpected status: ${result.status}`
+            message: `Unexpected status: ${job.status}`
           };
           onProgress?.(errorState);
           return {
             status: 'error',
             message: errorState.message,
-            num_images_processed: result.num_images_processed || 0
+            num_images_processed: job.images_processed || 0
           };
         }
 
@@ -228,7 +280,8 @@ class QueryService {
 
       } catch (error: unknown) {
         const typedError = error as { code?: string; message?: string };
-        console.error('[process_query] Polling error:', {
+        console.error('[PollJobStatus] Polling error:', {
+          jobId,
           code: typedError?.code,
           message: typedError?.message,
           retries
@@ -238,10 +291,10 @@ class QueryService {
         if (typedError?.code === 'ECONNABORTED') {
           retries++;
           if (retries >= this.MAX_RETRIES) {
+            console.error('[PollJobStatus] Max retries exceeded on timeout', { jobId, retries });
             const errorState: ProcessingState = {
               status: 'error',
               message: 'Connection timeout',
-
             };
             onProgress?.(errorState);
             return {
@@ -258,6 +311,7 @@ class QueryService {
         // For other errors
         retries++;
         if (retries >= this.MAX_RETRIES) {
+          console.error('[PollJobStatus] Max retries exceeded', { jobId, retries });
           const errorState: ProcessingState = {
             status: 'error',
             message: 'Maximum retry attempts exceeded',
@@ -283,6 +337,12 @@ class QueryService {
     signal?: AbortSignal,
     onProgress?: (state: ProcessingState) => void
   ): Promise<QueryResponse> {
+    console.log('[ProcessQuery] Starting query processing', {
+      hasFiles: !!files?.length,
+      numWebUrls: webUrls.length,
+      hasOutputPreferences: !!outputPreferences
+    });
+    
     const startTime = Date.now();
     const supabase = createClient();
     const user = await supabase.auth.getUser();
@@ -292,6 +352,28 @@ class QueryService {
       throw new Error('User not authenticated');
     }
 
+    // Initialize job in Supabase
+    const { data: job, error: jobError } = await supabase
+      .from('jobs')
+      .insert({
+        user_id: userId,
+        status: 'created',
+        query: query,
+        type: 'standard',
+        output_preferences: outputPreferences || null,
+        created_at: new Date().toISOString(),
+        images_processed: 0
+      })
+      .select()
+      .single();
+
+    if (jobError || !job) {
+      console.error('[ProcessQuery] Failed to initialize job:', jobError);
+      throw new Error('Failed to initialize job');
+    }
+
+    console.log('[ProcessQuery] Job initialized', { jobId: job.job_id });
+
     const formData = new FormData();
     
     // Handle file uploads and metadata creation
@@ -299,6 +381,11 @@ class QueryService {
     const fileUploads: Promise<void>[] = [];
     
     if (files?.length) {
+      console.log('[ProcessQuery] Processing files for upload', { 
+        numFiles: files.length,
+        totalSize: files.reduce((acc, f) => acc + f.size, 0)
+      });
+      
       files.forEach((file, originalIndex) => {
         const metadata: FileUploadMetadata = {
           name: file.name,
@@ -310,13 +397,11 @@ class QueryService {
 
         const isImage = file.type === MIME_TYPES.PNG || file.type === MIME_TYPES.JPEG || file.type === MIME_TYPES.JPG;
         if (file.size >= S3_SIZE_THRESHOLD || isImage) {
-          // Large file or image - upload to S3
-          console.log('[process_query] File will be uploaded to S3', {
+          console.log('[ProcessQuery] File will be uploaded to S3', {
             fileName: file.name,
             fileSize: file.size,
             fileType: file.type,
-            reason: file.size >= S3_SIZE_THRESHOLD ? 'size' : 'image type',
-            userId
+            reason: file.size >= S3_SIZE_THRESHOLD ? 'size' : 'image type'
           });
           
           const uploadPromise = uploadFileToS3({
@@ -367,7 +452,8 @@ class QueryService {
       query,
       input_urls: webUrls,
       files_metadata: filesMetadata,
-      output_preferences: outputPreferences
+      output_preferences: outputPreferences,
+      job_id: job.job_id // Include the job_id in the request
     };
     formData.append('json_data', JSON.stringify(jsonData));
 
@@ -378,87 +464,56 @@ class QueryService {
         message: 'Processing your request...'
       });
 
+      console.log('[ProcessQuery] Sending request to backend', {
+        hasFilesMetadata: filesMetadata.length > 0,
+        formDataSize: formData.get('files') ? 'present' : 'none'
+      });
+
       const response: AxiosResponse<QueryResponse> = await api.post('/process_query', formData, {
         headers: { 
           'Content-Type': 'multipart/form-data'
         },
-        maxBodyLength: Infinity,
-        maxContentLength: Infinity,
         signal,
         timeout: this.STANDARD_TIMEOUT,
       });
-      console.log('[process_query] called');
-      console.log('[process_query] Response:', response);
-      const initialResult: QueryResponse = response.data;
-      console.log('[process_query] Initial result:', initialResult);
-      console.log('[process_query] Initial result job_id:', initialResult.job_id);
-      // If this is a batch process, handle polling
-      if (initialResult.job_id) {
-        console.log('[process_query] Batch process detected');
-        // Update timeout for batch processing
-        api.defaults.timeout = this.BATCH_TIMEOUT;
-        
-        try {
-          const result = await this.pollJobStatus(
-            initialResult.job_id,
-            userId,
-            query,
-            signal,
-            onProgress
-          );
 
-          // Handle the polling result
-          if (result.status === 'error' || result.status === 'canceled') {
-            await logRequest({
-              userId,
-              query,
-              fileMetadata: filesMetadata,
-              inputUrls: webUrls,
-              startTime,
-              status: result.status,
-              success: false,
-              errorMessage: result.message,
-              requestType: 'query',
-              numImagesProcessed: result.num_images_processed
-            });
-            return result;
-          }
+      console.log('[ProcessQuery] Initial backend response received', {
+        status: response.data.status,
+        hasFiles: !!response.data.files?.length
+      });
+      
+      // Set timeout for polling
+      api.defaults.timeout = this.BATCH_TIMEOUT;
+      
+      try {
+        console.log('[ProcessQuery] Starting job status polling', { jobId: job.job_id });
+        const result = await this.pollJobStatus(
+          job.job_id,
+          userId,
+          query,
+          signal,
+          onProgress
+        );
 
+        // Handle the polling result
+        if (result.status === 'error' || result.status === 'canceled') {
+          console.log('[ProcessQuery] Job completed with error/canceled status', {
+            status: result.status,
+            message: result.message
+          });
           await logRequest({
             userId,
             query,
             fileMetadata: filesMetadata,
             inputUrls: webUrls,
             startTime,
-            status: 'completed',
-            success: true,
+            status: result.status,
+            success: false,
+            errorMessage: result.message,
             requestType: 'query',
             numImagesProcessed: result.num_images_processed
           });
-          await updateUserUsage(userId, true, result.num_images_processed || 0);
-          return result;  // Return the final result
-        } catch (error) {
-          // This should rarely happen now as errors are handled in pollJobStatus
-          console.error('Unexpected error during polling:', error);
-          const errorState: ProcessingState = {
-            status: 'error',
-            message: 'An unexpected error occurred',
-            details: 'Please try again later or contact support if the problem persists.'
-          };
-          onProgress?.(errorState);
-          return {
-            status: 'error',
-            message: errorState.message,
-            num_images_processed: 0
-          };
-        } finally {
-          // Reset timeout to standard
-          api.defaults.timeout = this.STANDARD_TIMEOUT;
-        }
-      } else {
-        // Handle non-batch processing result
-        if (initialResult.status === 'error') {
-          throw new Error(initialResult.message || 'Processing failed');
+          return result;
         }
 
         await logRequest({
@@ -467,15 +522,30 @@ class QueryService {
           fileMetadata: filesMetadata,
           inputUrls: webUrls,
           startTime,
-          status: initialResult.status || 'completed',
-          success: initialResult.status === 'completed',
+          status: 'completed',
+          success: true,
           requestType: 'query',
-          numImagesProcessed: initialResult.num_images_processed
+          numImagesProcessed: result.num_images_processed
         });
-        await updateUserUsage(userId, true, initialResult.num_images_processed || 0);
-        return initialResult;
+        await updateUserUsage(userId, true, result.num_images_processed || 0);
+        return result;
+      } catch (error) {
+        console.error('Unexpected error during polling:', error);
+        const errorState: ProcessingState = {
+          status: 'error',
+          message: 'An unexpected error occurred',
+          details: 'Please try again later or contact support if the problem persists.'
+        };
+        onProgress?.(errorState);
+        return {
+          status: 'error',
+          message: errorState.message,
+          num_images_processed: 0
+        };
+      } finally {
+        // Reset timeout to standard
+        api.defaults.timeout = this.STANDARD_TIMEOUT;
       }
-
     } catch (error: unknown) {
       const typedError = error as { 
         response?: { 
@@ -495,6 +565,16 @@ class QueryService {
         status: 'error',
         message: errorMessage
       });
+
+      // Update job status to error
+      await supabase
+        .from('jobs')
+        .update({
+          status: 'error',
+          error_message: errorMessage,
+          completed_at: new Date().toISOString()
+        })
+        .eq('job_id', job.job_id);
 
       // Log error to both tables
       const errorCode = typedError?.response?.status?.toString() || typedError?.code || 'UNKNOWN';

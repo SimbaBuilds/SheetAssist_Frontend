@@ -100,7 +100,7 @@ export function ProcessingResultDialog({
         )
 
       case 'completed':
-        console.log('[ProcessingResultDialog] Completed message:', state.message);
+        // console.log('[ProcessingResultDialog] Completed message:', state.message);
       return (
           <div className="flex flex-col items-center justify-center py-8 space-y-4">
             <CheckCircle className="h-8 w-8 text-green-500" />
@@ -113,7 +113,7 @@ export function ProcessingResultDialog({
         )
 
       case 'completed_with_error(s)':
-        console.log('[ProcessingResultDialog] Completed with error(s) message:', state.message);
+        // console.log('[ProcessingResultDialog] Completed with error(s) message:', state.message);
       return (
           <div className="flex flex-col items-center justify-center py-8 space-y-4">
             <CheckCircle className="h-8 w-8 text-yellow-500" />
@@ -126,7 +126,7 @@ export function ProcessingResultDialog({
         )  
 
       default:
-        console.log('[ProcessingResultDialog] Processing message:', state.message);
+        // console.log('[ProcessingResultDialog] Processing message:', state.message);
         return (
           <div className="flex flex-col items-center justify-center py-8 space-y-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />

@@ -42,7 +42,8 @@ export interface QueryRequest {
   query: string
   input_urls?: InputUrl[]
   files_metadata?: FileUploadMetadata[]
-  output_preferences?: OutputPreferences
+  output_preferences?: OutputPreferences,
+  job_id?: string
 }
 
 
@@ -60,6 +61,30 @@ export interface FileInfo {
   media_type: string;
   filename: string;
   download_url: string;
+}
+
+export interface Job {
+  job_id: string;
+  user_id: string;
+  status: 'created' | 'processing' | 'completed' | 'error' | 'canceled' | 'completed_with_error(s)';
+  total_pages: number | null;
+  processed_pages: number | null;
+  output_preferences: OutputPreferences;
+  created_at: string;  // ISO timestamp
+  completed_at: string | null;  // ISO timestamp
+  error_message: string | null;
+  result_snapshot: string | null;
+  result_file_path: string | null;
+  result_media_type: string | null;
+  started_at: string | null;  // ISO timestamp
+  page_chunks: JSON | null;
+  current_chunk: number | null;
+  query: string;
+  message: string | null;
+  images_processed: number;
+  total_images_processed: number | null;
+  chunk_status: string[] | null;
+  type: 'standard' | 'visualization' | 'batch' | null;
 }
 
 //Handles batch and standard requests
