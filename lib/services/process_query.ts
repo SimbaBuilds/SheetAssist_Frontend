@@ -103,9 +103,9 @@ class QueryService {
   private readonly POLLING_INTERVAL = 5000; // 5 seconds
   private readonly MAX_RETRIES = 15;
   
-  // Add new timeout constants
+  // Modify timeout constants
   private readonly BATCH_TIMEOUT = 7200000; // 2 hours for batch processes
-  private readonly STANDARD_TIMEOUT = 600000; // 10 minutes
+  private readonly STANDARD_TIMEOUT = 1800000; // 30 minutes (increased from 10)
   private readonly POLLING_TIMEOUT = 180000;   // 3 minutes
 
   private async pollJobStatus(
@@ -392,9 +392,11 @@ class QueryService {
         numFiles: files?.length || 0,
         numUrls: webUrls.length,
         hasOutputPreferences: !!outputPreferences,
-        userId
+        userId,
+        timeout: this.STANDARD_TIMEOUT
       });
 
+      let requestStartTime = Date.now();
       const response: AxiosResponse<QueryResponse> = await api.post('/process_query', formData, {
         headers: { 
           'Content-Type': 'multipart/form-data'
@@ -404,22 +406,41 @@ class QueryService {
         signal,
         timeout: this.STANDARD_TIMEOUT,
       }).catch(error => {
+        const errorTime = Date.now() - requestStartTime;
         console.error('[process_query] Backend request failed:', {
           error: error.message,
           code: error.code,
           response: error.response?.data,
           status: error.response?.status,
-          userId
+          userId,
+          requestDuration: errorTime,
+          isTimeout: error.code === 'ECONNABORTED' || errorTime >= this.STANDARD_TIMEOUT,
+          config: {
+            timeout: error.config?.timeout,
+            baseURL: error.config?.baseURL,
+            url: error.config?.url
+          }
         });
+
+        // Update progress with error state
+        onProgress?.({
+          status: 'error',
+          message: error.code === 'ECONNABORTED' 
+            ? 'Request timed out. The server is taking too long to respond.'
+            : `Request failed: ${error.message}`
+        });
+
         throw error;
       });
 
+      const responseTime = Date.now() - requestStartTime;
       console.log('[process_query] Initial backend response:', {
         status: response.status,
         statusText: response.statusText,
         data: response.data,
         headers: response.headers,
-        userId
+        userId,
+        requestDuration: responseTime
       });
 
       const initialResult: QueryResponse = response.data;
