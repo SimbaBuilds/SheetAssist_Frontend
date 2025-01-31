@@ -378,6 +378,8 @@ class QueryService {
         message: 'Processing your request...'
       });
 
+      console.log('[process_query] Sending request to backend');
+      
       const response: AxiosResponse<QueryResponse> = await api.post('/process_query', formData, {
         headers: { 
           'Content-Type': 'multipart/form-data'
@@ -388,38 +390,36 @@ class QueryService {
         timeout: this.STANDARD_TIMEOUT,
       });
 
+      console.log('[process_query] Raw API response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+        hasData: !!response.data,
+        rawData: response.data,
+        timestamp: new Date().toISOString()
+      });
+
       const initialResult: QueryResponse = response.data;
-      console.log('[process_query] Received initial response:', {
-        status: initialResult.status,
-        hasJobId: !!initialResult.job_id,
-        jobId: initialResult.job_id,
-        responseData: JSON.stringify(initialResult),
+      console.log('[process_query] Parsed response data:', {
+        parsedStatus: initialResult.status,
+        parsedJobId: initialResult.job_id,
+        allFields: Object.keys(initialResult),
+        rawJobId: response.data.job_id,
         timestamp: new Date().toISOString()
       });
 
       // If this is a batch process, handle polling
       if (initialResult.job_id) {
-        console.log('[process_query] Detected batch process, preparing to poll:', {
+        console.log('[process_query] Job ID detected, preparing to poll:', {
           jobId: initialResult.job_id,
+          responseType: typeof response.data.job_id,
+          rawResponse: JSON.stringify(response.data),
           timestamp: new Date().toISOString()
         });
-        
         // Update timeout for batch processing
-        const previousTimeout = api.defaults.timeout;
         api.defaults.timeout = this.BATCH_TIMEOUT;
-        console.log('[process_query] Updated API timeout for polling:', {
-          previousTimeout,
-          newTimeout: this.BATCH_TIMEOUT,
-          timestamp: new Date().toISOString()
-        });
         
         try {
-          console.log('[process_query] Attempting to call pollJobStatus:', {
-            jobId: initialResult.job_id,
-            userId,
-            timestamp: new Date().toISOString()
-          });
-          
           const result = await this.pollJobStatus(
             initialResult.job_id,
             userId,
@@ -427,12 +427,6 @@ class QueryService {
             signal,
             onProgress
           );
-
-          console.log('[process_query] Polling completed:', {
-            jobId: initialResult.job_id,
-            status: result.status,
-            timestamp: new Date().toISOString()
-          });
 
           // Handle the polling result
           if (result.status === 'error' || result.status === 'canceled') {
@@ -480,7 +474,7 @@ class QueryService {
           };
         } finally {
           // Reset timeout to standard
-          api.defaults.timeout = previousTimeout;
+          api.defaults.timeout = this.STANDARD_TIMEOUT;
         }
       } else {
         // Handle non-batch processing result
