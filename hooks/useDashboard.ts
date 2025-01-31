@@ -800,10 +800,10 @@ export function useDashboard(initialData?: UserPreferences) {
       if (!controller.signal.aborted) {
         setProcessedResult(result);
         
-        if (result.error) {
+        if (result.status === 'error') {
           setProcessingState({
             status: 'error',
-            message: result.message || result.error
+            message: result.message || 'An unexpected error occurred'
           });
           return;
         }
