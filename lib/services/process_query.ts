@@ -379,20 +379,32 @@ class QueryService {
 
       console.log('[process_query] Starting API request');
 
-      const response = await api.post('/process_query', formData, {
-        headers: { 
-          'Content-Type': 'multipart/form-data'
-        },
-        maxBodyLength: Infinity,
-        maxContentLength: Infinity,
-        signal,
-        timeout: this.STANDARD_TIMEOUT,
-      });
+      let response: AxiosResponse<QueryResponse>;
+      try {
+        response = await api.post('/process_query', formData, {
+          headers: { 
+            'Content-Type': 'multipart/form-data'
+          },
+          maxBodyLength: Infinity,
+          maxContentLength: Infinity,
+          signal,
+          timeout: this.STANDARD_TIMEOUT,
+        });
 
-      console.log('[process_query] API response:', {
-        status: response.status,
-        hasData: !!response.data
-      });
+        console.log('[process_query] API response:', {
+          status: response.status,
+          hasData: !!response.data
+        });
+
+      } catch (error: any) {
+        console.error('[process_query] API request failed:', {
+          message: error?.message,
+          code: error?.code,
+          response: error?.response?.data,
+          status: error?.response?.status
+        });
+        throw error;
+      }
 
       const initialResult: QueryResponse = response.data;
       console.log('[process_query] Response data:', {
