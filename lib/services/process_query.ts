@@ -378,48 +378,67 @@ class QueryService {
         message: 'Processing your request...'
       });
 
-      console.log('[process_query] Sending request to backend');
-      
-      const response: AxiosResponse<QueryResponse> = await api.post('/process_query', formData, {
-        headers: { 
-          'Content-Type': 'multipart/form-data'
-        },
-        maxBodyLength: Infinity,
-        maxContentLength: Infinity,
-        signal,
+      console.log('[process_query] Preparing API request:', {
+        endpoint: '/process_query',
         timeout: this.STANDARD_TIMEOUT,
+        hasFiles: !!files?.length,
+        formDataKeys: Array.from(formData.keys()),
+        timestamp: new Date().toISOString()
       });
 
-      console.log('[process_query] Raw API response received:', {
+      let response: AxiosResponse<QueryResponse>;
+      try {
+        response = await api.post('/process_query', formData, {
+          headers: { 
+            'Content-Type': 'multipart/form-data'
+          },
+          maxBodyLength: Infinity,
+          maxContentLength: Infinity,
+          signal,
+          timeout: this.STANDARD_TIMEOUT,
+        });
+      } catch (apiError: any) {
+        console.error('[process_query] API request failed:', {
+          error: apiError,
+          errorMessage: apiError?.message,
+          errorResponse: apiError?.response?.data,
+          errorStatus: apiError?.response?.status,
+          errorHeaders: apiError?.response?.headers,
+          timestamp: new Date().toISOString()
+        });
+        throw apiError;
+      }
+
+      console.log('[process_query] API response received:', {
         status: response.status,
         statusText: response.statusText,
-        headers: response.headers,
+        responseType: response.headers['content-type'],
+        dataType: typeof response.data,
         hasData: !!response.data,
-        rawData: response.data,
         timestamp: new Date().toISOString()
       });
 
       const initialResult: QueryResponse = response.data;
-      console.log('[process_query] Parsed response data:', {
-        parsedStatus: initialResult.status,
-        parsedJobId: initialResult.job_id,
-        allFields: Object.keys(initialResult),
-        rawJobId: response.data.job_id,
-        timestamp: new Date().toISOString()
-      });
 
       // If this is a batch process, handle polling
       if (initialResult.job_id) {
-        console.log('[process_query] Job ID detected, preparing to poll:', {
+        console.log('[process_query] Job ID detected, preparing for polling:', {
           jobId: initialResult.job_id,
-          responseType: typeof response.data.job_id,
-          rawResponse: JSON.stringify(response.data),
+          responseType: typeof initialResult.job_id,
           timestamp: new Date().toISOString()
         });
+
         // Update timeout for batch processing
+        const previousTimeout = api.defaults.timeout;
         api.defaults.timeout = this.BATCH_TIMEOUT;
         
         try {
+          console.log('[process_query] Starting pollJobStatus:', {
+            jobId: initialResult.job_id,
+            userId,
+            timestamp: new Date().toISOString()
+          });
+
           const result = await this.pollJobStatus(
             initialResult.job_id,
             userId,
@@ -428,8 +447,19 @@ class QueryService {
             onProgress
           );
 
+          console.log('[process_query] Polling completed:', {
+            status: result.status,
+            timestamp: new Date().toISOString()
+          });
+
           // Handle the polling result
           if (result.status === 'error' || result.status === 'canceled') {
+            console.error('[process_query] Polling ended with error/canceled status:', {
+              status: result.status,
+              message: result.message,
+              timestamp: new Date().toISOString()
+            });
+            
             await logRequest({
               userId,
               query,
@@ -457,26 +487,27 @@ class QueryService {
             numImagesProcessed: result.num_images_processed
           });
           await updateUserUsage(userId, true, result.num_images_processed || 0);
-          return result;  // Return the final result
-        } catch (error) {
-          // This should rarely happen now as errors are handled in pollJobStatus
-          console.error('Unexpected error during polling:', error);
-          const errorState: ProcessingState = {
-            status: 'error',
-            message: 'An unexpected error occurred',
-            details: 'Please try again later or contact support if the problem persists.'
-          };
-          onProgress?.(errorState);
-          return {
-            status: 'error',
-            message: errorState.message,
-            num_images_processed: 0
-          };
+          return result;
+
+        } catch (pollingError) {
+          console.error('[process_query] Error during polling:', {
+            error: pollingError,
+            errorMessage: (pollingError as Error).message,
+            errorStack: (pollingError as Error).stack,
+            jobId: initialResult.job_id,
+            timestamp: new Date().toISOString()
+          });
+          throw pollingError;
         } finally {
           // Reset timeout to standard
-          api.defaults.timeout = this.STANDARD_TIMEOUT;
+          api.defaults.timeout = previousTimeout;
         }
       } else {
+        console.log('[process_query] No job ID in response, processing synchronously:', {
+          responseStatus: initialResult.status,
+          responseData: JSON.stringify(initialResult),
+          timestamp: new Date().toISOString()
+        });
         // Handle non-batch processing result
         if (initialResult.status === 'error') {
           throw new Error(initialResult.message || 'Processing failed');
