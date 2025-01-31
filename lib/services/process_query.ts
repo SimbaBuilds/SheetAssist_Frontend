@@ -154,6 +154,15 @@ class QueryService {
           timeout: this.POLLING_TIMEOUT,
         });
 
+        console.log('[process_query] Polling status response:', {
+          jobId,
+          status: response.status,
+          statusText: response.statusText,
+          data: response.data,
+          retryCount: retries,
+          elapsedTime: Date.now() - startTime
+        });
+
         const result = response.data;
         
         // Important: Check for error indicators in both status and message
@@ -372,49 +381,39 @@ class QueryService {
     formData.append('json_data', JSON.stringify(jsonData));
 
     try {
+      // Update initial processing state
       onProgress?.({
         status: 'processing',
         message: 'Processing your request...'
       });
 
-      console.log('[process_query] Starting API request');
+      const response: AxiosResponse<QueryResponse> = await api.post('/process_query', formData, {
+        headers: { 
+          'Content-Type': 'multipart/form-data'
+        },
+        maxBodyLength: Infinity,
+        maxContentLength: Infinity,
+        signal,
+        timeout: this.STANDARD_TIMEOUT,
+      });
 
-      let response: AxiosResponse<QueryResponse>;
-      try {
-        response = await api.post('/process_query', formData, {
-          headers: { 
-            'Content-Type': 'multipart/form-data'
-          },
-          maxBodyLength: Infinity,
-          maxContentLength: Infinity,
-          signal,
-          timeout: this.STANDARD_TIMEOUT,
-        });
-
-        console.log('[process_query] API response:', {
-          status: response.status,
-          hasData: !!response.data
-        });
-
-      } catch (error: any) {
-        console.error('[process_query] API request failed:', {
-          message: error?.message,
-          code: error?.code,
-          response: error?.response?.data,
-          status: error?.response?.status
-        });
-        throw error;
-      }
+      console.log('[process_query] Initial backend response:', {
+        status: response.status,
+        statusText: response.statusText,
+        data: response.data,
+        headers: response.headers,
+        userId
+      });
 
       const initialResult: QueryResponse = response.data;
-      console.log('[process_query] Response data:', {
-        status: initialResult.status,
-        hasJobId: !!initialResult.job_id
-      });
 
       // If this is a batch process, handle polling
       if (initialResult.job_id) {
-        console.log('[process_query] Starting polling');
+        console.log('[process_query] Starting batch process:', {
+          jobId: initialResult.job_id,
+          initialStatus: initialResult.status,
+          userId
+        });
         // Update timeout for batch processing
         api.defaults.timeout = this.BATCH_TIMEOUT;
         
@@ -426,6 +425,13 @@ class QueryService {
             signal,
             onProgress
           );
+
+          console.log('[process_query] Final polling result:', {
+            status: result.status,
+            message: result.message,
+            numImagesProcessed: result.num_images_processed,
+            userId
+          });
 
           // Handle the polling result
           if (result.status === 'error' || result.status === 'canceled') {

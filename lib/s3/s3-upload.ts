@@ -27,10 +27,10 @@ export async function uploadFileToS3(
   });
 
   try {
-    console.log('[s3-upload] Requesting presigned URL', {
-      userId,
-      fileName: fileData.name,
-    });
+    // console.log('[s3-upload] Requesting presigned URL', {
+    //   userId,
+    //   fileName: fileData.name,
+    // });
 
     // Get presigned URL from server
     const { url, key } = await generatePresignedUrl(
@@ -39,11 +39,11 @@ export async function uploadFileToS3(
       userId
     );
 
-    console.log('[s3-upload] Received presigned URL, starting direct upload', {
-      userId,
-      key,
-      urlLength: url.length,
-    });
+    // console.log('[s3-upload] Received presigned URL, starting direct upload', {
+    //   userId,
+    //   key,
+    //   urlLength: url.length,
+    // });
 
     // Upload directly to S3 using the presigned URL
     const uploadStartTime = Date.now();
@@ -69,16 +69,16 @@ export async function uploadFileToS3(
 
     const uploadDuration = Date.now() - startTime;
     const directUploadDuration = Date.now() - uploadStartTime;
-    console.log('[s3-upload] File successfully uploaded to S3', {
-      duration: {
-        total: uploadDuration,
-        directUpload: directUploadDuration,
-      },
-      userId,
-      key,
-      fileSize: fileData.size,
-      status: response.status,
-    });
+    // console.log('[s3-upload] File successfully uploaded to S3', {
+    //   duration: {
+    //     total: uploadDuration,
+    //     directUpload: directUploadDuration,
+    //   },
+    //   userId,
+    //   key,
+    //   fileSize: fileData.size,
+    //   status: response.status,
+    // });
 
     return {
       key,
