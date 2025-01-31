@@ -115,8 +115,8 @@ class QueryService {
     signal?: AbortSignal,
     onProgress?: (state: ProcessingState) => void
   ): Promise<QueryResponse> {
-    const params = new URLSearchParams();
-    params.append('job_id', jobId);
+    const statusFormData = new FormData();
+    statusFormData.append('job_id', jobId);
     let retries = 0;
 
     const startTime = Date.now();
@@ -149,10 +149,7 @@ class QueryService {
 
       try {
         console.log('[process_query] Polling status...');
-        const response = await api.post('/process_query/status', params, {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
+        const response = await api.post('/process_query/status', statusFormData, {
           signal,
           timeout: this.POLLING_TIMEOUT,
         });
