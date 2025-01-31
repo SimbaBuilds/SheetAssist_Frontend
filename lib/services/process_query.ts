@@ -103,9 +103,9 @@ class QueryService {
   private readonly POLLING_INTERVAL = 5000; // 5 seconds
   private readonly MAX_RETRIES = 15;
   
-  // Modify timeout constants
+  // Add new timeout constants
   private readonly BATCH_TIMEOUT = 7200000; // 2 hours for batch processes
-  private readonly STANDARD_TIMEOUT = 1800000; // 30 minutes (increased from 10)
+  private readonly STANDARD_TIMEOUT = 600000; // 10 minutes
   private readonly POLLING_TIMEOUT = 180000;   // 3 minutes
 
   private async pollJobStatus(
@@ -152,15 +152,6 @@ class QueryService {
         const response = await api.post('/process_query/status', statusFormData, {
           signal,
           timeout: this.POLLING_TIMEOUT,
-        });
-
-        console.log('[process_query] Polling status response:', {
-          jobId,
-          status: response.status,
-          statusText: response.statusText,
-          data: response.data,
-          retryCount: retries,
-          elapsedTime: Date.now() - startTime
         });
 
         const result = response.data;
@@ -387,16 +378,6 @@ class QueryService {
         message: 'Processing your request...'
       });
 
-      console.log('[process_query] Initiating backend request:', {
-        queryLength: query.length,
-        numFiles: files?.length || 0,
-        numUrls: webUrls.length,
-        hasOutputPreferences: !!outputPreferences,
-        userId,
-        timeout: this.STANDARD_TIMEOUT
-      });
-
-      let requestStartTime = Date.now();
       const response: AxiosResponse<QueryResponse> = await api.post('/process_query', formData, {
         headers: { 
           'Content-Type': 'multipart/form-data'
@@ -405,53 +386,13 @@ class QueryService {
         maxContentLength: Infinity,
         signal,
         timeout: this.STANDARD_TIMEOUT,
-      }).catch(error => {
-        const errorTime = Date.now() - requestStartTime;
-        console.error('[process_query] Backend request failed:', {
-          error: error.message,
-          code: error.code,
-          response: error.response?.data,
-          status: error.response?.status,
-          userId,
-          requestDuration: errorTime,
-          isTimeout: error.code === 'ECONNABORTED' || errorTime >= this.STANDARD_TIMEOUT,
-          config: {
-            timeout: error.config?.timeout,
-            baseURL: error.config?.baseURL,
-            url: error.config?.url
-          }
-        });
-
-        // Update progress with error state
-        onProgress?.({
-          status: 'error',
-          message: error.code === 'ECONNABORTED' 
-            ? 'Request timed out. The server is taking too long to respond.'
-            : `Request failed: ${error.message}`
-        });
-
-        throw error;
-      });
-
-      const responseTime = Date.now() - requestStartTime;
-      console.log('[process_query] Initial backend response:', {
-        status: response.status,
-        statusText: response.statusText,
-        data: response.data,
-        headers: response.headers,
-        userId,
-        requestDuration: responseTime
       });
 
       const initialResult: QueryResponse = response.data;
-
+      console.log('[process_query] Initial result:', initialResult);
+      console.log('[process_query] Initial result job_id:', initialResult.job_id);
       // If this is a batch process, handle polling
       if (initialResult.job_id) {
-        console.log('[process_query] Starting batch process:', {
-          jobId: initialResult.job_id,
-          initialStatus: initialResult.status,
-          userId
-        });
         // Update timeout for batch processing
         api.defaults.timeout = this.BATCH_TIMEOUT;
         
@@ -463,13 +404,6 @@ class QueryService {
             signal,
             onProgress
           );
-
-          console.log('[process_query] Final polling result:', {
-            status: result.status,
-            message: result.message,
-            numImagesProcessed: result.num_images_processed,
-            userId
-          });
 
           // Handle the polling result
           if (result.status === 'error' || result.status === 'canceled') {
