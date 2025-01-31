@@ -10,25 +10,10 @@ import { logError } from '@/lib/services/loggers/error-logger';
 import { uploadFileToS3 } from '@/lib/s3/s3-upload';
 import { S3_SIZE_THRESHOLD } from '@/lib/constants/file-types';
 
-// Logger utility for consistent logging
-const logger = {
-  info: (message: string, data?: any) => {
-    console.log(`[process_query] ${message}`, data ? data : '');
-  },
-  error: (message: string, error?: any) => {
-    console.error(`[process_query] ${message}`, error ? error : '');
-  },
-  debug: (message: string, data?: any) => {
-    console.debug(`[process_query] ${message}`, data ? data : '');
-  },
-  warn: (message: string, data?: any) => {
-    console.warn(`[process_query] ${message}`, data ? data : '');
-  }
-};
 
 // Helper function to update user usage statistics
 async function updateUserUsage(userId: string, success: boolean, numImagesProcessed: number = 0) {
-  logger.info('Starting updateUserUsage', { userId, success, numImagesProcessed });
+  console.log('Starting updateUserUsage', { userId, success, numImagesProcessed });
   const supabase = createClient();
   
   // Get current usage data
@@ -39,7 +24,7 @@ async function updateUserUsage(userId: string, success: boolean, numImagesProces
     .single();
 
   if (usageError) {
-    logger.error('Error fetching user usage:', usageError);
+    console.error('Error fetching user usage:', usageError);
     return;
   }
 
@@ -47,7 +32,7 @@ async function updateUserUsage(userId: string, success: boolean, numImagesProces
   const newImageCount = (usageData?.images_processed_this_month || 0) + (success ? numImagesProcessed : 0);
   const imagesToLog = newImageCount - (usageData?.images_processed_this_month || 0);
   
-  logger.debug('Current usage counts:', { 
+  console.debug('Current usage counts:', { 
     newRequestCount, 
     newImageCount, 
     currentRequests: usageData?.requests_this_month,
@@ -69,23 +54,23 @@ async function updateUserUsage(userId: string, success: boolean, numImagesProces
     .eq('user_id', userId);
 
   if (updateError) {
-    logger.error('Error updating user usage:', updateError);
+    console.error('Error updating user usage:', updateError);
     return;
   }
 
-  logger.info('Successfully updated user usage', { userId, updateData });
+  console.log('Successfully updated user usage', { userId, updateData });
 
   // Check if pro user and handle overages
   if (success) {
     const isProUser = await isUserOnProPlan(userId);
-    logger.debug('Pro user status check:', { userId, isProUser });
+    console.debug('Pro user status check:', { userId, isProUser });
     
     if (isProUser) {
       const subscriptionId = await getUserSubscriptionId(userId);
       if (subscriptionId) {
         // Track processing usage if over limit
         if (newRequestCount > PLAN_REQUEST_LIMITS.pro) {
-          logger.info('Tracking processing usage overage', { userId, newRequestCount, limit: PLAN_REQUEST_LIMITS.pro });
+          console.log('Tracking processing usage overage', { userId, newRequestCount, limit: PLAN_REQUEST_LIMITS.pro });
           try {
             await trackUsage({
               subscriptionId,
@@ -94,15 +79,15 @@ async function updateUserUsage(userId: string, success: boolean, numImagesProces
               imagesToLog,
               userId
             });
-            logger.info('Successfully tracked processing usage', { userId });
+            console.log('Successfully tracked processing usage', { userId });
           } catch (error) {
-            logger.error('Failed to track processing usage:', { userId, error });
+            console.error('Failed to track processing usage:', { userId, error });
           }
         }
         
         // Track images usage if over limit
         if (newImageCount > PLAN_IMAGE_LIMITS.pro) {
-          logger.info('Tracking image usage overage', { userId, newImageCount, limit: PLAN_IMAGE_LIMITS.pro });
+          console.log('Tracking image usage overage', { userId, newImageCount, limit: PLAN_IMAGE_LIMITS.pro });
           try {
             await trackUsage({
               subscriptionId,
@@ -111,9 +96,9 @@ async function updateUserUsage(userId: string, success: boolean, numImagesProces
               imagesToLog,
               userId
             });
-            logger.info('Successfully tracked image usage', { userId });
+            console.log('Successfully tracked image usage', { userId });
           } catch (error) {
-            logger.error('Failed to track image usage:', { userId, error });
+            console.error('Failed to track image usage:', { userId, error });
           }
         }
       }
@@ -143,11 +128,12 @@ class QueryService {
     const MAX_TOTAL_TIME = 3600000; // 1 hour max total polling time
     const supabase = createClient();
 
-    logger.info('Starting status polling', { jobId, userId });
+    console.log('Starting status polling', { jobId, userId });
 
     while (true) {
       if (Date.now() - startTime > MAX_TOTAL_TIME) {
-        logger.warn('Maximum polling time exceeded', { jobId, totalTime: Date.now() - startTime });
+        console.warn('Maximum polling time exceeded', { jobId, totalTime: Date.now() - startTime });
+        
         const errorState: ProcessingState = {
           status: 'error',
           message: 'Maximum polling time exceeded'
@@ -161,7 +147,7 @@ class QueryService {
       }
 
       if (signal?.aborted) {
-        logger.info('Polling aborted by signal', { jobId });
+        console.log('Polling aborted by signal', { jobId });
         return {
           status: 'canceled',
           message: 'Request was canceled',
@@ -170,7 +156,7 @@ class QueryService {
       }
 
       try {
-        logger.debug('Polling job status', { jobId, attempt: retries + 1 });
+        console.debug('Polling job status', { jobId, attempt: retries + 1 });
         const { data: job, error } = await supabase
           .from('jobs')
           .select('*')
@@ -179,12 +165,12 @@ class QueryService {
           .single();
 
         if (error) {
-          logger.error('Error fetching job:', { jobId, error });
+          console.error('Error fetching job:', { jobId, error });
           throw error;
         }
 
         if (!job) {
-          logger.error('Job not found', { jobId });
+          console.error('Job not found', { jobId });
           throw new Error('Job not found');
         }
 
@@ -197,7 +183,7 @@ class QueryService {
           job_id: job.job_id
         };
 
-        logger.debug('Current job status', { 
+        console.debug('Current job status', { 
           jobId, 
           status: job.status, 
           imagesProcessed: job.total_images_processed,
@@ -215,7 +201,7 @@ class QueryService {
             filename: job.result_file_path.split('/').pop() || 'result',
             download_url: job.result_file_path
           }];
-          logger.debug('Result file available', { 
+          console.debug('Result file available', { 
             jobId, 
             filePath: job.result_file_path 
           });
@@ -228,7 +214,7 @@ class QueryService {
 
         if (hasError) {
           const errorMessage = job.error_message || job.message || 'Backend processing error';
-          logger.error('Job error detected', { 
+          console.error('Job error detected', { 
             jobId, 
             errorMessage, 
             status: job.status 
@@ -271,7 +257,7 @@ class QueryService {
         onProgress?.(processingState);
 
         if (job.status === 'completed') {
-          logger.info('Job completed successfully', { 
+          console.log('Job completed successfully', { 
             jobId, 
             totalImagesProcessed: job.total_images_processed 
           });
@@ -280,7 +266,7 @@ class QueryService {
 
         // Only continue polling if status is 'processing' or 'created'
         if (job.status !== 'processing' && job.status !== 'created') {
-          logger.warn('Unexpected job status', { 
+          console.warn('Unexpected job status', { 
             jobId, 
             status: job.status 
           });
@@ -301,7 +287,7 @@ class QueryService {
           15000
         );
         
-        logger.debug('Waiting before next poll', { 
+        console.debug('Waiting before next poll', { 
           jobId, 
           backoffTime, 
           retries 
@@ -311,7 +297,7 @@ class QueryService {
 
       } catch (error: unknown) {
         const typedError = error as { code?: string; message?: string };
-        logger.error('Polling error:', {
+        console.error('Polling error:', {
           jobId,
           code: typedError?.code,
           message: typedError?.message,
@@ -322,7 +308,7 @@ class QueryService {
         if (typedError?.code === 'ECONNABORTED') {
           retries++;
           if (retries >= this.MAX_RETRIES) {
-            logger.error('Max retries exceeded for connection timeout', { jobId });
+            console.error('Max retries exceeded for connection timeout', { jobId });
             const errorState: ProcessingState = {
               status: 'error',
               message: 'Connection timeout',
@@ -342,7 +328,7 @@ class QueryService {
         // For other errors
         retries++;
         if (retries >= this.MAX_RETRIES) {
-          logger.error('Max retries exceeded for general error', { jobId });
+          console.error('Max retries exceeded for general error', { jobId });
           const errorState: ProcessingState = {
             status: 'error',
             message: 'Maximum retry attempts exceeded',
@@ -374,11 +360,11 @@ class QueryService {
     const userId = user.data.user?.id;
 
     if (!userId) {
-      logger.error('Authentication error: User not authenticated');
+      console.error('Authentication error: User not authenticated');
       throw new Error('User not authenticated');
     }
 
-    logger.info('Starting query processing', { 
+    console.log('Starting query processing', { 
       userId, 
       hasFiles: !!files?.length,
       numUrls: webUrls.length,
@@ -403,11 +389,11 @@ class QueryService {
       .single();
 
     if (jobError || !job) {
-      logger.error('Failed to initialize job', { error: jobError });
+      console.error('Failed to initialize job', { error: jobError });
       throw new Error('Failed to initialize job');
     }
 
-    logger.info('Job initialized successfully', { jobId: job.job_id });
+    console.log('Job initialized successfully', { jobId: job.job_id });
 
     const formData = new FormData();
     
@@ -416,7 +402,7 @@ class QueryService {
     const fileUploads: Promise<void>[] = [];
     
     if (files?.length) {
-      logger.info('Processing files for upload', { 
+      console.log('Processing files for upload', { 
         numFiles: files.length,
         jobId: job.job_id 
       });
@@ -432,7 +418,7 @@ class QueryService {
 
         const isImage = file.type === MIME_TYPES.PNG || file.type === MIME_TYPES.JPEG || file.type === MIME_TYPES.JPG;
         if (file.size >= S3_SIZE_THRESHOLD || isImage) {
-          logger.debug('File qualifies for S3 upload', {
+          console.debug('File qualifies for S3 upload', {
             fileName: file.name,
             fileSize: file.size,
             fileType: file.type,
@@ -447,7 +433,7 @@ class QueryService {
             file
           }, userId)
             .then(result => {
-              logger.info('S3 upload completed', {
+              console.log('S3 upload completed', {
                 fileName: file.name,
                 s3Key: result.key,
                 userId
@@ -456,7 +442,7 @@ class QueryService {
               metadata.s3_url = result.url;
             })
             .catch(error => {
-              logger.error('S3 upload failed', {
+              console.error('S3 upload failed', {
                 fileName: file.name,
                 error,
                 userId
@@ -465,7 +451,7 @@ class QueryService {
             });
           fileUploads.push(uploadPromise);
         } else {
-          logger.debug('File will be included in form data', {
+          console.debug('File will be included in form data', {
             fileName: file.name,
             fileSize: file.size,
             userId
@@ -479,7 +465,7 @@ class QueryService {
 
     // Wait for all S3 uploads to complete
     if (fileUploads.length > 0) {
-      logger.info('Waiting for S3 uploads to complete', { 
+      console.log('Waiting for S3 uploads to complete', { 
         numUploads: fileUploads.length,
         jobId: job.job_id 
       });
@@ -503,7 +489,7 @@ class QueryService {
         message: 'Processing your request...'
       });
 
-      logger.info('Sending request to backend', { 
+      console.log('Sending request to backend', { 
         jobId: job.job_id,
         hasFiles: filesMetadata.length > 0,
         numUrls: webUrls.length 
@@ -590,7 +576,7 @@ class QueryService {
         name?: string 
       };
 
-      logger.error('Error processing query:', {
+      console.error('Error processing query:', {
         jobId: job.job_id,
         error: {
           message: typedError?.message,
