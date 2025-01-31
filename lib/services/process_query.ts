@@ -387,12 +387,14 @@ class QueryService {
         signal,
         timeout: this.STANDARD_TIMEOUT,
       });
-
+      console.log('[process_query] called');
+      console.log('[process_query] Response:', response);
       const initialResult: QueryResponse = response.data;
       console.log('[process_query] Initial result:', initialResult);
       console.log('[process_query] Initial result job_id:', initialResult.job_id);
       // If this is a batch process, handle polling
       if (initialResult.job_id) {
+        console.log('[process_query] Batch process detected');
         // Update timeout for batch processing
         api.defaults.timeout = this.BATCH_TIMEOUT;
         
