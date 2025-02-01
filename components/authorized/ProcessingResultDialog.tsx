@@ -33,7 +33,7 @@ export function ProcessingResultDialog({
     if (!onCancel || isCanceling) return
     setIsCanceling(true)
     try {
-      await onCancel()
+      onCancel()
     } finally {
       setIsCanceling(false)
     }
@@ -44,12 +44,17 @@ export function ProcessingResultDialog({
       variant="outline" 
       onClick={handleCancel}
       className="mt-4"
-      disabled={isCanceling}
+      disabled={isCanceling || state.status === 'canceled'}
     >
       {isCanceling ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           Canceling...
+        </>
+      ) : state.status === 'canceled' ? (
+        <>
+          <XCircle className="mr-2 h-4 w-4" />
+          Canceled
         </>
       ) : (
         <>
@@ -100,8 +105,7 @@ export function ProcessingResultDialog({
         )
 
       case 'completed':
-        // console.log('[ProcessingResultDialog] Completed message:', state.message);
-      return (
+        return (
           <div className="flex flex-col items-center justify-center py-8 space-y-4">
             <CheckCircle className="h-8 w-8 text-green-500" />
             <div className="text-center space-y-2">
@@ -113,8 +117,7 @@ export function ProcessingResultDialog({
         )
 
       case 'completed_with_error(s)':
-        // console.log('[ProcessingResultDialog] Completed with error(s) message:', state.message);
-      return (
+        return (
           <div className="flex flex-col items-center justify-center py-8 space-y-4">
             <CheckCircle className="h-8 w-8 text-yellow-500" />
             <div className="text-center space-y-2">
@@ -125,8 +128,19 @@ export function ProcessingResultDialog({
           </div>
         )  
 
+      case 'canceled':
+        return (
+          <div className="flex flex-col items-center justify-center py-8 space-y-4">
+            <XCircle className="h-8 w-8 text-gray-500" />
+            <div className="text-center space-y-2">
+              <p className="text-sm text-gray-600 whitespace-pre-wrap">
+                Request was canceled
+              </p>
+            </div>
+          </div>
+        )
+
       default:
-        // console.log('[ProcessingResultDialog] Processing message:', state.message);
         return (
           <div className="flex flex-col items-center justify-center py-8 space-y-4">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -135,7 +149,7 @@ export function ProcessingResultDialog({
                 {state.message || 'Processing your request...'}
               </p>
             </div>
-            {onCancel && renderCancelButton()}
+            {onCancel && (state.status === 'processing' || state.status === 'created') && renderCancelButton()}
           </div>
         )
     }

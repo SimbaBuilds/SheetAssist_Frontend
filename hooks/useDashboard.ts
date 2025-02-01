@@ -20,6 +20,7 @@ import {
 } from '@/lib/utils/dashboard-utils'
 import { queryService } from '@/lib/services/process_query'
 import { useUsageLimits } from '@/hooks/useUsageLimits'
+import axios from 'axios'
 
 
 type UserPreferences = DashboardInitialData
@@ -686,21 +687,28 @@ export function useDashboard(initialData?: UserPreferences) {
     }
   };
 
-  const handleCancel = async () => {
+  const handleCancel = () => {
     if (abortController) {
-      console.log('Request canceled');
-      abortController.abort();
-      setAbortController(null);
-      setIsProcessing(false);
-      setShowResultDialog(false);
-      setProcessedResult(null);
-      setProcessingState({
-        status: 'canceled',
-        message: 'Request was canceled'
-      });
-      
+        try {
+            console.log('Request canceled');
+            abortController.abort();
+            
+            // Update UI state immediately
+            setProcessingState({
+                status: 'canceled',
+                message: 'Request was canceled'
+            });
+        } catch (error) {
+            console.error('Error during cancellation:', error);
+        } finally {
+            // Always clean up regardless of errors
+            setAbortController(null);
+            setIsProcessing(false);
+            setShowResultDialog(false);
+            setProcessedResult(null);
+        }
     }
-  }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -764,97 +772,101 @@ export function useDashboard(initialData?: UserPreferences) {
     setIsProcessing(true);
     setShowResultDialog(true);
     setProcessingState({
-      status: 'processing',
-      message: 'Processing your request...'
+        status: 'processing',
+        message: 'Processing your request...'
     });
 
     try {
-      const outputPreferences: OutputPreferences = {
-        type: outputType ?? 'download',
-        ...(outputType === 'download' && { format: downloadFileType }),
-        ...(outputType === 'online' && {
-          destination_url: selectedDestinationPair?.url ?? outputUrl,
-          modify_existing: allowSheetModification,
-          sheet_name: selectedDestinationPair?.sheet_name ?? selectedOutputSheet,
-          doc_name: selectedDestinationPair?.doc_name ?? selectedOutputSheet
-        })
-      };
+        const outputPreferences: OutputPreferences = {
+            type: outputType ?? 'download',
+            ...(outputType === 'download' && { format: downloadFileType }),
+            ...(outputType === 'online' && {
+                destination_url: selectedDestinationPair?.url ?? outputUrl,
+                modify_existing: allowSheetModification,
+                sheet_name: selectedDestinationPair?.sheet_name ?? selectedOutputSheet,
+                doc_name: selectedDestinationPair?.doc_name ?? selectedOutputSheet
+            })
+        };
 
-      const result = await queryService.processQuery(
-        query,
-        selectedUrlPairs,
-        files,
-        outputPreferences,
-        controller.signal,
-        (state) => {
-          setProcessingState(state);
-          // Add explicit handling of retry exhaustion
-          if (state.status === 'error' && state.message?.includes('Maximum retry attempts')) {
-            setIsProcessing(false);
-          } else {
-            setIsProcessing(state.status === 'processing' || state.status === 'created');
-          }
-        }
-      );
-
-      if (!controller.signal.aborted) {
-        setProcessedResult(result);
-        
-        if (result.status === 'error') {
-          setProcessingState({
-            status: 'error',
-            message: result.message || 'An unexpected error occurred'
-          });
-          return;
-        }
-
-        // Handle successful completion
-        setProcessingState({
-          status: 'completed',
-          message: result.message || 'Processing complete'
-        });
-
-        // Handle download if needed
-        if (outputType === 'download' && result.status === 'completed' && result.files?.[0]) {
-          try {
-            await downloadFile(result.files[0]);
-          } catch (downloadError) {
-            if (!handleAuthError(downloadError)) {
-              console.error('Error downloading file:', downloadError);
-              setProcessingState({
-                status: 'error',
-                message: 'Failed to download the result file'
-              });
+        const result = await queryService.processQuery(
+            query,
+            selectedUrlPairs,
+            files,
+            outputPreferences,
+            controller.signal,
+            (state) => {
+                setProcessingState(state);
+                if (state.status === 'error' && state.message?.includes('Maximum retry attempts')) {
+                    setIsProcessing(false);
+                } else {
+                    setIsProcessing(state.status === 'processing' || state.status === 'created');
+                }
             }
-          }
-        }
-      }
-    } catch (error: any) {
-      if (error?.name === 'AbortError') {
-        setProcessingState({
-          status: 'canceled',
-          message: 'Request was cancelled'
+        ).catch((error) => {
+            // Handle cancellation here
+            if (axios.isCancel(error) || 
+                error?.code === 'ERR_CANCELED' || 
+                error?.name === 'CanceledError') {
+                console.log('Request was cancelled');
+                return {
+                    status: 'canceled',
+                    message: 'Request was canceled',
+                    num_images_processed: 0
+                } as QueryResponse;
+            }
+            throw error; // Re-throw other errors
         });
-        return;
-      }
 
-      // Use error message from response if available
-      const errorMessage = error?.response?.data?.message || 
-                         error?.message || 
-                         'An unexpected error occurred';
-      
-      setProcessingState({
-        status: 'error',
-        message: errorMessage
-      });
-      if (!controller.signal.aborted) {
-        setProcessedResult(null); // Clear result on error
-      }
+        if (!controller.signal.aborted) {
+            setProcessedResult(result);
+            
+            if (result.status === 'error') {
+                setProcessingState({
+                    status: 'error',
+                    message: result.message || 'An unexpected error occurred'
+                });
+                return;
+            }
+
+            // Handle successful completion
+            setProcessingState({
+                status: 'completed',
+                message: result.message || 'Processing complete'
+            });
+
+            // Handle download if needed
+            if (outputType === 'download' && result.status === 'completed' && result.files?.[0]) {
+                try {
+                    await downloadFile(result.files[0]);
+                } catch (downloadError) {
+                    if (!handleAuthError(downloadError)) {
+                        console.error('Error downloading file:', downloadError);
+                        setProcessingState({
+                            status: 'error',
+                            message: 'Failed to download the result file'
+                        });
+                    }
+                }
+            }
+        }
+    } catch (error: any) {
+        // This will now only handle non-cancellation errors
+        const errorMessage = error?.response?.data?.message || 
+                           error?.message || 
+                           'An unexpected error occurred';
+        
+        setProcessingState({
+            status: 'error',
+            message: errorMessage
+        });
+        if (!controller.signal.aborted) {
+            setProcessedResult(null);
+        }
     } finally {
-      if (!controller.signal.aborted) {
-        setIsProcessing(false);
-        setAbortController(null);
-      }
+        if (!controller.signal.aborted) {
+            setIsProcessing(false);
+            setAbortController(null);
+        }
     }
   };
 

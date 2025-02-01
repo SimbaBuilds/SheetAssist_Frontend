@@ -138,13 +138,13 @@ export interface DocumentTitleMap {
 
 // Add new type for processing state
 export interface ProcessingState {
-  status: 'created' | 'processing' | 'completed' | 'error' | 'canceled' | 'completed_with_error(s)' | null;
+  status: 'processing' | 'created' | 'completed' | 'completed_with_error(s)' | 'error' | 'canceled' | null;
   message: string;
-  details?: string;
   progress?: {
     processed: number;
     total: number | null;
   };
+  details?: string;
 }
 
 export const SEABORN_SEQUENTIAL_PALETTES = {

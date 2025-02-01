@@ -24,7 +24,7 @@ export function GeneratingVisualizationDialog({
     if (!onCancel || isCanceling) return
     setIsCanceling(true)
     try {
-      await onCancel()
+      onCancel()
     } finally {
       setIsCanceling(false)
     }

@@ -9,6 +9,7 @@ import { logRequest } from '@/lib/services/loggers/request-logger';
 import { logError } from '@/lib/services/loggers/error-logger';
 import { uploadFileToS3 } from '@/lib/s3/s3-upload';
 import { S3_SIZE_THRESHOLD } from '@/lib/constants/file-types';
+import axios from 'axios';
 
 
 // Helper function to update user usage statistics
@@ -130,7 +131,32 @@ class QueryService {
 
     console.log('Starting status polling', { jobId, userId });
 
+    // Check for abort signal immediately
+    if (signal?.aborted) {
+      console.log('Polling aborted by signal before start', { jobId });
+      return {
+        status: 'canceled',
+        message: 'Request was canceled',
+        num_images_processed: 0
+      };
+    }
+
+    // Add abort signal listener
+    signal?.addEventListener('abort', () => {
+      console.log('Abort signal received during polling', { jobId });
+    });
+
     while (true) {
+      // Check for abort signal at the start of each loop
+      if (signal?.aborted) {
+        console.log('Polling aborted by signal during loop', { jobId });
+        return {
+          status: 'canceled',
+          message: 'Request was canceled',
+          num_images_processed: 0
+        };
+      }
+
       if (Date.now() - startTime > MAX_TOTAL_TIME) {
         console.warn('Maximum polling time exceeded', { jobId, totalTime: Date.now() - startTime });
         
@@ -146,16 +172,17 @@ class QueryService {
         };
       }
 
-      if (signal?.aborted) {
-        console.log('Polling aborted by signal', { jobId });
-        return {
-          status: 'canceled',
-          message: 'Request was canceled',
-          num_images_processed: 0
-        };
-      }
-
       try {
+        // Check for abort signal before making request
+        if (signal?.aborted) {
+          console.log('Polling aborted by signal before request', { jobId });
+          return {
+            status: 'canceled',
+            message: 'Request was canceled',
+            num_images_processed: 0
+          };
+        }
+
         console.debug('Polling job status', { jobId, attempt: retries + 1 });
         const { data: job, error } = await supabase
           .from('jobs')
@@ -246,7 +273,7 @@ class QueryService {
         // Create processing state from job
         const processingState: ProcessingState = {
           status: job.status,
-          message: job.message || `Processing page ${job.images_processed || 0} of ${job.total_pages || '?'}`,
+          message: job.message || `Processing your request...`,
           progress: job.images_processed ? {
             processed: job.images_processed,
             total: job.total_pages || null
@@ -364,6 +391,15 @@ class QueryService {
       throw new Error('User not authenticated');
     }
 
+    // Check for early cancellation
+    if (signal?.aborted) {
+      return {
+        status: 'canceled',
+        message: 'Request was canceled',
+        num_images_processed: 0
+      };
+    }
+
     console.log('Starting query processing', { 
       userId, 
       hasFiles: !!files?.length,
@@ -396,11 +432,10 @@ class QueryService {
     console.log('Job initialized successfully', { jobId: job.job_id });
 
     const formData = new FormData();
-    
-    // Handle file uploads and metadata creation
     const filesMetadata: FileUploadMetadata[] = [];
     const fileUploads: Promise<void>[] = [];
-    
+
+    // Handle file uploads and metadata creation
     if (files?.length) {
       console.log('Processing files for upload', { 
         numFiles: files.length,
@@ -495,33 +530,45 @@ class QueryService {
         numUrls: webUrls.length 
       });
 
-      api.post('/process_query', formData, {
-        headers: { 
-          'Content-Type': 'multipart/form-data'
-        },
-        signal,
-        timeout: this.STANDARD_TIMEOUT,
-      });
+      // Start both the API call and polling in parallel
+      const [apiResponse] = await Promise.all([
+        api.post('/process_query', formData, {
+          headers: { 
+            'Content-Type': 'multipart/form-data'
+          },
+          signal,
+          timeout: this.STANDARD_TIMEOUT,
+        }).catch((error: unknown) => {
+          // Handle cancellation specifically
+          if (axios.isCancel(error) || 
+              (error as any)?.code === 'ERR_CANCELED' || 
+              (error as any)?.name === 'CanceledError') {
+            console.log('API request was cancelled');
+            throw error;
+          }
+          throw error;
+        }),
+        this.pollJobStatus(
+          job.job_id,
+          userId,
+          query,
+          signal,
+          onProgress
+        )
+      ]);
 
-      // Get polling result
-      const result = await this.pollJobStatus(
-        job.job_id,
-        userId,
-        query,
-        signal,
-        onProgress
-      );
-
-      // Get the final job data after polling completes
+      // Get the final job data after both API and polling complete
       const { data: finalJob } = await supabase
         .from('jobs')
         .select('*')
         .eq('job_id', job.job_id)
         .single();
+
       if (!finalJob) {
         throw new Error('Failed to fetch final job data');
       }
-      const success = result.status === 'completed';
+
+      const success = finalJob.status === 'completed';
       const numImagesProcessed = finalJob?.total_images_processed || 0;
 
       // Log request first
@@ -531,9 +578,9 @@ class QueryService {
         fileMetadata: filesMetadata,
         inputUrls: webUrls,
         startTime,
-        status: result.status,
+        status: finalJob.status,
         success,
-        errorMessage: !success ? result.message : undefined,
+        errorMessage: !success ? finalJob.message : undefined,
         requestType: 'query',
         numImagesProcessed
       });
@@ -548,11 +595,11 @@ class QueryService {
       // Construct final QueryResponse from the job data
       const queryResponse: QueryResponse = {
         status: finalJob.status,
-        message: finalJob.message || result.message,
+        message: finalJob.message || 'Processing complete',
         num_images_processed: finalJob.total_images_processed || 0,
         job_id: finalJob.job_id,
         original_query: finalJob.query,
-        error: finalJob.error_message || result.error,
+        error: finalJob.error_message,
         total_pages: finalJob.total_pages,
         files: finalJob.result_file_path ? [{
           file_path: finalJob.result_file_path,
@@ -564,7 +611,57 @@ class QueryService {
 
       return queryResponse;
 
-    } catch (error) {
+    } catch (error: unknown) {
+      // Handle cancellation
+      if (axios.isCancel(error) || 
+          (error as any)?.code === 'ERR_CANCELED' || 
+          (error as any)?.name === 'CanceledError') {
+        console.log('Request was cancelled during processing');
+        
+        try {
+          // Update job status to error with cancellation message instead of using 'canceled' status
+          const { error: updateError } = await supabase
+            .from('jobs')
+            .update({
+              status: 'error',  // Using 'error' instead of 'canceled'
+              error_message: 'Request was canceled by user',
+              completed_at: new Date().toISOString()
+            })
+            .eq('job_id', job.job_id);
+
+          if (updateError) {
+            console.error('Failed to update job status on cancellation:', updateError);
+          }
+
+          // Log the cancellation - don't throw if this fails
+          try {
+            await logRequest({
+              userId,
+              query,
+              fileMetadata: filesMetadata,
+              inputUrls: webUrls,
+              startTime,
+              status: 'canceled',  // We can still use 'canceled' in our logs
+              success: false,
+              requestType: 'query'
+            });
+          } catch (logError) {
+            console.error('Failed to log canceled request:', logError);
+          }
+        } catch (dbError) {
+          console.error('Error updating job status on cancellation:', dbError);
+        }
+
+        // Always return canceled response regardless of DB updates
+        return {
+          status: 'canceled',
+          message: 'Request was canceled',
+          num_images_processed: 0,
+          job_id: job.job_id
+        };
+      }
+
+      // Handle other errors
       const typedError = error as { 
         response?: { 
           data?: { message?: string }, 
@@ -608,7 +705,6 @@ class QueryService {
       // Log error to both tables
       const errorCode = typedError?.response?.status?.toString() || typedError?.code || 'UNKNOWN';
       await Promise.all([
-        // Log to error_log table
         logError({
           userId,
           originalQuery: query,
@@ -620,7 +716,6 @@ class QueryService {
           errorMessage: typedError?.stack,
           startTime
         }),
-        // Log to request_log table
         logRequest({
           userId,
           query,
