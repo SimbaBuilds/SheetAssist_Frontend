@@ -11,6 +11,9 @@ import { uploadFileToS3 } from '@/lib/s3/s3-upload';
 import { S3_SIZE_THRESHOLD } from '@/lib/constants/file-types';
 import axios from 'axios';
 
+interface CancellableError extends Error {
+  code?: string;
+}
 
 // Helper function to update user usage statistics
 async function updateUserUsage(userId: string, success: boolean, numImagesProcessed: number = 0) {
@@ -541,8 +544,8 @@ class QueryService {
         }).catch((error: unknown) => {
           // Handle cancellation specifically
           if (axios.isCancel(error) || 
-              (error as any)?.code === 'ERR_CANCELED' || 
-              (error as any)?.name === 'CanceledError') {
+              (error as CancellableError)?.code === 'ERR_CANCELED' || 
+              (error as Error)?.name === 'CanceledError') {
             console.log('API request was cancelled');
             throw error;
           }
@@ -614,8 +617,8 @@ class QueryService {
     } catch (error: unknown) {
       // Handle cancellation
       if (axios.isCancel(error) || 
-          (error as any)?.code === 'ERR_CANCELED' || 
-          (error as any)?.name === 'CanceledError') {
+          (error as CancellableError)?.code === 'ERR_CANCELED' || 
+          (error as Error)?.name === 'CanceledError') {
         console.log('Request was cancelled during processing');
         
         try {
