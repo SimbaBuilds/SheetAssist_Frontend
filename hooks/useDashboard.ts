@@ -104,6 +104,38 @@ export function useDashboard(initialData?: UserPreferences) {
       
       setIsInitializing(true)
       try {
+        // First check if records exist and create them if they don't
+        const [profileExists, usageExists] = await Promise.all([
+          supabase
+            .from('user_profile')
+            .select('id')
+            .eq('id', user.id)
+            .single(),
+          supabase
+            .from('user_usage')
+            .select('user_id')
+            .eq('user_id', user.id)
+            .single()
+        ]);
+
+        // Create records if either query resulted in an error
+        if (profileExists.error || usageExists.error) {
+          await Promise.all([
+            // Only insert profile if it doesn't exist
+            profileExists.error && supabase
+              .from('user_profile')
+              .insert({
+                id: user.id,
+              }),
+            // Only insert usage if it doesn't exist
+            usageExists.error && supabase
+              .from('user_usage')
+              .insert({
+                user_id: user.id,
+              })
+          ]);
+        }
+
         // Fetch all initial data in parallel
         const [profileResult, usageResult] = await Promise.all([
           supabase
