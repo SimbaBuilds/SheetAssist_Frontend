@@ -7,8 +7,6 @@ import * as z from 'zod'
 import type { SignUpFormValues } from '@/lib/types/auth'
 // Validation schema
 const signUpSchema = z.object({
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
   email: z.string().email('Invalid email address'),
   password: z
     .string()
@@ -29,8 +27,6 @@ export function useSignUp() {
   const form = useForm<SignUpFormValues>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
-      firstName: '',
-      lastName: '',
       email: '',
       password: '',
       confirmPassword: ''
@@ -44,11 +40,7 @@ export function useSignUp() {
         email: data.email,
         password: data.password,
         options: {
-          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm`,
-          data: {
-            first_name: data.firstName,
-            last_name: data.lastName
-          }
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm`
         }
       })
 

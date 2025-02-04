@@ -18,7 +18,7 @@ interface UseUserAccountReturn {
   userProfile: UserProfile
   userUsage: UserUsage
   isUpdating: boolean
-  updateUserName: (firstName: string, lastName: string) => Promise<void>
+  updateUserName: (firstName: string, lastName: string, organizationName: string) => Promise<void>
   handleGooglePermissions: () => Promise<void>
   handleMicrosoftPermissions: () => Promise<void>
   isDeletingAccount: boolean
@@ -72,29 +72,35 @@ export function useUserAccount({
     initializeUserAccount()
   }, [user.id])
 
-  const updateUserName = async (firstName: string, lastName: string) => {
+  const updateUserName = async (firstName: string, lastName: string, organizationName: string) => {
     try {
       setIsUpdating(true)
       const { error } = await supabase
         .from('user_profile')
         .update({ 
           first_name: firstName, 
-          last_name: lastName 
+          last_name: lastName,
+          organization_name: organizationName
         })
         .eq('id', user.id)
 
       if (error) throw error
 
-      setUserProfile(prev => ({ ...prev, first_name: firstName, last_name: lastName }))
+      setUserProfile(prev => ({ 
+        ...prev, 
+        first_name: firstName, 
+        last_name: lastName,
+        organization_name: organizationName 
+      }))
       
       toast({
         title: "Success",
-        description: "Your name has been updated.",
+        description: "Your profile has been updated.",
       })
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update your name. Please try again.",
+        description: "Failed to update your profile. Please try again.",
         className: "destructive"
       })
     } finally {

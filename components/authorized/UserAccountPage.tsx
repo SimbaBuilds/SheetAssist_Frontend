@@ -55,6 +55,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
 
   const [firstName, setFirstName] = useState(profile?.first_name ?? '')
   const [lastName, setLastName] = useState(profile?.last_name ?? '')
+  const [organizationName, setOrganizationName] = useState(profile?.organization_name ?? '')
   const [pendingOverageLimit, setPendingOverageLimit] = useState<number | null>(usage?.overage_hard_limit ?? null)
 
   const currentProfile = isLoading ? profile : (userProfile ?? profile)
@@ -199,8 +200,16 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
                 />
               </div>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="organizationName">Organization Name</Label>
+              <Input
+                id="organizationName"
+                value={organizationName}
+                onChange={(e) => setOrganizationName(e.target.value)}
+              />
+            </div>
             <Button 
-              onClick={() => updateUserName(firstName, lastName)}
+              onClick={() => updateUserName(firstName, lastName, organizationName)}
               disabled={isUpdating}
             >
               {isUpdating ? 'Updating...' : 'Update Profile'}
