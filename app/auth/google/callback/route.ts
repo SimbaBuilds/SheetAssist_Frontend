@@ -26,36 +26,39 @@ export async function GET(request: Request) {
       throw userError || new Error('No user found')
     }
 
-    // Check if user profile exists
-    const { data: profile } = await supabase
-      .from('user_profile')
-      .select()
-      .eq('id', user.id)
-      .single()
+    // Check if records exist
+    const [profileExists, usageExists] = await Promise.all([
+      supabase
+        .from('user_profile')
+        .select('id')
+        .eq('id', user.id)
+        .single(),
+      supabase
+        .from('user_usage')
+        .select('user_id')
+        .eq('user_id', user.id)
+        .single()
+    ]);
 
-    if (!profile) {
-      // Create user profile
-      await supabase.from('user_profile').insert([
-        {
-          id: user.id,
-          first_name: '',
-          last_name: '',
-          google_permissions_set: false,
-          microsoft_permissions_set: false,
-          plan: 'free'
-        }
-      ])
+    // Create records if they don't exist
+    if (profileExists.error || usageExists.error) {
+      const [profileError, usageError] = await Promise.all([
+        profileExists.error && supabase
+          .from('user_profile')
+          .insert({
+            id: user.id
+          }),
+        usageExists.error && supabase
+          .from('user_usage')
+          .insert({
+            user_id: user.id
+          })
+      ]);
 
-      // Create user usage record
-      await supabase.from('user_usage').insert([
-        {
-          user_id: user.id,
-          recent_queries: [],
-          requests_this_week: 0,
-          requests_this_month: 0,
-          requests_previous_3_months: 0
-        }
-      ])
+      // Check for errors in creation
+      if (profileError?.error || usageError?.error) {
+        throw new Error('Failed to create user records');
+      }
     }
 
     // Use the same redirect pattern as the confirm route
