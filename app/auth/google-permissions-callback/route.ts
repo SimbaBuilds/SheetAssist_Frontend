@@ -100,25 +100,48 @@ export async function GET(request: NextRequest) {
     }
 
     // Update user_profile with permissions
-    const { error: updateError } = await supabase
+    // First check if profile exists
+    const { data: profileExists, error: profileCheckError } = await supabase
       .from('user_profile')
-      .update({
-        [`${provider}_permissions_set`]: true
-      })
+      .select('id')
       .eq('id', user.id)
+      .single()
 
-    if (updateError) {
-      console.error('Profile update error:', updateError)
-      return NextResponse.redirect(
-        `${requestUrl.origin}/dashboard?error=profile_update`
-      )
+    if (profileCheckError) {
+      // Create profile if it doesn't exist
+      const { error: createError } = await supabase
+        .from('user_profile')
+        .insert({
+          id: user.id,
+          google_permissions_set: true,
+        })
+
+      if (createError) {
+        console.error('Profile creation error:', createError)
+        return NextResponse.redirect(
+          `${requestUrl.origin}/dashboard?error=profile_creation`
+        )
+      }
+    } else {
+      // Update existing profile
+      const { error: updateError } = await supabase
+        .from('user_profile')
+        .update({
+          google_permissions_set: true
+        })
+        .eq('id', user.id)
+
+      if (updateError) {
+        console.error('Profile update error:', updateError)
+        return NextResponse.redirect(
+          `${requestUrl.origin}/dashboard?error=profile_update`
+        )
+      }
     }
 
     const response = NextResponse.redirect(
       `${requestUrl.origin}/dashboard?setup=success`
     )
-
-
 
     return response
   } catch (error) {
