@@ -40,7 +40,7 @@ export default function Header() {
           <Link href="/auth/login">
             <Button variant="outline">Login</Button>
           </Link>
-          <Button onClick={handleSignUp}>Sign Up</Button>
+          <Button onClick={handleSignUp}>Try Free</Button>
         </>
       )}
     </>
