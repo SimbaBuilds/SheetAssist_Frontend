@@ -40,7 +40,7 @@ export function useSignUp() {
         email: data.email,
         password: data.password,
         options: {
-          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm`
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}`
         }
       })
 
