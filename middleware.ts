@@ -13,6 +13,7 @@ export const PUBLIC_PATHS = [
   '/auth/forgot-password',
   '/auth/reset-password',
   '/auth/setup-permissions', 
+  'auth/names',
   '/demos',
   '/contact-us',
   '/terms-of-service',

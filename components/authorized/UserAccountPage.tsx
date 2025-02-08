@@ -17,6 +17,21 @@ import { toast } from '@/components/ui/use-toast'
 import { useSubscription } from '@/hooks/useSubscription'
 import { SUBSCRIPTION_PLANS } from '@/lib/types/stripe'
 import Link from 'next/link'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+import { Check, ChevronsUpDown } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface UserAccountPageProps {
   profile: UserProfile & {
@@ -47,6 +62,9 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
     handleGoogleReconnect,
     handleMicrosoftReconnect,
     updateOverageLimit,
+    organizationSuggestions,
+    searchTerm,
+    setSearchTerm
   } = useUserAccount({ 
     initialProfile: profile,
     initialUsage: usage,
@@ -55,7 +73,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
 
   const [firstName, setFirstName] = useState(profile?.first_name ?? '')
   const [lastName, setLastName] = useState(profile?.last_name ?? '')
-  const [organizationName, setOrganizationName] = useState(profile?.organization_name ?? '')
+  const [organizationName, setOrganizationName] = useState<string | null>(null)
   const [pendingOverageLimit, setPendingOverageLimit] = useState<number | null>(usage?.overage_hard_limit ?? null)
 
   const currentProfile = isLoading ? profile : (userProfile ?? profile)
@@ -201,12 +219,62 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="organizationName">Organization Name</Label>
-              <Input
-                id="organizationName"
-                value={organizationName}
-                onChange={(e) => setOrganizationName(e.target.value)}
-              />
+              <Label>Organization</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between"
+                  >
+                    {organizationName || "Select organization"}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0">
+                  <Command>
+                    <CommandInput
+                      placeholder="Search organization..."
+                      value={searchTerm}
+                      onValueChange={setSearchTerm}
+                    />
+                    <CommandList>
+                      <CommandEmpty>No organization found.</CommandEmpty>
+                      <CommandGroup>
+                        {organizationSuggestions.map((org) => (
+                          <CommandItem
+                            key={org.id}
+                            value={org.name}
+                            onSelect={() => {
+                              setOrganizationName(org.name)
+                            }}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                org.name === organizationName
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              )}
+                            />
+                            {org.name}
+                          </CommandItem>
+                        ))}
+                        {searchTerm && !organizationSuggestions.find(org => org.name.toLowerCase() === searchTerm.toLowerCase()) && (
+                          <CommandItem
+                            value={searchTerm}
+                            onSelect={() => {
+                              setOrganizationName(searchTerm)
+                            }}
+                          >
+                            Create &quot;{searchTerm}&quot;
+                          </CommandItem>
+                        )}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <Button 
               onClick={() => updateUserName(firstName, lastName, organizationName)}

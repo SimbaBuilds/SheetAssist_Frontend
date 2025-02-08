@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useSetupPermissions } from './useSetupPermissions'
-import { UserProfile, UserUsage } from '@/lib/supabase/tables'
+import { UserProfile, UserUsage, Organizations } from '@/lib/supabase/tables'
 import { useToast } from '@/components/ui/use-toast'
 import { createClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
 import { useRouter } from 'next/navigation'
+import { useDebounce } from '@/hooks/useDebounce'
 
 interface UseUserAccountProps {
   initialProfile: UserProfile
@@ -18,7 +19,7 @@ interface UseUserAccountReturn {
   userProfile: UserProfile
   userUsage: UserUsage
   isUpdating: boolean
-  updateUserName: (firstName: string, lastName: string, organizationName: string) => Promise<void>
+  updateUserName: (firstName: string, lastName: string, organizationName: string | null) => Promise<void>
   handleGooglePermissions: () => Promise<void>
   handleMicrosoftPermissions: () => Promise<void>
   isDeletingAccount: boolean
@@ -27,6 +28,9 @@ interface UseUserAccountReturn {
   handleGoogleReconnect: () => Promise<void>
   handleMicrosoftReconnect: () => Promise<void>
   updateOverageLimit: (limit: number | null) => Promise<void>
+  organizationSuggestions: Organizations[]
+  searchTerm: string
+  setSearchTerm: React.Dispatch<React.SetStateAction<string>>
 }
 
 export function useUserAccount({ 
@@ -39,6 +43,9 @@ export function useUserAccount({
   const [isUpdating, setIsUpdating] = useState(false)
   const [userProfile, setUserProfile] = useState<UserProfile>(initialProfile)
   const [userUsage, setUserUsage] = useState<UserUsage>(initialUsage)
+  const [organizationSuggestions, setOrganizationSuggestions] = useState<Organizations[]>([])
+  const [searchTerm, setSearchTerm] = useState('')
+  const debouncedSearch = useDebounce(searchTerm, 300)
   const { handleGoogleSetup, handleMicrosoftSetup } = useSetupPermissions()
   const { toast } = useToast()
   const supabase = createClient()
@@ -72,15 +79,67 @@ export function useUserAccount({
     initializeUserAccount()
   }, [user.id])
 
-  const updateUserName = async (firstName: string, lastName: string, organizationName: string) => {
+  const searchOrganizations = useCallback(async (term: string) => {
+    if (!term) {
+      setOrganizationSuggestions([])
+      return
+    }
+
+    const { data, error } = await supabase
+      .from('organizations')
+      .select('*')
+      .ilike('name', `%${term}%`)
+      .limit(5)
+
+    if (!error && data) {
+      setOrganizationSuggestions(data)
+    }
+  }, [supabase])
+
+  // Effect to handle debounced search
+  useEffect(() => {
+    searchOrganizations(debouncedSearch)
+  }, [debouncedSearch, searchOrganizations])
+
+  const createOrganization = async (name: string) => {
+    const { data, error } = await supabase
+      .from('organizations')
+      .insert({ name })
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  }
+
+  const updateUserName = async (firstName: string, lastName: string, organizationName: string | null) => {
     try {
       setIsUpdating(true)
+      let organizationId: string | null = null
+
+      if (organizationName) {
+        // Check if organization exists
+        const { data: existingOrg } = await supabase
+          .from('organizations')
+          .select('id')
+          .eq('name', organizationName)
+          .single()
+
+        if (existingOrg) {
+          organizationId = existingOrg.id
+        } else {
+          // Create new organization
+          const newOrg = await createOrganization(organizationName)
+          organizationId = newOrg.id
+        }
+      }
+
       const { error } = await supabase
         .from('user_profile')
         .update({ 
           first_name: firstName, 
           last_name: lastName,
-          organization_name: organizationName
+          organization_id: organizationId
         })
         .eq('id', user.id)
 
@@ -90,7 +149,7 @@ export function useUserAccount({
         ...prev, 
         first_name: firstName, 
         last_name: lastName,
-        organization_name: organizationName 
+        organization_id: organizationId
       }))
       
       toast({
@@ -337,5 +396,8 @@ export function useUserAccount({
     handleGoogleReconnect,
     handleMicrosoftReconnect,
     updateOverageLimit,
+    organizationSuggestions,
+    searchTerm,
+    setSearchTerm
   }
 }

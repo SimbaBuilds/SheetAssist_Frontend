@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useForm } from 'react-hook-form'
@@ -60,7 +60,7 @@ export function useNames() {
   }, [supabase])
 
   // Effect to handle debounced search
-  useEffect(() => {
+  useCallback(() => {
     searchOrganizations(debouncedSearch)
   }, [debouncedSearch, searchOrganizations])
 
