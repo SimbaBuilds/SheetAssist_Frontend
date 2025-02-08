@@ -89,3 +89,10 @@ export interface FilePermissions {
   expires_at: string // ISO timestamp
   created_at: string // ISO timestamp
 }
+
+
+// organizations table
+export interface Organizations {
+  id: string // UUID
+  name: string
+}
