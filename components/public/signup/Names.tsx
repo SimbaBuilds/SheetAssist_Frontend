@@ -93,7 +93,7 @@ export function Names() {
                     </FormControl>
                     <div className="space-y-1 leading-none">
                       <FormLabel>
-                        I don't belong to an organization
+                        I don&apos;t belong to an organization
                       </FormLabel>
                     </div>
                   </FormItem>
@@ -159,7 +159,7 @@ export function Names() {
                                       form.setValue("organization", searchTerm)
                                     }}
                                   >
-                                    Create "{searchTerm}"
+                                    Create &quot;{searchTerm}&quot;
                                   </CommandItem>
                                 )}
                               </CommandGroup>

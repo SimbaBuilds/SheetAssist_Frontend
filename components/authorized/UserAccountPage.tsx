@@ -267,7 +267,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
                               setOrganizationName(searchTerm)
                             }}
                           >
-                            Create "{searchTerm}"
+                            Create &quot;{searchTerm}&quot;
                           </CommandItem>
                         )}
                       </CommandGroup>
