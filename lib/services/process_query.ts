@@ -621,13 +621,19 @@ class QueryService {
           (error as Error)?.name === 'CanceledError') {
         console.log('Request was cancelled during processing');
         
+        // Update processing state immediately on cancellation
+        onProgress?.({
+          status: 'canceled',
+          message: 'Request was canceled'
+        });
+        
         try {
-          // Update job status to error with cancellation message instead of using 'canceled' status
+          // Update job status to canceled (not error)
           const { error: updateError } = await supabase
             .from('jobs')
             .update({
-              status: 'error',  // Using 'error' instead of 'canceled'
-              error_message: 'Request was canceled by user',
+              status: 'canceled',  // Changed from 'error' to 'canceled'
+              message: 'Request was canceled by user',
               completed_at: new Date().toISOString()
             })
             .eq('job_id', job.job_id);
@@ -644,7 +650,7 @@ class QueryService {
               fileMetadata: filesMetadata,
               inputUrls: webUrls,
               startTime,
-              status: 'canceled',  // We can still use 'canceled' in our logs
+              status: 'canceled',
               success: false,
               requestType: 'query'
             });
