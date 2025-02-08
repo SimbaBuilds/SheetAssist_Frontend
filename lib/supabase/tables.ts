@@ -2,12 +2,18 @@ import { OnlineSheet } from '../types/dashboard'
 import { PlanType } from '../constants/pricing'
 
 
+// organizations table
+export interface Organizations {
+  id: string // UUID
+  name: string
+}
+
 // user_profile table
 export interface UserProfile {
   id: string // UUID
   first_name: string | null
   last_name: string | null
-  organization_name: string | null
+  organization_id: string | null // UUID
   google_permissions_set: boolean
   microsoft_permissions_set: boolean
   plan: PlanType
