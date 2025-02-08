@@ -63,7 +63,9 @@ export function useSignUp() {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/google/callback`,
+          redirectTo: process.env.NODE_ENV === 'development' 
+            ? `${process.env.NEXT_PUBLIC_DEV_SITE_URL}/auth/google/callback`
+            : `${process.env.NEXT_PUBLIC_SITE_URL}/auth/google/callback`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
