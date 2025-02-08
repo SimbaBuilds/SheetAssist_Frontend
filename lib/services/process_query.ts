@@ -626,7 +626,7 @@ class QueryService {
           const { error: updateError } = await supabase
             .from('jobs')
             .update({
-              status: 'canceled',  // Using 'error' instead of 'canceled'
+              status: 'error',  // Using 'error' instead of 'canceled'
               error_message: 'Request was canceled by user',
               completed_at: new Date().toISOString()
             })
