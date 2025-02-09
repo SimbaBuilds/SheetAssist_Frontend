@@ -98,6 +98,13 @@ export default function LandingPage() {
         </div>
       </div>
 
+      {/* Demo Button Section */}
+      <div className="container mx-auto px-4 py-10 text-center">
+        <Button size="lg" variant="outline" asChild>
+          <Link href="/demos">See Demos</Link>
+        </Button>
+      </div>
+
       {/* Plans Section */}
       <div className="container mx-auto px-4 py-20">
         <h2 className="text-3xl font-bold text-center mb-12">Plans</h2>
