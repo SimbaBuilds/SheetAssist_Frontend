@@ -4,7 +4,7 @@ import {downloadFile} from '@/lib/services/download_file'
 import {getDocumentTitle} from '@/lib/services/get_document_title'
 import { createClient } from '@/lib/supabase/client'
 import type { DownloadFileType, DashboardInitialData, OutputPreferences, QueryResponse, SheetTitleKey, InputUrl, OnlineSheet, ProcessingState } from '@/lib/types/dashboard'
-import { MAX_FILES } from '@/lib/constants/file-types'
+import { MAX_FILES, MAX_FILE_SIZE } from '@/lib/constants/file-types'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/use-toast'
 import { useDataVisualization } from '@/hooks/useDataVisualization'
@@ -16,7 +16,8 @@ import {
   validateFile,
   handleAuthError,
   handleUrlValidation,
-  fetchAndHandleSheets
+  fetchAndHandleSheets,
+  validateCumulativeFileSize
 } from '@/lib/utils/dashboard-utils'
 import { queryService } from '@/lib/services/process_query'
 import { useUsageLimits } from '@/hooks/useUsageLimits'
@@ -233,13 +234,25 @@ export function useDashboard(initialData?: UserPreferences) {
       return
     }
 
+    // Calculate current total size
+    const currentTotalSize = files.reduce((sum, file) => sum + file.size, 0);
+
     // Validate each file
     selectedFiles.forEach(file => {
-      const error = validateFile(file)
-      if (error) {
-        newErrors.push({ file, error })
+      const sizeError = validateCumulativeFileSize(file, files, MAX_FILE_SIZE);
+      const validationError = validateFile(file);
+      
+      if (sizeError) {
+        newErrors.push({ file, error: sizeError });
+      } else if (validationError) {
+        newErrors.push({ file, error: validationError });
+      } else if (currentTotalSize + file.size > MAX_FILE_SIZE) {
+        newErrors.push({ 
+          file, 
+          error: `Adding this file would exceed the total size limit of ${MAX_FILE_SIZE / 1024 / 1024}MB` 
+        });
       } else {
-        validFiles.push(file)
+        validFiles.push(file);
       }
     })
 
