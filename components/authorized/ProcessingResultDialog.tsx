@@ -159,10 +159,27 @@ export function ProcessingResultDialog({
     <Dialog 
       open={isOpen} 
       onOpenChange={(open) => {
-        if (!open) onClose();
+        // Only allow closing if not processing
+        if (!open && state.status !== 'processing' && state.status !== 'created') {
+          onClose();
+        }
       }}
+      modal={true}
     >
-      <DialogContent>
+      <DialogContent
+        onEscapeKeyDown={(e) => {
+          // Prevent closing via escape key when processing
+          if (state.status === 'processing' || state.status === 'created') {
+            e.preventDefault();
+          }
+        }}
+        onInteractOutside={(e) => {
+          // Prevent closing via backdrop when processing
+          if (state.status === 'processing' || state.status === 'created') {
+            e.preventDefault();
+          }
+        }}
+      >
         <DialogHeader>
           <DialogTitle>
             {state.status === 'error' ? 'Error' : 
