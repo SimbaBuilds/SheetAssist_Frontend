@@ -124,7 +124,22 @@ export function useFilePicker() {
     }
 
     try {
-      const { error } = await supabase
+      // First check if permission already exists
+      const { data: existingPermission } = await supabase
+        .from('file_permissions')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('file_id', fileId)
+        .eq('provider', provider)
+        .single()
+
+      // If permission already exists, return true without inserting
+      if (existingPermission) {
+        return true
+      }
+
+      // Insert new permission if none exists
+      const { error: insertError } = await supabase
         .from('file_permissions')
         .insert({
           user_id: user.id,
@@ -132,8 +147,8 @@ export function useFilePicker() {
           provider
         })
 
-      if (error) {
-        console.error('Error storing file permission:', error)
+      if (insertError) {
+        console.error('Error storing file permission:', insertError)
         return false
       }
 
@@ -604,10 +619,12 @@ export function useFilePicker() {
                             fileInfo.resourceId ||
                             (typeof fileInfo === 'string' ? fileInfo : null);
 
+              // Construct the web URL for Excel Online
               const webUrl = fileInfo.webUrl ||
                             fileInfo.driveItem?.webUrl ||
                             fileInfo.resourceUrl ||
-                            fileInfo.link;
+                            fileInfo.link ||
+                            (fileId ? `https://onedrive.live.com/edit.aspx?resid=${encodeURIComponent(fileId)}` : null);
 
               console.log('[openMicrosoftPicker] Extracted details:', {
                 fileId,
@@ -615,10 +632,10 @@ export function useFilePicker() {
                 originalFileInfo: fileInfo
               });
 
-              if (fileId || webUrl) {
+              if (fileId) {
                 resolve({
-                  fileId: fileId || '',
-                  url: webUrl || '',
+                  fileId: fileId,
+                  url: webUrl || `https://onedrive.live.com/edit.aspx?resid=${encodeURIComponent(fileId)}`,
                   success: true
                 });
                 return;

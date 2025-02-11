@@ -196,8 +196,11 @@ export function useDashboard(initialData?: UserPreferences) {
   const outputPicker = usePicker({
     type: 'output',
     onSelect: (outputUrl) => {
+      // Update all necessary state for form submission
       setSelectedDestinationPair(outputUrl);
       setSelectedOutputSheet(outputUrl.sheet_name || null);
+      setOutputUrl(outputUrl.url); // Keep outputUrl in sync
+      setDestinationUrlError(null); // Clear any previous errors
     },
     onError: (error) => {
       setDestinationUrlError(error);
@@ -960,6 +963,9 @@ export function useDashboard(initialData?: UserPreferences) {
         .eq('id', user.id);
 
       if (error) throw error;
+      
+      // Update local state after successful database update
+      setAllowSheetModification(allow);
     } catch (error) {
       console.error('Error updating sheet modification preference:', error);
       setError('Failed to update preference');
@@ -1033,5 +1039,6 @@ export function useDashboard(initialData?: UserPreferences) {
     handleInputSheetSelection: inputPicker.handleSheetNameSelection,
     showInputSheetSelector: inputPicker.showSheetSelector,
     setShowInputSheetSelector: inputPicker.setShowSheetSelector,
+    outputPicker,
   } as const;
 }

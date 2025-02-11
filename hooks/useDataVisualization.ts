@@ -1,6 +1,6 @@
 import type { SeabornSequentialPalette } from '@/lib/types/dashboard'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { processDataVisualization } from '@/lib/services/data_visualization'
 import { getSheetNames } from '@/lib/services/get_sheet_names'
 import { createClient } from '@/lib/supabase/client'
@@ -50,6 +50,7 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
   const [isVisualizationUrlProcessing, setIsVisualizationUrlProcessing] = useState(false)
   const [showVisualizationDialog, setShowVisualizationDialog] = useState(false)
   const [visualizationAbortController, setVisualizationAbortController] = useState<AbortController | null>(null)
+  const visualizationFileInputRef = useRef<HTMLInputElement>(null)
 
   const { user } = useAuth()
   const supabase = createClient()
@@ -115,11 +116,15 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
     availableSheets: visualizationSheets,
     isProcessing: isVisualizationPickerProcessing,
     selectedSheetUrl: visualizationSheetUrl,
-    setSelectedSheetUrl: setVisualizationSheetUrl
+    setSelectedSheetUrl: setVisualizationSheetUrl,
+    workbookInfo: visualizationWorkbookInfo,
+    pickerActive: visualizationPickerActive
   } = usePicker({
     type: 'visualization',
     onSelect: (inputSheet) => {
       setSelectedVisualizationPair(inputSheet);
+      setVisualizationFile(null); // Clear file when URL is selected
+      setVisualizationError(''); // Clear any previous errors
     },
     onError: (error) => {
       setVisualizationError(error);
@@ -131,6 +136,14 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
     setSelectedVisualizationPair(null);
     setVisualizationSheet(null);
     setVisualizationSheetUrl('');
+  };
+
+  const clearVisualizationFile = () => {
+    setVisualizationFile(null);
+    setVisualizationFileError(null);
+    if (visualizationFileInputRef.current) {
+      visualizationFileInputRef.current.value = '';
+    }
   };
 
   const handleVisualizationFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -289,6 +302,10 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
     isVisualizationUrlProcessing,
     setVisualizationSheet,
     isVisualizationPickerProcessing,
-    handleClearVisualization
+    handleClearVisualization,
+    clearVisualizationFile,
+    visualizationWorkbookInfo,
+    visualizationPickerActive,
+    visualizationFileInputRef
   } as const
 }

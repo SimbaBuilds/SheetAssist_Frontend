@@ -34,22 +34,12 @@ export function SheetSelector({
   const actualOpen = (open || isProcessing) && !pickerActive;
 
   useEffect(() => {
-    console.log('[SheetSelector] State changed:', {
-      open,
-      isProcessing,
-      actualOpen,
-      pickerActive,
-      sheetsCount: sheets.length,
-      docName,
-      mounted: true
-    });
   }, [open, isProcessing, sheets.length, docName, actualOpen, pickerActive]);
 
   return (
     <Dialog 
       open={actualOpen}
       onOpenChange={(isOpen) => {
-        console.log('[SheetSelector] Dialog open state changing:', { isOpen, isProcessing, actualOpen, pickerActive });
         if (!isOpen && !isProcessing) {
           onClose();
         }
@@ -80,7 +70,6 @@ export function SheetSelector({
                   key={sheet}
                   variant="outline"
                   onClick={() => {
-                    console.log('[SheetSelector] Sheet selected:', { sheet, url });
                     onSelect(sheet, url);
                   }}
                   className="w-full justify-start text-left font-normal"

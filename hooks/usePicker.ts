@@ -5,14 +5,14 @@ import { getSheetNames } from '@/lib/services/get_sheet_names';
 import type { InputSheet } from '@/lib/types/dashboard';
 
 type PickerType = 'input' | 'output' | 'visualization';
-type Provider = 'google' | 'microsoft';
+type Provider = 'google' | 'microsoft' | 'recent';
 
 interface UsePickerProps {
   type: PickerType;
   onSelect: (inputUrl: InputSheet) => void;
   onError: (error: string) => void;
   updateRecentSheets?: (url: string, sheetName: string, docName: string) => void;
-  onPermissionRedirect?: (provider: Provider) => boolean;
+  onPermissionRedirect?: (provider: 'google' | 'microsoft') => boolean;
 }
 
 export function usePicker({ type, onSelect, onError, updateRecentSheets, onPermissionRedirect }: UsePickerProps) {
@@ -37,22 +37,30 @@ export function usePicker({ type, onSelect, onError, updateRecentSheets, onPermi
     setWorkbookInfo({ doc_name: docName });
     setAvailableSheets(sheets);
     setShowSheetSelector(true);
+    setPickerActive(false); // Important: Reset picker active when showing sheet selector
     
     console.log(`[${type}] Sheet selector states updated:`, {
       url,
       sheets,
       docName,
-      selectorOpen: true
+      selectorOpen: true,
+      pickerActive: false
     });
   };
 
-  const launchProviderPicker = async (provider: Provider) => {
+  const launchProviderPicker = async (provider: Provider, selectedItem?: InputSheet) => {
     if (!user?.id) {
       onError('User not authenticated');
       return;
     }
 
-    if (onPermissionRedirect?.(provider)) {
+    // Handle recent selection
+    if (provider === 'recent' && selectedItem) {
+      onSelect(selectedItem);
+      return;
+    }
+
+    if (provider !== 'recent' && onPermissionRedirect?.(provider)) {
       return;
     }
 
@@ -67,40 +75,42 @@ export function usePicker({ type, onSelect, onError, updateRecentSheets, onPermi
       setSelectedSheetUrl('');
       setWorkbookInfo(null);
       
-      const pickerResult = await launchPicker(provider);
-      setPickerActive(false);
-      console.log(`[${type}] Picker result:`, pickerResult);
+      // Only call launchPicker for google or microsoft
+      if (provider !== 'recent') {
+        const pickerResult = await launchPicker(provider);
+        console.log(`[${type}] Picker result:`, pickerResult);
 
-      if (!pickerResult.success || !pickerResult.url) {
-        throw new Error(pickerResult.error || 'Failed to select file');
-      }
+        if (!pickerResult.success || !pickerResult.url) {
+          throw new Error(pickerResult.error || 'Failed to select file');
+        }
 
-      console.log(`[${type}] Getting sheet names for URL:`, pickerResult.url);
-      const workbook = await getSheetNames(pickerResult.url);
-      console.log(`[${type}] Workbook response:`, workbook);
-      
-      if (!workbook.success || workbook.error) {
-        throw new Error(workbook.error || 'Failed to get sheet names');
-      }
+        console.log(`[${type}] Getting sheet names for URL:`, pickerResult.url);
+        const workbook = await getSheetNames(pickerResult.url);
+        console.log(`[${type}] Workbook response:`, workbook);
+        
+        if (!workbook.success || workbook.error) {
+          throw new Error(workbook.error || 'Failed to get sheet names');
+        }
 
-      if (!workbook.sheet_names?.length) {
-        throw new Error('No sheets found in the document');
-      }
+        if (!workbook.sheet_names?.length) {
+          throw new Error('No sheets found in the document');
+        }
 
-      setIsProcessing(false);
+        setIsProcessing(false);
 
-      if (workbook.sheet_names.length === 1) {
-        console.log(`[${type}] Single sheet found, auto-selecting`);
-        const inputSheet: InputSheet = {
-          url: pickerResult.url,
-          sheet_name: workbook.sheet_names[0],
-          doc_name: workbook.doc_name
-        };
-        onSelect(inputSheet);
-        updateRecentSheets?.(pickerResult.url, workbook.sheet_names[0], workbook.doc_name);
-      } else {
-        console.log(`[${type}] Multiple sheets found (${workbook.sheet_names.length}), showing selector`);
-        handleMultipleSheets(pickerResult.url, workbook.sheet_names, workbook.doc_name);
+        if (workbook.sheet_names.length === 1) {
+          console.log(`[${type}] Single sheet found, auto-selecting`);
+          const inputSheet: InputSheet = {
+            url: pickerResult.url,
+            sheet_name: workbook.sheet_names[0],
+            doc_name: workbook.doc_name
+          };
+          onSelect(inputSheet);
+          updateRecentSheets?.(pickerResult.url, workbook.sheet_names[0], workbook.doc_name);
+        } else {
+          console.log(`[${type}] Multiple sheets found (${workbook.sheet_names.length}), showing selector`);
+          handleMultipleSheets(pickerResult.url, workbook.sheet_names, workbook.doc_name);
+        }
       }
     } catch (error) {
       console.error(`[${type}] Error in launchProviderPicker:`, error);
