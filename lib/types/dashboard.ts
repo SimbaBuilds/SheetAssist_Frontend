@@ -32,7 +32,7 @@ export interface FileUploadMetadata {
   s3_url?: string
 }
 
-export interface InputUrl {
+export interface InputSheet {
     url: string
     sheet_name?: string | null
     doc_name?: string | null
@@ -40,7 +40,7 @@ export interface InputUrl {
 
 export interface QueryRequest {
   query: string
-  input_urls?: InputUrl[]
+  input_urls?: InputSheet[]
   files_metadata?: FileUploadMetadata[]
   output_preferences?: OutputPreferences,
   job_id?: string
@@ -138,7 +138,7 @@ export interface DocumentTitleMap {
 
 // Add new type for processing state
 export interface ProcessingState {
-  status: 'processing' | 'created' | 'completed' | 'completed_with_error(s)' | 'error' | 'canceled' | null;
+  status: 'idle' | 'processing' | 'created' | 'completed' | 'completed_with_error(s)' | 'error' | 'canceled';
   message: string;
   progress?: {
     processed: number;
@@ -173,7 +173,7 @@ export const SEABORN_SEQUENTIAL_PALETTES = {
 export type SeabornSequentialPalette = keyof typeof SEABORN_SEQUENTIAL_PALETTES;
 
 export interface VisualizationRequest {
-  input_urls?: InputUrl[]
+  input_urls?: InputSheet[]
   files_metadata?: FileUploadMetadata[]
   options: VisualizationOptions
 }

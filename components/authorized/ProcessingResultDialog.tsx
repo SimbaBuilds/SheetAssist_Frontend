@@ -140,6 +140,9 @@ export function ProcessingResultDialog({
           </div>
         )
 
+      case 'idle':
+        return null;
+
       default:
         return (
           <div className="flex flex-col items-center justify-center py-8 space-y-4">
@@ -157,7 +160,7 @@ export function ProcessingResultDialog({
 
   return (
     <Dialog 
-      open={isOpen} 
+      open={isOpen && state.status !== 'idle'} 
       onOpenChange={(open) => {
         // Only allow closing if not processing
         if (!open && state.status !== 'processing' && state.status !== 'created') {

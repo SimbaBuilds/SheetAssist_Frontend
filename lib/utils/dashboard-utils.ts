@@ -12,18 +12,6 @@ export const getUrlProvider = (url: string): 'google' | 'microsoft' | null => {
   return null
 }
 
-export const checkUrlPermissions = (
-  url: string, 
-  permissions: { google: boolean | null; microsoft: boolean | null }
-) => {
-  const provider = getUrlProvider(url)
-  if (!provider) return { hasPermission: false, provider: null }
-  return { 
-    hasPermission: !!permissions[provider], 
-    provider 
-  }
-}
-
 // Formatting utilities
 export const formatTitleKey = (url: string | null | undefined, sheet_name: string | null | undefined): string => {
   if (!url || !sheet_name) {

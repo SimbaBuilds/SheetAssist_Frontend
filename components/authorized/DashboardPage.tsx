@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { useDashboard } from '@/hooks/useDashboard'
-import type { DownloadFileType } from '@/lib/types/dashboard'
+import type { DownloadFileType, InputSheet } from '@/lib/types/dashboard'
 import { DOWNLOAD_FILE_TYPES, ACCEPTED_FILE_EXTENSIONS, MAX_FILES, MAX_FILE_SIZE, MAX_QUERY_LENGTH } from '@/lib/constants/file-types'
 import { ProcessingResultDialog } from '@/components/authorized/ProcessingResultDialog'
 import { Switch } from "@/components/ui/switch"
@@ -26,12 +26,15 @@ import {
 import { SheetSelector } from '@/components/authorized/SheetSelector'
 import { useRouter } from 'next/navigation'
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
+import { Loader2 } from 'lucide-react'
 import { useDataVisualization } from '@/hooks/useDataVisualization'
 import { GeneratingVisualizationDialog } from '@/components/authorized/GeneratingVisualizationDialog'
 import { SEABORN_SEQUENTIAL_PALETTES, SeabornSequentialPalette } from '@/lib/types/dashboard'
 import { useUsageLimits } from '@/hooks/useUsageLimits'
 import Link from 'next/link'
 import Image from 'next/image'
+import { getUrlProvider } from '@/lib/utils/dashboard-utils'
+import { useState } from 'react'
 
 
 export const EXAMPLE_QUERIES = [
@@ -58,15 +61,12 @@ export const EXAMPLE_QUERIES = [
 export default function DashboardPage() {
   const {
     isInitializing,
-    urls,
     query,
     files,
     error,
     outputType,
     outputUrl,
     isProcessing,
-    urlPermissionError,
-    urlValidationError,
     recentUrls,
     documentTitles,
     setDocumentTitles,
@@ -80,7 +80,6 @@ export default function DashboardPage() {
     destinationUrlError,
     availableSheets,
     showSheetSelector,
-    selectedUrl,
     selectedUrlPairs,
     selectedOutputSheet,
     setFiles,
@@ -90,12 +89,8 @@ export default function DashboardPage() {
     setDownloadFileType,
     setOutputTypeError,
     setShowSheetSelector,
-    handleSheetSelection,
     handleFileChange,
-    handleUrlChange,
-    handleUrlFocus,
     handleSubmit,
-    handleOutputUrlChange,
     formatTitleKey,
     formatDisplayTitle,    
     isRetrievingData,
@@ -116,41 +111,51 @@ export default function DashboardPage() {
     selectedDestinationPair,
     setSelectedDestinationPair,
     processingState,
+    handleInputPicker,
+    isInputPickerProcessing,
+    handleOutputPicker,
+    isOutputPickerProcessing,
+    permissions,
+    fetchingSheets,
+    selectedSheetUrl,
+    workbookInfo,
+    inputAvailableSheets,
+    handleInputSheetSelection,
+    showInputSheetSelector,
+    setShowInputSheetSelector,
   } = useDashboard()
 
   const {
     isVisualizationExpanded,
-    visualizationUrl,
     visualizationFile,
     colorPalette,
     customInstructions,
     isVisualizationProcessing,
     visualizationError,
     visualizationFileError,
-    visualizationUrlError,
     visualizationResult,
-    showVisualizationSheetSelector,
-    visualizationSheets,
-    visualizationSheet,
-    isVisualizationUrlProcessing,
-    isRetrievingVisualizationData,
     setIsVisualizationExpanded,
-    setVisualizationUrl,
     setColorPalette,
     setCustomInstructions,
-    setShowVisualizationSheetSelector,
-    setVisualizationSheet,
     handleVisualizationFileChange,
-    handleVisualizationUrlChange,
-    handleVisualizationSheetSelection,
     handleVisualizationSubmit,
     handleVisualizationOptionChange,
-    visualizationUrls,
     selectedVisualizationPair,
-    setSelectedVisualizationPair,
     showVisualizationDialog,
     setShowVisualizationDialog,
     handleVisualizationCancel,
+    handleClearVisualization,
+    handleVisualizationPicker,
+    handleVisualizationSheetSelection,
+    showVisualizationSheetSelector,
+    setShowVisualizationSheetSelector,
+    visualizationSheets,
+    isVisualizationUrlProcessing,
+    isRetrievingVisualizationData,
+    visualizationSheetUrl,
+    setVisualizationSheetUrl,
+    setVisualizationSheet,
+    isVisualizationPickerProcessing,
   } = useDataVisualization({ 
     documentTitles,
     setDocumentTitles
@@ -179,9 +184,9 @@ export default function DashboardPage() {
           <form onSubmit={(e) => {
             e.preventDefault();
             const hasFiles = files.length > 0;
-            const hasInputUrls = selectedUrlPairs.length > 0;
+            const hasInputSheets = selectedUrlPairs.length > 0;
             
-            if (!hasFiles && !hasInputUrls) {
+            if (!hasFiles && !hasInputSheets) {
               setOutputTypeError('Please attach a file or select an input URL');
               return;
             }
@@ -258,68 +263,102 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* URL Inputs */}
+            {/* Input Sheets Section */}
             <div className="space-y-4">
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor="url">Input Sheet URLs</Label>
-                  </div>
-                </div>
-                <div className="mt-1">
-                  <div className="flex gap-2">
-                    <Input
-                      id="url"
-                      type="text"
-                      value={urls[0]}
-                      onChange={(e) => handleUrlChange(0, e.target.value)}
-                      onFocus={handleUrlFocus}
-                      placeholder="Paste Google Sheet or Excel Online URL here or select from recent documents"
-                      className={`${urlValidationError ? 'border-red-500' : ''}`}
-                      disabled={selectedUrlPairs.length >= 6 || isRetrievingData}
-                    />
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="px-2"
-                          type="button"
-                          disabled={selectedUrlPairs.length >= 6 || isRetrievingData}
-                        >
-                          Recent
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="p-0" align="end">
-                        <Command>
-                          <CommandList>
-                            <CommandGroup>
-                              {Array.isArray(recentUrls) && recentUrls.map((sheet, index) => {
-                                const titleKey = sheet.sheet_name ? formatTitleKey(sheet.url, sheet.sheet_name) : '';
-                                const displayTitle = titleKey && documentTitles[titleKey] 
-                                  ? documentTitles[titleKey] 
-                                  : formatDisplayTitle(sheet.doc_name, sheet.sheet_name || '');
-                                return (
-                                  <CommandItem
-                                    key={index}
-                                    onSelect={() => handleUrlChange(0, titleKey, true)}
-                                  >
-                                    {displayTitle}
-                                  </CommandItem>
-                                );
-                              })}
-                              {(!recentUrls?.length) && (
-                                <CommandItem disabled>No recent documents</CommandItem>
-                              )}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
+              <div className="flex items-center justify-between gap-2 mb-4">
+                <Label>Select Input Sheets</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="px-2"
+                      type="button"
+                      disabled={isInputPickerProcessing}
+                    >
+                      Recent
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0" align="end">
+                    <Command>
+                      <CommandList>
+                        <CommandGroup>
+                          {Array.isArray(recentUrls) && recentUrls.map((sheet, index) => {
+                            const titleKey = sheet.sheet_name ? formatTitleKey(sheet.url, sheet.sheet_name) : '';
+                            const displayTitle = titleKey && documentTitles[titleKey] 
+                              ? documentTitles[titleKey] 
+                              : formatDisplayTitle(sheet.doc_name, sheet.sheet_name || '');
+                            return (
+                              <CommandItem
+                                key={index}
+                                onSelect={() => handleInputPicker(getUrlProvider(sheet.url) || 'google')}
+                              >
+                                {displayTitle}
+                              </CommandItem>
+                            );
+                          })}
+                          {(!recentUrls?.length) && (
+                            <CommandItem disabled>No recent documents</CommandItem>
+                          )}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
 
-              {/* Display selected URL pairs */}
+              <div className="flex gap-2">
+                {permissions.google !== null && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleInputPicker('google')}
+                    disabled={!!visualizationFile || isVisualizationUrlProcessing || isRetrievingVisualizationData || fetchingSheets}
+                    className="flex-1"
+                  >
+                    {fetchingSheets ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Loading...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none">
+                          <path d="M21.5 2H2.5C1.67157 2 1 2.67157 1 3.5V20.5C1 21.3284 1.67157 22 2.5 22H21.5C22.3284 22 23 21.3284 23 20.5V3.5C23 2.67157 22.3284 2 21.5 2Z" fill="#0F9D58"/>
+                          <path d="M1 7H23V10H1V7Z" fill="white"/>
+                          <path d="M6.5 2V22H9.5V2H6.5Z" fill="white"/>
+                        </svg>
+                        {permissions.google ? 'New Google Sheet' : 'Connect Google'}
+                      </>
+                    )}
+                  </Button>
+                )}
+                {permissions.microsoft !== null && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleInputPicker('microsoft')}
+                    disabled={!!visualizationFile || isVisualizationUrlProcessing || isRetrievingVisualizationData || fetchingSheets}
+                    className="flex-1"
+                  >
+                    {fetchingSheets ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Loading...</span>
+                      </div>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none">
+                          <rect x="6" y="4" width="16" height="16" rx="2" fill="#107C41"/>
+                          <rect x="2" y="8" width="10" height="10" rx="2" fill="#185C37"/>
+                          <path d="M4.5 11L6.5 13L9.5 10M6.5 13L9.5 16M6.5 13L3.5 16M6.5 13L3.5 10" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                        {permissions.microsoft ? 'New Excel Online Sheet' : 'Connect Microsoft'}
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+
               {selectedUrlPairs.length > 0 && (
                 <div className="space-y-2">
                   <Label>Selected Documents</Label>
@@ -328,7 +367,7 @@ export default function DashboardPage() {
                       const titleKey = pair.sheet_name ? formatTitleKey(pair.url, pair.sheet_name) : '';
                       const displayTitle = titleKey && documentTitles[titleKey] 
                         ? documentTitles[titleKey] 
-                        : `${pair.url}${pair.sheet_name ? ` - ${pair.sheet_name}` : ''}`;
+                        : formatDisplayTitle(pair.doc_name || '', pair.sheet_name || '');
                       return (
                         <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
                           <span className="text-sm truncate flex-1">{displayTitle}</span>
@@ -353,26 +392,10 @@ export default function DashboardPage() {
 
               {selectedUrlPairs.length >= 6 && (
                 <p className="text-sm text-amber-600">
-                  Maximum number of input URLs (6) reached. Remove some to add more.
+                  Maximum number of input sheets (6) reached. Remove some to add more.
                 </p>
               )}
-
-              {urlValidationError && (
-                <div className="text-sm text-red-500">{urlValidationError}</div>
-              )}
-              {urlPermissionError && (
-                <div className="text-sm text-red-500">{urlPermissionError}</div>
-              )}
             </div>
-
-            {/* Sheet Selector */}
-            <SheetSelector
-              url={selectedUrl}
-              sheets={availableSheets[selectedUrl] || []}
-              onSelect={handleSheetSelection}
-              onClose={() => setShowSheetSelector(false)}
-              open={showSheetSelector}
-            />
 
             {/* Query Input */}
             <div>
@@ -494,62 +517,61 @@ export default function DashboardPage() {
 
               {outputType === 'online' && (
                 <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="destination">Destination</Label>
-                    <div className="mt-1">
-                      <div className="flex gap-2">
-                        <Input
-                          id="destination"
-                          type="text"
-                          value={destinationUrls[0]}
-                          onChange={(e) => handleOutputUrlChange(e.target.value)}
-                          onFocus={handleUrlFocus}
-                          placeholder="Paste Google Sheet or Excel Online URL here or select from recent documents"
-                          className={`${destinationUrlError ? 'border-red-500' : ''}`}
-                          disabled={isDestinationUrlProcessing || isRetrievingDestinationData || !!selectedDestinationPair}
-                        />
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className="px-2"
-                              type="button"
-                              disabled={isDestinationUrlProcessing || isRetrievingDestinationData || !!selectedDestinationPair}
-                            >
-                              Recent
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="p-0" align="end">
-                            <Command>
-                              <CommandList>
-                                <CommandGroup>
-                                  {Array.isArray(recentUrls) && recentUrls.map((sheet, index) => {
-                                    const titleKey = formatTitleKey(sheet.url, sheet.sheet_name);
-                                    const displayTitle = documentTitles[titleKey] || formatDisplayTitle(sheet.doc_name, sheet.sheet_name);
-                                    return (
-                                      <CommandItem
-                                        key={index}
-                                        onSelect={() => handleOutputUrlChange(titleKey, true)}
-                                      >
-                                        {displayTitle}
-                                      </CommandItem>
-                                    );
-                                  })}
-                                  {(!recentUrls?.length) && (
-                                    <CommandItem disabled>No recent documents</CommandItem>
-                                  )}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                    </div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <Label>Select Destination Sheet</Label>
+                    {destinationUrlError && (
+                      <span className="text-sm text-red-500">{destinationUrlError}</span>
+                    )}
                   </div>
 
-                  {destinationUrlError && (
-                    <div className="text-sm text-red-500">{destinationUrlError}</div>
-                  )}
+                  <div className="flex gap-2">
+                    {permissions.google !== null && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => handleOutputPicker('google')}
+                        disabled={isOutputPickerProcessing || !!selectedDestinationPair || fetchingSheets}
+                        className="flex-1"
+                      >
+                        {fetchingSheets ? (
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span>Loading...</span>
+                          </div>
+                        ) : (
+                          <>
+                            <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none">
+                              <path d="M12 0C6.48 0 2 4.48 2 10c0 4.84 3.44 8.87 8 9.8V12h-2V9h2V7.5C10 5.57 11.57 4 13.5 4H16v3h-2c-.55 0-1 .45-1 1v1h3v3h-3v7.8c4.56-.93 8-4.96 8-9.8 0-5.52-4.48-10-10-10z" fill="#4285F4"/>
+                            </svg>
+                            {permissions.google ? 'Select Google Sheet' : 'Connect Google'}
+                          </>
+                        )}
+                      </Button>
+                    )}
+                    {permissions.microsoft !== null && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => handleOutputPicker('microsoft')}
+                        disabled={isOutputPickerProcessing || !!selectedDestinationPair || fetchingSheets}
+                        className="flex-1"
+                      >
+                        {fetchingSheets ? (
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span>Loading...</span>
+                          </div>
+                        ) : (
+                          <>
+                            <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none">
+                              <path d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zM24 11.4H12.6V0H24v11.4z" fill="#00A4EF"/>
+                            </svg>
+                            {permissions.microsoft ? 'Select Excel Sheet' : 'Connect Microsoft'}
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
 
                   {selectedDestinationPair && (
                     <div className="flex items-center justify-between p-2 bg-gray-50 rounded-md mt-2">
@@ -557,7 +579,7 @@ export default function DashboardPage() {
                         {(() => {
                           if (!selectedDestinationPair.url || !selectedDestinationPair.sheet_name) return 'Loading...';
                           const titleKey = formatTitleKey(selectedDestinationPair.url, selectedDestinationPair.sheet_name);
-                          return documentTitles[titleKey] || 'Loading...';
+                          return documentTitles[titleKey] || formatDisplayTitle(selectedDestinationPair.doc_name || '', selectedDestinationPair.sheet_name || '');
                         })()}
                       </span>
                       <Button
@@ -694,24 +716,15 @@ export default function DashboardPage() {
 
                   {/* URL Input */}
                   <div>
-                    <Label htmlFor="viz-url">Sheet URL</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="viz-url"
-                        type="text"
-                        value={visualizationUrls[0]}
-                        onChange={(e) => handleVisualizationUrlChange(e.target.value)}
-                        placeholder="Paste Google Sheet or Excel Online URL"
-                        className={visualizationUrlError ? 'border-red-500' : ''}
-                        disabled={!!visualizationFile || isVisualizationUrlProcessing || isRetrievingVisualizationData}
-                      />
+                    <div className="flex items-center justify-between gap-2 mb-4">
+                      <Label>Select Input Sheet</Label>
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button
                             variant="outline"
                             className="px-2"
                             type="button"
-                            disabled={!!visualizationFile || isVisualizationUrlProcessing || isRetrievingVisualizationData}
+                            disabled={!!visualizationFile || isVisualizationUrlProcessing || isRetrievingVisualizationData || fetchingSheets}
                           >
                             Recent
                           </Button>
@@ -728,7 +741,7 @@ export default function DashboardPage() {
                                   return (
                                     <CommandItem
                                       key={index}
-                                      onSelect={() => handleVisualizationUrlChange(titleKey, true)}
+                                      onSelect={() => handleInputPicker(getUrlProvider(sheet.url) || 'google')}
                                     >
                                       {displayTitle}
                                     </CommandItem>
@@ -743,27 +756,73 @@ export default function DashboardPage() {
                         </PopoverContent>
                       </Popover>
                     </div>
-                    {visualizationUrlError && (
-                      <p className="text-sm text-red-500 mt-1">{visualizationUrlError}</p>
-                    )}
-                    
+
+                    <div className="flex gap-2">
+                      {permissions.google !== null && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => handleInputPicker('google')}
+                          disabled={!!visualizationFile || isVisualizationUrlProcessing || isRetrievingVisualizationData || fetchingSheets}
+                          className="flex-1"
+                        >
+                          {fetchingSheets ? (
+                            <div className="flex items-center gap-2">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <span>Loading...</span>
+                            </div>
+                          ) : (
+                            <>
+                              <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none">
+                                <path d="M21.5 2H2.5C1.67157 2 1 2.67157 1 3.5V20.5C1 21.3284 1.67157 22 2.5 22H21.5C22.3284 22 23 21.3284 23 20.5V3.5C23 2.67157 22.3284 2 21.5 2Z" fill="#0F9D58"/>
+                                <path d="M1 7H23V10H1V7Z" fill="white"/>
+                                <path d="M6.5 2V22H9.5V2H6.5Z" fill="white"/>
+                              </svg>
+                              {permissions.google ? 'New Google Sheet' : 'Connect Google'}
+                            </>
+                          )}
+                        </Button>
+                      )}
+                      {permissions.microsoft !== null && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => handleInputPicker('microsoft')}
+                          disabled={!!visualizationFile || isVisualizationUrlProcessing || isRetrievingVisualizationData || fetchingSheets}
+                          className="flex-1"
+                        >
+                          {fetchingSheets ? (
+                            <div className="flex items-center gap-2">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <span>Loading...</span>
+                            </div>
+                          ) : (
+                            <>
+                              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none">
+                                <rect x="6" y="4" width="16" height="16" rx="2" fill="#107C41"/>
+                                <rect x="2" y="8" width="10" height="10" rx="2" fill="#185C37"/>
+                                <path d="M4.5 11L6.5 13L9.5 10M6.5 13L9.5 16M6.5 13L3.5 16M6.5 13L3.5 10" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                              {permissions.microsoft ? 'New Excel Online Sheet' : 'Connect Microsoft'}
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </div>
+
                     {selectedVisualizationPair && (
                       <div className="flex items-center justify-between p-2 bg-gray-50 rounded-md mt-2">
                         <span className="text-sm truncate flex-1">
                           {(() => {
                             if (!selectedVisualizationPair.url || !selectedVisualizationPair.sheet_name) return 'Loading...';
                             const titleKey = formatTitleKey(selectedVisualizationPair.url, selectedVisualizationPair.sheet_name);
-                            return documentTitles[titleKey] || 'Loading...';
+                            return documentTitles[titleKey] || formatDisplayTitle(selectedVisualizationPair.doc_name || '', selectedVisualizationPair.sheet_name || '');
                           })()}
                         </span>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => {
-                            setSelectedVisualizationPair(null);
-                            setVisualizationSheet(null);
-                            setVisualizationUrl('');
-                          }}
+                          onClick={handleClearVisualization}
                           className="ml-2"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -793,7 +852,7 @@ export default function DashboardPage() {
                       onChange={handleVisualizationFileChange}
                       accept=".xlsx,.csv"
                       className={visualizationFileError ? 'border-red-500' : ''}
-                      disabled={!!visualizationUrl}
+                      disabled={!!visualizationSheetUrl || isVisualizationProcessing}
                     />
                     {visualizationFileError && (
                       <p className="text-sm text-red-500 mt-1">{visualizationFileError.error}</p>
@@ -861,7 +920,7 @@ export default function DashboardPage() {
                     <span className="flex items-center justify-center w-6 h-6 rounded-full border-2 border-primary text-primary text-sm font-medium">
                       3
                     </span>
-                    <h3 className="font-medium">Visualization Preferences</h3>
+                    <h3 className="font-medium">Visualize</h3>
                   </div>
 
                   <RadioGroup 
@@ -904,11 +963,14 @@ export default function DashboardPage() {
 
                 {/* Sheet Selector Dialog */}
                 <SheetSelector
-                  url={visualizationUrl}
-                  sheets={visualizationSheets}
-                  onSelect={handleVisualizationSheetSelection}
-                  onClose={() => setShowVisualizationSheetSelector(false)}
-                  open={showVisualizationSheetSelector}
+                  url={selectedSheetUrl}
+                  sheets={inputAvailableSheets}
+                  onSelect={handleInputSheetSelection}
+                  onClose={() => setShowInputSheetSelector(false)}
+                  open={showInputSheetSelector}
+                  isProcessing={isInputPickerProcessing}
+                  docName={workbookInfo?.doc_name}
+                  pickerActive={isInputPickerProcessing}
                 />
 
                 {/* Error Display */}
@@ -1013,12 +1075,40 @@ export default function DashboardPage() {
             )}
           </div>
 
+          {/* Input Sheet Selector - Move outside conditional rendering */}
+          <SheetSelector
+            url={selectedSheetUrl}
+            sheets={inputAvailableSheets}
+            onSelect={handleInputSheetSelection}
+            onClose={() => setShowInputSheetSelector(false)}
+            open={showInputSheetSelector}
+            isProcessing={isInputPickerProcessing}
+            docName={workbookInfo?.doc_name}
+            pickerActive={isInputPickerProcessing}
+          />
+
+          {/* Destination Sheet Selector - Move outside conditional rendering */}
           <SheetSelector
             url={outputUrl}
             sheets={destinationSheets}
-            onSelect={handleDestinationSheetSelection}
+            onSelect={(sheetName) => handleDestinationSheetSelection(outputUrl, sheetName)}
             onClose={() => setShowDestinationSheetSelector(false)}
             open={showDestinationSheetSelector}
+            isProcessing={isDestinationUrlProcessing || isRetrievingDestinationData}
+            docName={selectedDestinationPair?.doc_name || undefined}
+            pickerActive={isOutputPickerProcessing}
+          />
+
+          {/* Visualization Sheet Selector - Move outside conditional rendering */}
+          <SheetSelector
+            url={visualizationSheetUrl}
+            sheets={visualizationSheets}
+            onSelect={handleVisualizationSheetSelection}
+            onClose={() => setShowVisualizationSheetSelector(false)}
+            open={showVisualizationSheetSelector}
+            isProcessing={isVisualizationPickerProcessing}
+            docName={workbookInfo?.doc_name}
+            pickerActive={isVisualizationPickerProcessing}
           />
         </>
       )}

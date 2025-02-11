@@ -7,7 +7,7 @@ import {
   VisualizationResult, 
   FileUploadMetadata,
   VisualizationRequest,
-  InputUrl,
+  InputSheet,
 } from '@/lib/types/dashboard'
 import { isUserOnProPlan, getUserSubscriptionId, trackUsage } from '@/lib/stripe/usage'
 import { VIS_GEN_LIMITS } from '@/lib/constants/pricing'
@@ -67,7 +67,7 @@ async function updateVisualizationUsage(userId: string, success: boolean) {
 
 export const processDataVisualization = async (
   options: VisualizationOptions,
-  webUrls: InputUrl[] = [],
+  webUrls: InputSheet[] = [],
   files?: File[],
   signal?: AbortSignal
 ): Promise<VisualizationResult> => {
