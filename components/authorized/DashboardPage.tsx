@@ -33,8 +33,7 @@ import { SEABORN_SEQUENTIAL_PALETTES, SeabornSequentialPalette } from '@/lib/typ
 import { useUsageLimits } from '@/hooks/useUsageLimits'
 import Link from 'next/link'
 import Image from 'next/image'
-import { getUrlProvider } from '@/lib/utils/dashboard-utils'
-import { useState } from 'react'
+
 
 
 export const EXAMPLE_QUERIES = [
@@ -63,53 +62,34 @@ export default function DashboardPage() {
     isInitializing,
     query,
     files,
-    error,
     outputType,
-    outputUrl,
     isProcessing,
     recentUrls,
-    documentTitles,
-    setDocumentTitles,
+    sheetTitles,
+    setSheetTitles,
     downloadFileType,
     fileErrors,
     outputTypeError,
-    processedResult,
     showResultDialog,
     setShowResultDialog,
     allowSheetModification,
     destinationUrlError,
-    availableSheets,
-    showSheetSelector,
-    selectedUrlPairs,
-    selectedOutputSheet,
+    selectedInputSheets,
     setFiles,
     setQuery,
     setOutputType,
-    setOutputUrl,
     setDownloadFileType,
     setOutputTypeError,
-    setShowSheetSelector,
     handleFileChange,
     handleSubmit,
     formatTitleKey,
     formatDisplayTitle,    
-    isRetrievingData,
-    removeSelectedUrlPair,
+    removeSelectedSheet,
     isUpdating,
     updateSheetModificationPreference,
     handleCancel,
-    isDestinationUrlProcessing,
-    isRetrievingDestinationData,
-    destinationSheets,
-    showDestinationSheetSelector,
-    setShowDestinationSheetSelector,
-    handleDestinationSheetSelection,
-    workbookCache,
-    setWorkbookCache,
-    setSelectedOutputSheet,
-    destinationUrls,
-    selectedDestinationPair,
-    setSelectedDestinationPair,
+    selectedDestinationSheet,
+    setSelectedDestinationSheet,
     processingState,
     handleInputPicker,
     isInputPickerProcessing,
@@ -123,7 +103,7 @@ export default function DashboardPage() {
     handleInputSheetSelection,
     showInputSheetSelector,
     setShowInputSheetSelector,
-    outputPicker,
+    destinationPicker,
   } = useDashboard()
 
   const {
@@ -141,7 +121,7 @@ export default function DashboardPage() {
     handleVisualizationFileChange,
     handleVisualizationSubmit,
     handleVisualizationOptionChange,
-    selectedVisualizationPair,
+    selectedVisualizationSheet,
     showVisualizationDialog,
     setShowVisualizationDialog,
     handleVisualizationCancel,
@@ -162,8 +142,8 @@ export default function DashboardPage() {
     clearVisualizationFile,
     visualizationFileInputRef
   } = useDataVisualization({ 
-    documentTitles,
-    setDocumentTitles
+    sheetTitles,
+    setSheetTitles
   })
 
   const router = useRouter()
@@ -189,7 +169,7 @@ export default function DashboardPage() {
           <form onSubmit={(e) => {
             e.preventDefault();
             const hasFiles = files.length > 0;
-            const hasInputSheets = selectedUrlPairs.length > 0;
+            const hasInputSheets = selectedInputSheets.length > 0;
             
             if (!hasFiles && !hasInputSheets) {
               setOutputTypeError('Please attach a file or select an input URL');
@@ -292,8 +272,8 @@ export default function DashboardPage() {
                         <CommandGroup>
                           {Array.isArray(recentUrls) && recentUrls.map((sheet, index) => {
                             const titleKey = sheet.sheet_name ? formatTitleKey(sheet.url, sheet.sheet_name) : '';
-                            const displayTitle = titleKey && documentTitles[titleKey] 
-                              ? documentTitles[titleKey] 
+                            const displayTitle = titleKey && sheetTitles[titleKey] 
+                              ? sheetTitles[titleKey] 
                               : formatDisplayTitle(sheet.doc_name, sheet.sheet_name || '');
                             return (
                               <CommandItem
@@ -364,14 +344,14 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              {selectedUrlPairs.length > 0 && (
+              {selectedInputSheets.length > 0 && (
                 <div className="space-y-2">
                   <Label>Selected Documents</Label>
                   <div className="space-y-2">
-                    {selectedUrlPairs.map((pair, index) => {
+                    {selectedInputSheets.map((pair, index) => {
                       const titleKey = pair.sheet_name ? formatTitleKey(pair.url, pair.sheet_name) : '';
-                      const displayTitle = titleKey && documentTitles[titleKey] 
-                        ? documentTitles[titleKey] 
+                      const displayTitle = titleKey && sheetTitles[titleKey] 
+                        ? sheetTitles[titleKey] 
                         : formatDisplayTitle(pair.doc_name || '', pair.sheet_name || '');
                       return (
                         <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
@@ -379,7 +359,7 @@ export default function DashboardPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => removeSelectedUrlPair(index)}
+                            onClick={() => removeSelectedSheet(index)}
                             className="ml-2"
                             type="button"
                           >
@@ -395,7 +375,7 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {selectedUrlPairs.length >= 6 && (
+              {selectedInputSheets.length >= 6 && (
                 <p className="text-sm text-amber-600">
                   Maximum number of input sheets (6) reached. Remove some to add more.
                 </p>
@@ -535,7 +515,7 @@ export default function DashboardPage() {
                         <Button
                           variant="outline"
                           type="button"
-                          disabled={isOutputPickerProcessing || !!selectedDestinationPair || fetchingSheets}
+                          disabled={isOutputPickerProcessing || !!selectedDestinationSheet || fetchingSheets}
                           className="flex-1"
                         >
                           Select from Recent
@@ -547,8 +527,8 @@ export default function DashboardPage() {
                             <CommandGroup>
                               {Array.isArray(recentUrls) && recentUrls.map((sheet, index) => {
                                 const titleKey = sheet.sheet_name ? formatTitleKey(sheet.url, sheet.sheet_name) : '';
-                                const displayTitle = titleKey && documentTitles[titleKey] 
-                                  ? documentTitles[titleKey] 
+                                const displayTitle = titleKey && sheetTitles[titleKey] 
+                                  ? sheetTitles[titleKey] 
                                   : formatDisplayTitle(sheet.doc_name, sheet.sheet_name || '');
                                 return (
                                   <CommandItem
@@ -572,7 +552,7 @@ export default function DashboardPage() {
                         type="button"
                         variant="outline"
                         onClick={() => handleOutputPicker('google')}
-                        disabled={isOutputPickerProcessing || !!selectedDestinationPair || fetchingSheets}
+                        disabled={isOutputPickerProcessing || !!selectedDestinationSheet || fetchingSheets}
                         className="flex-1"
                       >
                         {fetchingSheets ? (
@@ -597,7 +577,7 @@ export default function DashboardPage() {
                         type="button"
                         variant="outline"
                         onClick={() => handleOutputPicker('microsoft')}
-                        disabled={isOutputPickerProcessing || !!selectedDestinationPair || fetchingSheets}
+                        disabled={isOutputPickerProcessing || !!selectedDestinationSheet || fetchingSheets}
                         className="flex-1"
                       >
                         {fetchingSheets ? (
@@ -619,22 +599,20 @@ export default function DashboardPage() {
                     )}
                   </div>
 
-                  {selectedDestinationPair && (
+                  {selectedDestinationSheet && (
                     <div className="flex items-center justify-between p-2 bg-gray-50 rounded-md mt-2">
                       <span className="text-sm truncate flex-1">
                         {(() => {
-                          if (!selectedDestinationPair.url || !selectedDestinationPair.sheet_name) return 'Loading...';
-                          const titleKey = formatTitleKey(selectedDestinationPair.url, selectedDestinationPair.sheet_name);
-                          return documentTitles[titleKey] || formatDisplayTitle(selectedDestinationPair.doc_name || '', selectedDestinationPair.sheet_name || '');
+                          if (!selectedDestinationSheet.url || !selectedDestinationSheet.sheet_name) return 'Loading...';
+                          const titleKey = formatTitleKey(selectedDestinationSheet.url, selectedDestinationSheet.sheet_name);
+                          return sheetTitles[titleKey] || formatDisplayTitle(selectedDestinationSheet.doc_name || '', selectedDestinationSheet.sheet_name || '');
                         })()}
                       </span>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => {
-                          setSelectedDestinationPair(null);
-                          setSelectedOutputSheet(null);
-                          setOutputUrl('');
+                          setSelectedDestinationSheet(null);
                         }}
                         className="ml-2"
                       >
@@ -717,14 +695,14 @@ export default function DashboardPage() {
             }}
             outputType={outputType}
             destinationTitle={(() => {
-              if (!selectedDestinationPair) return undefined;
-              const titleKey = formatTitleKey(selectedDestinationPair.url, selectedDestinationPair.sheet_name);
-              return documentTitles[titleKey];
+              if (!selectedDestinationSheet) return undefined;
+              const titleKey = formatTitleKey(selectedDestinationSheet.url, selectedDestinationSheet.sheet_name);
+              return sheetTitles[titleKey];
             })()}
             destinationDocName={(() => {
-              if (!selectedDestinationPair) return undefined;
-              const titleKey = formatTitleKey(selectedDestinationPair.url, selectedDestinationPair.sheet_name);
-              return documentTitles[titleKey]?.split(' - ')?.[0];
+              if (!selectedDestinationSheet) return undefined;
+              const titleKey = formatTitleKey(selectedDestinationSheet.url, selectedDestinationSheet.sheet_name);
+              return sheetTitles[titleKey]?.split(' - ')?.[0];
             })()}
             modifyExisting={allowSheetModification}
             onCancel={handleCancel}
@@ -784,8 +762,8 @@ export default function DashboardPage() {
                               <CommandGroup>
                                 {Array.isArray(recentUrls) && recentUrls.map((sheet, index) => {
                                   const titleKey = sheet.sheet_name ? formatTitleKey(sheet.url, sheet.sheet_name) : '';
-                                  const displayTitle = titleKey && documentTitles[titleKey] 
-                                    ? documentTitles[titleKey] 
+                                  const displayTitle = titleKey && sheetTitles[titleKey] 
+                                    ? sheetTitles[titleKey] 
                                     : formatDisplayTitle(sheet.doc_name, sheet.sheet_name || '');
                                   return (
                                     <CommandItem
@@ -856,13 +834,13 @@ export default function DashboardPage() {
                       )}
                     </div>
 
-                    {selectedVisualizationPair && (
+                    {selectedVisualizationSheet && (
                       <div className="flex items-center justify-between p-2 bg-gray-50 rounded-md mt-2">
                         <span className="text-sm truncate flex-1">
                           {(() => {
-                            if (!selectedVisualizationPair.url || !selectedVisualizationPair.sheet_name) return 'Loading...';
-                            const titleKey = formatTitleKey(selectedVisualizationPair.url, selectedVisualizationPair.sheet_name);
-                            return documentTitles[titleKey] || formatDisplayTitle(selectedVisualizationPair.doc_name || '', selectedVisualizationPair.sheet_name || '');
+                            if (!selectedVisualizationSheet.url || !selectedVisualizationSheet.sheet_name) return 'Loading...';
+                            const titleKey = formatTitleKey(selectedVisualizationSheet.url, selectedVisualizationSheet.sheet_name);
+                            return sheetTitles[titleKey] || formatDisplayTitle(selectedVisualizationSheet.doc_name || '', selectedVisualizationSheet.sheet_name || '');
                           })()}
                         </span>
                         <Button
@@ -898,7 +876,7 @@ export default function DashboardPage() {
                       onChange={handleVisualizationFileChange}
                       accept=".xlsx,.csv"
                       className={visualizationFileError ? 'border-red-500' : ''}
-                      disabled={!!selectedVisualizationPair || isVisualizationProcessing}
+                      disabled={!!selectedVisualizationSheet || isVisualizationProcessing}
                       ref={visualizationFileInputRef}
                     />
                     {visualizationFileError && (
@@ -1059,7 +1037,7 @@ export default function DashboardPage() {
                   onClick={handleVisualizationSubmit}
                   disabled={
                     isVisualizationProcessing || 
-                    (!selectedVisualizationPair && !visualizationFile) ||
+                    (!selectedVisualizationSheet && !visualizationFile) ||
                     !colorPalette ||
                     hasReachedVisualizationLimit
                   }
@@ -1154,14 +1132,14 @@ export default function DashboardPage() {
 
           {/* Destination Sheet Selector - Move outside conditional rendering */}
           <SheetSelector
-            url={outputPicker.selectedSheetUrl}
-            sheets={outputPicker.availableSheets}
-            onSelect={outputPicker.handleSheetNameSelection}
-            onClose={() => outputPicker.setShowSheetSelector(false)}
-            open={outputPicker.showSheetSelector}
+            url={destinationPicker.selectedSheetUrl}
+            sheets={destinationPicker.availableSheets}
+            onSelect={destinationPicker.handleSheetNameSelection}
+            onClose={() => destinationPicker.setShowSheetSelector(false)}
+            open={destinationPicker.showSheetSelector}
             isProcessing={isOutputPickerProcessing}
-            docName={outputPicker.workbookInfo?.doc_name}
-            pickerActive={outputPicker.pickerActive}
+            docName={destinationPicker.workbookInfo?.doc_name}
+            pickerActive={destinationPicker.pickerActive}
           />
 
           {/* Visualization Sheet Selector - Move outside conditional rendering */}

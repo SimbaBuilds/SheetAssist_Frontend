@@ -2,14 +2,13 @@ import type { SeabornSequentialPalette } from '@/lib/types/dashboard'
 
 import { useState, useRef } from 'react'
 import { processDataVisualization } from '@/lib/services/data_visualization'
-import { getSheetNames } from '@/lib/services/get_sheet_names'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
 import { 
   validateVisualizationFile,
   formatTitleKey,
   formatDisplayTitle,
-  handleUrlValidation,
+  getUrlProvider
 } from '@/lib/utils/dashboard-utils'
 import type { 
   VisualizationOptions,
@@ -24,18 +23,13 @@ interface FileError {
   error: string;
 }
 
-interface SequentialPalette {
-  name: string;
-  description: string;
-  preview: string[];
-}
 
 interface UseDataVisualizationProps {
-  documentTitles: { [key: string]: string };
-  setDocumentTitles: React.Dispatch<React.SetStateAction<{ [key: string]: string }>>;
+  sheetTitles: { [key: string]: string };
+  setSheetTitles: React.Dispatch<React.SetStateAction<{ [key: string]: string }>>;
 }
 
-export function useDataVisualization({ documentTitles, setDocumentTitles }: UseDataVisualizationProps) {
+export function useDataVisualization({ sheetTitles, setSheetTitles }: UseDataVisualizationProps) {
   const [isVisualizationExpanded, setIsVisualizationExpanded] = useState(false)
   const [visualizationFile, setVisualizationFile] = useState<File | null>(null)
   const [visualizationSheet, setVisualizationSheet] = useState<string | null>(null)
@@ -46,7 +40,7 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
   const [visualizationError, setVisualizationError] = useState('')
   const [visualizationFileError, setVisualizationFileError] = useState<FileError | null>(null)
   const [visualizationResult, setVisualizationResult] = useState<VisualizationResult | null>(null)
-  const [selectedVisualizationPair, setSelectedVisualizationPair] = useState<InputSheet | null>(null);
+  const [selectedVisualizationSheet, setSelectedVisualizationSheet] = useState<InputSheet | null>(null);
   const [isVisualizationUrlProcessing, setIsVisualizationUrlProcessing] = useState(false)
   const [showVisualizationDialog, setShowVisualizationDialog] = useState(false)
   const [visualizationAbortController, setVisualizationAbortController] = useState<AbortController | null>(null)
@@ -60,7 +54,7 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
     currentPlan 
   } = useUsageLimits()
 
-  const updateRecentSheets = async (url: string, sheetName: string, docName: string) => {
+  const updateRecentSheets = async (url: string, sheetName: string, docName: string, pickerToken?: string) => {
     if (!user?.id || !url.trim() || !sheetName.trim() || !docName.trim()) {
       console.error('Missing required data for updateRecentSheets:', { url, sheetName, docName });
       return;
@@ -82,9 +76,25 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
         !(sheet.url === url && sheet.sheet_name === sheetName)
       );
 
+      // Get provider from URL
+      const provider = getUrlProvider(url);
+      if (!provider) {
+        throw new Error('Invalid URL provider');
+      }
+
+      // Calculate token expiry (30 minutes from now)
+      const tokenExpiry = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+
       // Add new sheet entry to the beginning
       updatedSheets = [
-        { url, doc_name: docName, sheet_name: sheetName },
+        { 
+          url, 
+          doc_name: docName, 
+          sheet_name: sheetName,
+          provider,
+          picker_token: pickerToken || '',
+          token_expiry: tokenExpiry
+        },
         ...updatedSheets
       ].slice(0, 6); // Keep only the 6 most recent
 
@@ -95,11 +105,11 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
           recent_sheets: updatedSheets
         });
 
-      // Update documentTitles
+      // Update sheetTitles
       const titleKey = formatTitleKey(url, sheetName);
       const displayTitle = formatDisplayTitle(docName, sheetName);
 
-      setDocumentTitles((prev) => ({
+      setSheetTitles((prev) => ({
         ...prev,
         [titleKey]: displayTitle,
       }));
@@ -122,7 +132,7 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
   } = usePicker({
     type: 'visualization',
     onSelect: (inputSheet) => {
-      setSelectedVisualizationPair(inputSheet);
+      setSelectedVisualizationSheet(inputSheet);
       setVisualizationFile(null); // Clear file when URL is selected
       setVisualizationError(''); // Clear any previous errors
     },
@@ -133,7 +143,7 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
   });
 
   const handleClearVisualization = () => {
-    setSelectedVisualizationPair(null);
+    setSelectedVisualizationSheet(null);
     setVisualizationSheet(null);
     setVisualizationSheetUrl('');
   };
@@ -185,7 +195,7 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
     setVisualizationError('');
     setVisualizationResult(null);
 
-    if (!selectedVisualizationPair?.url && !visualizationFile) {
+    if (!selectedVisualizationSheet?.url && !visualizationFile) {
       setVisualizationError('Please provide either a URL or file');
       return;
     }
@@ -215,11 +225,11 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
         custom_instructions: customInstructions || undefined
       };
 
-      const webSheets = selectedVisualizationPair 
+      const webSheets = selectedVisualizationSheet 
         ? [{ 
-            url: selectedVisualizationPair.url, 
-            sheet_name: selectedVisualizationPair.sheet_name,
-            doc_name: selectedVisualizationPair.doc_name
+            url: selectedVisualizationSheet.url, 
+            sheet_name: selectedVisualizationSheet.sheet_name,
+            doc_name: selectedVisualizationSheet.doc_name
           }] 
         : [];
       
@@ -292,7 +302,7 @@ export function useDataVisualization({ documentTitles, setDocumentTitles }: UseD
     handleVisualizationFileChange,
     handleVisualizationSubmit,
     handleVisualizationOptionChange,
-    selectedVisualizationPair,
+    selectedVisualizationSheet,
     showVisualizationDialog,
     setShowVisualizationDialog,
     handleVisualizationCancel,

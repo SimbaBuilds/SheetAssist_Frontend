@@ -18,6 +18,7 @@ export interface OutputPreferences {
   modify_existing?: boolean;
   sheet_name?: string | null;
   doc_name?: string | null;
+  picker_token?: string | null;
 }
 
 export interface FileUploadMetadata {
@@ -33,9 +34,19 @@ export interface FileUploadMetadata {
 }
 
 export interface InputSheet {
-    url: string
-    sheet_name?: string | null
-    doc_name?: string | null
+    url: string;
+    sheet_name?: string | null;
+    doc_name?: string | null;
+    picker_token?: string | null;
+}
+
+export interface OnlineSheet {
+  url: string;
+  provider: string;
+  doc_name: string;
+  sheet_name: string;
+  picker_token: string;
+  token_expiry: string;
 }
 
 export interface QueryRequest {
@@ -119,20 +130,12 @@ export interface Workbook {
 }
 
 
-export interface OnlineSheet {
-  url: string;
-  provider?: string;
-  doc_name: string;
-  sheet_name: string;
-  
-}
-
 export interface SheetTitleKey {
   url: string;
   sheet_name?: string;
 }
 
-export interface DocumentTitleMap {
+export interface SheetTitleMap {
   [key: string]: string;  // key will be JSON.stringify(SheetTitleKey)
 }
 

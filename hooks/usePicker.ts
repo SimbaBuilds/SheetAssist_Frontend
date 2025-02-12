@@ -11,7 +11,7 @@ interface UsePickerProps {
   type: PickerType;
   onSelect: (inputUrl: InputSheet) => void;
   onError: (error: string) => void;
-  updateRecentSheets?: (url: string, sheetName: string, docName: string) => void;
+  updateRecentSheets?: (url: string, sheetName: string, docName: string, pickerToken?: string) => void;
   onPermissionRedirect?: (provider: 'google' | 'microsoft') => boolean;
 }
 
@@ -22,10 +22,10 @@ export function usePicker({ type, onSelect, onError, updateRecentSheets, onPermi
   const [availableSheets, setAvailableSheets] = useState<string[]>([]);
   const [selectedSheetUrl, setSelectedSheetUrl] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [workbookInfo, setWorkbookInfo] = useState<{ doc_name: string } | null>(null);
+  const [workbookInfo, setWorkbookInfo] = useState<{ doc_name: string; picker_token?: string | null } | null>(null);
   const [pickerActive, setPickerActive] = useState(false);
 
-  const handleMultipleSheets = (url: string, sheets: string[], docName: string) => {
+  const handleMultipleSheets = (url: string, sheets: string[], docName: string, pickerToken?: string) => {
     console.log(`[${type}] Setting multiple sheets state:`, {
       url,
       sheetsCount: sheets.length,
@@ -34,7 +34,7 @@ export function usePicker({ type, onSelect, onError, updateRecentSheets, onPermi
     
     // Update all states synchronously
     setSelectedSheetUrl(url);
-    setWorkbookInfo({ doc_name: docName });
+    setWorkbookInfo({ doc_name: docName, picker_token: pickerToken });
     setAvailableSheets(sheets);
     setShowSheetSelector(true);
     setPickerActive(false); // Important: Reset picker active when showing sheet selector
@@ -103,13 +103,14 @@ export function usePicker({ type, onSelect, onError, updateRecentSheets, onPermi
           const inputSheet: InputSheet = {
             url: pickerResult.url,
             sheet_name: workbook.sheet_names[0],
-            doc_name: workbook.doc_name
+            doc_name: workbook.doc_name,
+            picker_token: pickerResult.accessToken
           };
           onSelect(inputSheet);
-          updateRecentSheets?.(pickerResult.url, workbook.sheet_names[0], workbook.doc_name);
+          updateRecentSheets?.(pickerResult.url, workbook.sheet_names[0], workbook.doc_name, pickerResult.accessToken);
         } else {
           console.log(`[${type}] Multiple sheets found (${workbook.sheet_names.length}), showing selector`);
-          handleMultipleSheets(pickerResult.url, workbook.sheet_names, workbook.doc_name);
+          handleMultipleSheets(pickerResult.url, workbook.sheet_names, workbook.doc_name, pickerResult.accessToken);
         }
       }
     } catch (error) {
@@ -137,14 +138,15 @@ export function usePicker({ type, onSelect, onError, updateRecentSheets, onPermi
       const inputSheet: InputSheet = {
         url: selectedSheetUrl,
         sheet_name: sheetName,
-        doc_name: workbookInfo?.doc_name || ''
+        doc_name: workbookInfo?.doc_name || '',
+        picker_token: workbookInfo?.picker_token
       };
 
       setShowSheetSelector(false);
       onSelect(inputSheet);
       
       if (workbookInfo?.doc_name) {
-        updateRecentSheets?.(selectedSheetUrl, sheetName, workbookInfo.doc_name);
+        updateRecentSheets?.(selectedSheetUrl, sheetName, workbookInfo.doc_name, workbookInfo.picker_token || undefined);
       }
     } catch (error) {
       console.error(`[${type}] Error in handleSheetNameSelection:`, error);

@@ -14,6 +14,7 @@ interface PickerResult {
   success: boolean
   error?: string
   accessToken?: string
+  provider: 'google' | 'microsoft'
 }
 
 declare global {
@@ -380,7 +381,7 @@ export function useFilePicker() {
   // Single auth error handler with type parameter
   const handleAuthError = <T extends { error: string }>(
     error: unknown, 
-    provider: string,
+    provider: 'google' | 'microsoft',
     returnValue: T
   ): T => {
     console.log('[useFilePicker] Handling auth error:', { provider, error });
@@ -426,30 +427,24 @@ export function useFilePicker() {
         if (refreshResult.success && refreshResult.access_token) {
           accessData.access_token = refreshResult.access_token;
         } else {
-          return handleAuthError(
-            new Error('Token refresh failed'),
-            'google',
-            {
-              fileId: '',
-              url: '',
-              success: false,
-              error: 'Authentication expired'
-            }
-          );
+          return {
+            fileId: '',
+            url: '',
+            success: false,
+            error: 'Authentication expired',
+            provider: 'google' as const
+          };
         }
       }
 
       if (tokenError || !accessData?.access_token) {
-        return handleAuthError(
-          tokenError || new Error('No access token found'),
-          'google',
-          {
-            fileId: '',
-            url: '',
-            success: false,
-            error: 'Authentication expired'
-          }
-        );
+        return {
+          fileId: '',
+          url: '',
+          success: false,
+          error: 'Authentication expired',
+          provider: 'google' as const
+        };
       }
 
       const access_token = accessData.access_token;
@@ -484,7 +479,8 @@ export function useFilePicker() {
                   fileId: '',
                   url: '',
                   success: false,
-                  error: 'No OAuth token received from picker'
+                  error: 'No OAuth token received from picker',
+                  provider: 'google' as const
                 });
                 return;
               }
@@ -493,7 +489,8 @@ export function useFilePicker() {
                 fileId: doc.id,
                 url: doc.url,
                 success: true,
-                accessToken: oauthToken
+                accessToken: oauthToken,
+                provider: 'google' as const
               });
             } else if (data.action === window.google.picker.Action.CANCEL) {
               console.log('[openGooglePicker] Picker cancelled by user');
@@ -501,7 +498,8 @@ export function useFilePicker() {
                 fileId: '',
                 url: '',
                 success: false,
-                error: 'Selection cancelled'
+                error: 'Selection cancelled',
+                provider: 'google' as const
               });
             }
           })
@@ -515,16 +513,13 @@ export function useFilePicker() {
           (error.message.includes('authentication expired') || 
            error.message.includes('invalid_grant') ||
            error.message.includes('invalid_token'))) {
-        return handleAuthError(
-          error,
-          'google',
-          {
-            fileId: '',
-            url: '',
-            success: false,
-            error: 'Authentication expired'
-          }
-        );
+        return {
+          fileId: '',
+          url: '',
+          success: false,
+          error: 'Authentication expired',
+          provider: 'google' as const
+        };
       }
       
       console.error('Error opening Google Picker:', error)
@@ -532,7 +527,8 @@ export function useFilePicker() {
         fileId: '',
         url: '',
         success: false,
-        error: 'Failed to open file picker'
+        error: 'Failed to open file picker',
+        provider: 'google' as const
       }
     }
   }
@@ -557,34 +553,28 @@ export function useFilePicker() {
         if (refreshResult.success && refreshResult.access_token) {
           accessData.access_token = refreshResult.access_token;
         } else {
-          return handleAuthError(
-            new Error('Token refresh failed'),
-            'microsoft',
-            {
-              fileId: '',
-              url: '',
-              success: false,
-              error: 'Authentication expired'
-            }
-          );
+          return {
+            fileId: '',
+            url: '',
+            success: false,
+            error: 'Authentication expired',
+            provider: 'microsoft' as const
+          };
         }
       }
 
       if (tokenError || !accessData?.access_token) {
         console.error('[openMicrosoftPicker] Token error:', tokenError);
-        return handleAuthError(
-          tokenError || new Error('No access token found'),
-          'microsoft',
-          {
-            fileId: '',
-            url: '',
-            success: false,
-            error: 'Authentication expired'
-          }
-        );
+        return {
+          fileId: '',
+          url: '',
+          success: false,
+          error: 'Authentication expired',
+          provider: 'microsoft' as const
+        };
       }
 
-      const access_token = accessData.access_token
+      const access_token = accessData.access_token;
       console.log('[openMicrosoftPicker] Access token retrieved successfully');
 
       // Load OneDrive picker if not already loaded
@@ -618,7 +608,6 @@ export function useFilePicker() {
             viewType: "files",
             sourceInputMode: "files",
             readonlyMode: true,
-            // queryParameters: "select=id,webUrl,name"
           },
           success: (response: any) => {
             console.log('[openMicrosoftPicker] Raw response:', response);
@@ -658,7 +647,8 @@ export function useFilePicker() {
                   fileId: fileId,
                   url: webUrl || `https://onedrive.live.com/edit.aspx?resid=${encodeURIComponent(fileId)}`,
                   success: true,
-                  accessToken: access_token
+                  accessToken: access_token,
+                  provider: 'microsoft' as const
                 });
                 return;
               }
@@ -669,7 +659,8 @@ export function useFilePicker() {
               fileId: '',
               url: '',
               success: false,
-              error: 'Could not extract file details'
+              error: 'Could not extract file details',
+              provider: 'microsoft' as const
             });
           },
           cancel: () => {
@@ -678,7 +669,8 @@ export function useFilePicker() {
               fileId: '',
               url: '',
               success: false,
-              error: 'Selection cancelled'
+              error: 'Selection cancelled',
+              provider: 'microsoft' as const
             });
           },
           error: (error: any) => {
@@ -691,7 +683,8 @@ export function useFilePicker() {
               fileId: '',
               url: '',
               success: false,
-              error: error.message || 'Failed to open file picker'
+              error: error.message || 'Failed to open file picker',
+              provider: 'microsoft' as const
             });
           }
         };
@@ -713,7 +706,8 @@ export function useFilePicker() {
             fileId: '',
             url: '',
             success: false,
-            error: 'Failed to launch picker'
+            error: 'Failed to launch picker',
+            provider: 'microsoft' as const
           });
         }
       });
@@ -728,23 +722,21 @@ export function useFilePicker() {
           (error.message.includes('authentication expired') || 
            error.message.includes('invalid_grant') ||
            error.message.includes('invalid_token'))) {
-        return handleAuthError(
-          error,
-          'microsoft',
-          {
-            fileId: '',
-            url: '',
-            success: false,
-            error: 'Authentication expired'
-          }
-        );
+        return {
+          fileId: '',
+          url: '',
+          success: false,
+          error: 'Authentication expired',
+          provider: 'microsoft' as const
+        };
       }
       
       return {
         fileId: '',
         url: '',
         success: false,
-        error: 'Failed to open file picker'
+        error: 'Failed to open file picker',
+        provider: 'microsoft' as const
       }
     }
   }
@@ -764,16 +756,13 @@ export function useFilePicker() {
           (error.message.includes('authentication expired') || 
            error.message.includes('invalid_grant') ||
            error.message.includes('invalid_token'))) {
-        return handleAuthError(
-          error,
-          provider,
-          {
-            fileId: '',
-            url: '',
-            success: false,
-            error: 'Authentication expired'
-          }
-        );
+        return {
+          fileId: '',
+          url: '',
+          success: false,
+          error: 'Authentication expired',
+          provider
+        };
       }
 
       console.error('Error launching picker:', error)
@@ -781,7 +770,8 @@ export function useFilePicker() {
         fileId: '',
         url: '',
         success: false,
-        error: 'Failed to launch picker'
+        error: 'Failed to launch picker',
+        provider
       }
     }
   }
