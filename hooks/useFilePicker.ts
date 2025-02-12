@@ -13,6 +13,7 @@ interface PickerResult {
   url: string
   success: boolean
   error?: string
+  accessToken?: string
 }
 
 declare global {
@@ -451,44 +452,64 @@ export function useFilePicker() {
         );
       }
 
-      const access_token = accessData.access_token
-
-      const picker = new window.google.picker.PickerBuilder()
-        .addView(window.google.picker.ViewId.SPREADSHEETS)
-        .setOAuthToken(access_token)
-        .setCallback(async (data: any) => {
-          if (data.action === window.google.picker.Action.PICKED) {
-            const doc = data.docs[0]
-            return {
-              fileId: doc.id,
-              url: doc.url,
-              success: true
-            }
-          }
-        })
-        .build()
-
-      picker.setVisible(true)
+      const access_token = accessData.access_token;
+      console.log('[openGooglePicker] Access token retrieved successfully');
 
       return new Promise((resolve) => {
-        picker.setCallback(async (data: any) => {
-          if (data.action === window.google.picker.Action.PICKED) {
-            const doc = data.docs[0]
-            resolve({
-              fileId: doc.id,
-              url: doc.url,
-              success: true
-            })
-          } else if (data.action === window.google.picker.Action.CANCEL) {
-            resolve({
-              fileId: '',
-              url: '',
-              success: false,
-              error: 'Selection cancelled'
-            })
-          }
-        })
-      })
+        // Create and render a Picker for selecting Google Sheets
+        const view = new window.google.picker.View(window.google.picker.ViewId.SPREADSHEETS);
+        view.setMimeTypes('application/vnd.google-apps.spreadsheet');
+
+        const picker = new window.google.picker.PickerBuilder()
+          .enableFeature(window.google.picker.Feature.NAV_HIDDEN)
+          .enableFeature(window.google.picker.Feature.MULTISELECT_ENABLED)
+          .setAppId(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!)
+          .setOAuthToken(access_token)
+          .addView(view)
+          .setOrigin(window.location.protocol + '//' + window.location.host)
+          .setDeveloperKey(process.env.NEXT_PUBLIC_GOOGLE_API_KEY!)
+          .setCallback((data: any) => {
+            console.log('[openGooglePicker] Picker callback data:', data);
+            
+            if (data.action === window.google.picker.Action.PICKED) {
+              const doc = data.docs[0];
+              console.log('[openGooglePicker] Selected document:', doc);
+              
+              // Get the OAuth token either from the picker response or use the existing one
+              const oauthToken = data.oauthToken || access_token;
+              
+              if (!oauthToken) {
+                console.error('[openGooglePicker] No OAuth token available');
+                resolve({
+                  fileId: '',
+                  url: '',
+                  success: false,
+                  error: 'No OAuth token received from picker'
+                });
+                return;
+              }
+
+              resolve({
+                fileId: doc.id,
+                url: doc.url,
+                success: true,
+                accessToken: oauthToken
+              });
+            } else if (data.action === window.google.picker.Action.CANCEL) {
+              console.log('[openGooglePicker] Picker cancelled by user');
+              resolve({
+                fileId: '',
+                url: '',
+                success: false,
+                error: 'Selection cancelled'
+              });
+            }
+          })
+          .build();
+
+        picker.setVisible(true);
+        console.log('[openGooglePicker] Picker dialog opened');
+      });
     } catch (error) {
       if (error instanceof Error && 
           (error.message.includes('authentication expired') || 
@@ -636,7 +657,8 @@ export function useFilePicker() {
                 resolve({
                   fileId: fileId,
                   url: webUrl || `https://onedrive.live.com/edit.aspx?resid=${encodeURIComponent(fileId)}`,
-                  success: true
+                  success: true,
+                  accessToken: access_token
                 });
                 return;
               }
