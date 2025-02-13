@@ -7,7 +7,6 @@ export type DownloadFileType = typeof DOWNLOAD_FILE_TYPES[number]['value']
 export interface DashboardInitialData {
   output_type?: 'download' | 'online' | null;
   last_query?: string;
-  recent_sheets?: OnlineSheet[];
   direct_sheet_modification?: boolean;
 }
 

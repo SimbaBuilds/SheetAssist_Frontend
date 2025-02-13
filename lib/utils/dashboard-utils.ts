@@ -113,6 +113,16 @@ export function handleUrlValidation(
   }
 }
 
+export function isTokenExpired(tokenExpiry: string | undefined | null): boolean {
+  if (!tokenExpiry) return true;
+  try {
+    const expiryDate = new Date(tokenExpiry);
+    return expiryDate.getTime() < Date.now();
+  } catch {
+    return true;
+  }
+}
+
 export async function fetchAndHandleSheets(
   workbook: Workbook,
   setSheets: (sheets: string[]) => void,
@@ -127,4 +137,10 @@ export async function fetchAndHandleSheets(
       setShowSelector(true);
     }
   }
+}
+
+export function logFormState(context: string, data: Record<string, any>) {
+  console.group(`Form State Update - ${context}`);
+  console.log(JSON.stringify(data, null, 2));
+  console.groupEnd();
 } 

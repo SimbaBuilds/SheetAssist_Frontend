@@ -1,14 +1,17 @@
 import type { SeabornSequentialPalette } from '@/lib/types/dashboard'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { processDataVisualization } from '@/lib/services/data_visualization'
+import { OnlineSheet } from '@/lib/types/dashboard'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
 import { 
   validateVisualizationFile,
   formatTitleKey,
   formatDisplayTitle,
-  getUrlProvider
+  getUrlProvider,
+  isTokenExpired,
+  logFormState
 } from '@/lib/utils/dashboard-utils'
 import type { 
   VisualizationOptions,
@@ -40,10 +43,11 @@ export function useDataVisualization({ sheetTitles, setSheetTitles }: UseDataVis
   const [visualizationError, setVisualizationError] = useState('')
   const [visualizationFileError, setVisualizationFileError] = useState<FileError | null>(null)
   const [visualizationResult, setVisualizationResult] = useState<VisualizationResult | null>(null)
-  const [selectedVisualizationSheet, setSelectedVisualizationSheet] = useState<InputSheet | null>(null);
+  const [selectedVisualizationSheet, setSelectedVisualizationSheet] = useState<InputSheet | null>(null)
   const [isVisualizationUrlProcessing, setIsVisualizationUrlProcessing] = useState(false)
   const [showVisualizationDialog, setShowVisualizationDialog] = useState(false)
   const [visualizationAbortController, setVisualizationAbortController] = useState<AbortController | null>(null)
+  const [recentUrls, setRecentUrls] = useState<OnlineSheet[]>([])
   const visualizationFileInputRef = useRef<HTMLInputElement>(null)
 
   const { user } = useAuth()
@@ -55,27 +59,12 @@ export function useDataVisualization({ sheetTitles, setSheetTitles }: UseDataVis
   } = useUsageLimits()
 
   const updateRecentSheets = async (url: string, sheetName: string, docName: string, pickerToken?: string) => {
-    if (!user?.id || !url.trim() || !sheetName.trim() || !docName.trim()) {
+    if (!url.trim() || !sheetName.trim() || !docName.trim()) {
       console.error('Missing required data for updateRecentSheets:', { url, sheetName, docName });
       return;
     }
 
     try {
-      const { data, error } = await supabase
-        .from('user_usage')
-        .select('recent_sheets')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error) throw error;
-
-      let updatedSheets = data?.recent_sheets || [];
-
-      // Remove any existing entries for this URL and sheet combination
-      updatedSheets = updatedSheets.filter((sheet: { url: string, sheet_name: string }) => 
-        !(sheet.url === url && sheet.sheet_name === sheetName)
-      );
-
       // Get provider from URL
       const provider = getUrlProvider(url);
       if (!provider) {
@@ -85,34 +74,32 @@ export function useDataVisualization({ sheetTitles, setSheetTitles }: UseDataVis
       // Calculate token expiry (30 minutes from now)
       const tokenExpiry = new Date(Date.now() + 30 * 60 * 1000).toISOString();
 
-      // Add new sheet entry to the beginning
-      updatedSheets = [
-        { 
-          url, 
-          doc_name: docName, 
-          sheet_name: sheetName,
-          provider,
-          picker_token: pickerToken || '',
-          token_expiry: tokenExpiry
-        },
-        ...updatedSheets
-      ].slice(0, 6); // Keep only the 6 most recent
+      // Create new sheet entry
+      const newSheet: OnlineSheet = {
+        url,
+        doc_name: docName,
+        sheet_name: sheetName,
+        provider,
+        picker_token: pickerToken || '',
+        token_expiry: tokenExpiry
+      };
 
-      await supabase
-        .from('user_usage')
-        .upsert({ 
-          user_id: user.id,
-          recent_sheets: updatedSheets
-        });
+      // Update recentUrls state - filter out expired and matching sheets
+      setRecentUrls((prev: OnlineSheet[]) => {
+        const filteredSheets = prev.filter((sheet: OnlineSheet) => 
+          !(sheet.url === url && sheet.sheet_name === sheetName) && !isTokenExpired(sheet.token_expiry)
+        );
+        return [newSheet, ...filteredSheets].slice(0, 6);
+      });
 
       // Update sheetTitles
       const titleKey = formatTitleKey(url, sheetName);
       const displayTitle = formatDisplayTitle(docName, sheetName);
-
-      setSheetTitles((prev) => ({
+      setSheetTitles(prev => ({
         ...prev,
         [titleKey]: displayTitle,
       }));
+
     } catch (error) {
       console.error('Error updating recent sheets:', error);
     }
@@ -156,21 +143,68 @@ export function useDataVisualization({ sheetTitles, setSheetTitles }: UseDataVis
     }
   };
 
+  useEffect(() => {
+    // Log visualization form state whenever key elements change
+    logFormState('Visualization Form State', {
+      visualizationFile: visualizationFile ? {
+        name: visualizationFile.name,
+        size: visualizationFile.size
+      } : null,
+      selectedVisualizationSheet: selectedVisualizationSheet ? {
+        url: selectedVisualizationSheet.url,
+        sheet_name: selectedVisualizationSheet.sheet_name,
+        doc_name: selectedVisualizationSheet.doc_name,
+        picker_token: selectedVisualizationSheet.picker_token,
+        display_title: sheetTitles[formatTitleKey(selectedVisualizationSheet.url, selectedVisualizationSheet.sheet_name)] || 'Unknown'
+      } : null,
+      colorPalette,
+      customInstructions: customInstructions === undefined ? 'surprise me' : customInstructions
+    });
+  }, [visualizationFile, selectedVisualizationSheet, colorPalette, customInstructions, sheetTitles]);
+
   const handleVisualizationFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setVisualizationFileError(null)
-    setVisualizationSheetUrl('') // Clear URL when file is selected
+    setVisualizationFileError(null);
+    setVisualizationSheetUrl('');
 
-    const file = e.target.files?.[0]
-    if (!file) return
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    const error = validateVisualizationFile(file)
+    const error = validateVisualizationFile(file);
     if (error) {
-      setVisualizationFileError({ file, error })
-      return
+      setVisualizationFileError({ file, error });
+      logFormState('Visualization File Error', { error });
+      return;
     }
 
-    setVisualizationFile(file)
-  }
+    setVisualizationFile(file);
+    logFormState('Visualization File Updated', {
+      file: { name: file.name, size: file.size }
+    });
+  };
+
+  const handleColorPaletteChange = (value: SeabornSequentialPalette | '') => {
+    setColorPalette(value);
+    logFormState('Color Palette Updated', { colorPalette: value });
+  };
+
+  const handleCustomInstructionsChange = (value: string) => {
+    setCustomInstructions(value);
+    logFormState('Custom Instructions Updated', { 
+      customInstructions: value || 'surprise me'
+    });
+  };
+
+  const handleVisualizationOptionChange = (value: 'surprise' | 'custom') => {
+    if (value === 'surprise') {
+      setCustomInstructions(undefined);
+    } else if (value === 'custom') {
+      setCustomInstructions('');
+    }
+    logFormState('Visualization Option Updated', { 
+      option: value,
+      customInstructions: value === 'surprise' ? 'surprise me' : ''
+    });
+  };
 
   const handleVisualizationCancel = async () => {
     if (visualizationAbortController) {
@@ -217,6 +251,7 @@ export function useDataVisualization({ sheetTitles, setSheetTitles }: UseDataVis
 
     setIsVisualizationProcessing(true);
     setShowVisualizationDialog(true);
+
 
     try {
       const options: VisualizationOptions = {
@@ -273,14 +308,6 @@ export function useDataVisualization({ sheetTitles, setSheetTitles }: UseDataVis
     }
   };
 
-  const handleVisualizationOptionChange = (value: 'surprise' | 'custom') => {
-    if (value === 'surprise') {
-      setCustomInstructions(undefined)
-    } else if (value === 'custom') {
-      setCustomInstructions('')  // Initialize with empty string for custom mode
-    }
-  }
-
   return {
     isVisualizationExpanded,
     visualizationSheetUrl,
@@ -297,8 +324,8 @@ export function useDataVisualization({ sheetTitles, setSheetTitles }: UseDataVis
     visualizationSheets,
     setIsVisualizationExpanded,
     setVisualizationSheetUrl,
-    setColorPalette,
-    setCustomInstructions,
+    setColorPalette: handleColorPaletteChange,
+    setCustomInstructions: handleCustomInstructionsChange,
     handleVisualizationFileChange,
     handleVisualizationSubmit,
     handleVisualizationOptionChange,

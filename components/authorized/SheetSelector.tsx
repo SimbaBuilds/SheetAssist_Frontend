@@ -51,7 +51,6 @@ export function SheetSelector({
             {docName ? `Select a Sheet from ${docName}` : 'Select a Sheet'}
           </DialogTitle>
           <DialogDescription>
-            Choose which sheet you would like to work with from this document.
           </DialogDescription>
         </DialogHeader>
         

@@ -85,7 +85,10 @@ export function usePicker({ type, onSelect, onError, updateRecentSheets, onPermi
         }
 
         console.log(`[${type}] Getting sheet names for URL:`, pickerResult.url);
-        const workbook = await getSheetNames(pickerResult.url, pickerResult.accessToken);
+        if (!pickerResult.accessToken) {
+          throw new Error('No access token available');
+        }
+        const workbook = await getSheetNames(pickerResult.url, provider, pickerResult.accessToken);
         console.log(`[${type}] Workbook response:`, workbook);
         
         if (!workbook.success || workbook.error) {

@@ -3,14 +3,15 @@ import api from './api';
 import { Workbook } from '@/lib/types/dashboard';
 
 
-export async function getSheetNames(url: string, googleAccessToken?: string): Promise<Workbook> {
+export async function getSheetNames(url: string, provider: string, accessToken: string): Promise<Workbook> {
   console.log('[getSheetNames] Starting API call with URL:', url);
   try {
     const response: AxiosResponse<Workbook> = await api.post('/get_sheet_names', 
       { url }, 
       {
         headers: {
-          'X-Google-Token': googleAccessToken  // Google Picker token
+          'Access-Token': accessToken,
+          'Provider': provider
         }
       }
     );
