@@ -233,26 +233,29 @@ export function useFilePicker() {
       } else if (provider === 'microsoft') {
         const params = new URLSearchParams({
           client_id: process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID!,
-          client_secret: process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_SECRET!,
           refresh_token: refreshToken,
           grant_type: 'refresh_token',
-          scope: 'Files.Read Files.Read.All offline_access',
+          scope: 'email Files.Read Files.ReadWrite.Selected offline_access User.Read',
+          redirect_uri: `${window.location.origin}/auth/microsoft-permissions-callback`
         });
 
+        // Remove client secret for SPA compliance
         const response = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
+            'Origin': window.location.origin
           },
           body: params.toString(),
+          credentials: 'include'
         });
 
         const data = await response.json();
 
         if (!response.ok) {
           console.error('[refreshAccessToken] Microsoft refresh failed:', data);
-          if (data.error === 'invalid_grant') {
-            console.error('[refreshAccessToken] Invalid refresh token, user needs to reauthorize');
+          if (data.error === 'invalid_grant' || data.error === 'invalid_request') {
+            console.error('[refreshAccessToken] Token refresh failed, user needs to reauthorize');
             return { success: false };
           }
           throw new Error(data.error_description || 'Failed to refresh token');
