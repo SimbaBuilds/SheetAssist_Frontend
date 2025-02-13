@@ -139,7 +139,7 @@ export async function fetchAndHandleSheets(
   }
 }
 
-export function logFormState(context: string, data: Record<string, any>) {
+export function logFormState(context: string, data: unknown) {
   console.group(`Form State Update - ${context}`);
   console.log(JSON.stringify(data, null, 2));
   console.groupEnd();

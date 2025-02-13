@@ -143,24 +143,25 @@ export function useDataVisualization({ sheetTitles, setSheetTitles }: UseDataVis
     }
   };
 
-  useEffect(() => {
-    // Log visualization form state whenever key elements change
-    logFormState('Visualization Form State', {
-      visualizationFile: visualizationFile ? {
-        name: visualizationFile.name,
-        size: visualizationFile.size
-      } : null,
-      selectedVisualizationSheet: selectedVisualizationSheet ? {
-        url: selectedVisualizationSheet.url,
-        sheet_name: selectedVisualizationSheet.sheet_name,
-        doc_name: selectedVisualizationSheet.doc_name,
-        picker_token: selectedVisualizationSheet.picker_token,
-        display_title: sheetTitles[formatTitleKey(selectedVisualizationSheet.url, selectedVisualizationSheet.sheet_name)] || 'Unknown'
-      } : null,
-      colorPalette,
-      customInstructions: customInstructions === undefined ? 'surprise me' : customInstructions
-    });
-  }, [visualizationFile, selectedVisualizationSheet, colorPalette, customInstructions, sheetTitles]);
+  //FULL FORMDATA LOGGING
+  // useEffect(() => {
+  //   // Log visualization form state whenever key elements change
+  //   logFormState('Visualization Form State', {
+  //     visualizationFile: visualizationFile ? {
+  //       name: visualizationFile.name,
+  //       size: visualizationFile.size
+  //     } : null,
+  //     selectedVisualizationSheet: selectedVisualizationSheet ? {
+  //       url: selectedVisualizationSheet.url,
+  //       sheet_name: selectedVisualizationSheet.sheet_name,
+  //       doc_name: selectedVisualizationSheet.doc_name,
+  //       picker_token: selectedVisualizationSheet.picker_token,
+  //       display_title: sheetTitles[formatTitleKey(selectedVisualizationSheet.url, selectedVisualizationSheet.sheet_name)] || 'Unknown'
+  //     } : null,
+  //     colorPalette,
+  //     customInstructions: customInstructions === undefined ? 'surprise me' : customInstructions
+  //   });
+  // }, [visualizationFile, selectedVisualizationSheet, colorPalette, customInstructions, sheetTitles]);
 
   const handleVisualizationFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setVisualizationFileError(null);

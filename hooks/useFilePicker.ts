@@ -185,7 +185,6 @@ export function useFilePicker() {
 
       const refreshToken = tokenData.refresh_token;
       
-      // Key changes for Google token refresh
       if (provider === 'google') {
         const params = new URLSearchParams({
           client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
@@ -208,7 +207,6 @@ export function useFilePicker() {
         if (!response.ok) {
           console.error('[refreshAccessToken] Google refresh failed:', data);
           if (data.error === 'invalid_grant') {
-            // Handle invalid refresh token
             console.error('[refreshAccessToken] Invalid refresh token, user needs to reauthorize');
             return { success: false };
           }
@@ -232,10 +230,55 @@ export function useFilePicker() {
         }
 
         return { success: true, access_token: data.access_token };
+      } else if (provider === 'microsoft') {
+        const params = new URLSearchParams({
+          client_id: process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID!,
+          client_secret: process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_SECRET!,
+          refresh_token: refreshToken,
+          grant_type: 'refresh_token',
+          scope: 'Files.Read Files.Read.All offline_access',
+        });
+
+        const response = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: params.toString(),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          console.error('[refreshAccessToken] Microsoft refresh failed:', data);
+          if (data.error === 'invalid_grant') {
+            console.error('[refreshAccessToken] Invalid refresh token, user needs to reauthorize');
+            return { success: false };
+          }
+          throw new Error(data.error_description || 'Failed to refresh token');
+        }
+
+        // Update tokens in database
+        const { error: updateError } = await supabase
+          .from('user_documents_access')
+          .update({
+            access_token: data.access_token,
+            refresh_token: data.refresh_token, // Microsoft may return a new refresh token
+            expires_at: new Date(Date.now() + data.expires_in * 1000).toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', userId)
+          .eq('provider', provider);
+
+        if (updateError) {
+          console.error(`[refreshAccessToken] Error updating tokens:`, updateError);
+          return { success: false };
+        }
+
+        return { success: true, access_token: data.access_token };
       }
+      
       return { success: false };
-      // Existing Microsoft token refresh logic
-      // ... rest of the code ...
     } catch (error) {
       console.error(`[refreshAccessToken] Unexpected error:`, error);
       return { success: false };

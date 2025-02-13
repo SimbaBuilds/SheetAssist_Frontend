@@ -274,30 +274,32 @@ export function useDashboard(initialData?: UserPreferences) {
     }
   }, [initialData])
 
-  useEffect(() => {
-    // Log form state whenever key form elements change
-    logFormState('Form State', {
-      files: files.map(f => ({ name: f.name, size: f.size })),
-      query,
-      outputType,
-      downloadFileType: outputType === 'download' ? downloadFileType : null,
-      selectedInputSheets: selectedInputSheets.map(sheet => ({
-        url: sheet.url,
-        sheet_name: sheet.sheet_name,
-        doc_name: sheet.doc_name,
-        picker_token: sheet.picker_token,
-        display_title: sheetTitles[formatTitleKey(sheet.url, sheet.sheet_name)] || 'Unknown'
-      })),
-      selectedDestinationSheet: selectedDestinationSheet ? {
-        url: selectedDestinationSheet.url,
-        sheet_name: selectedDestinationSheet.sheet_name,
-        doc_name: selectedDestinationSheet.doc_name,
-        picker_token: selectedDestinationSheet.picker_token,
-        display_title: sheetTitles[formatTitleKey(selectedDestinationSheet.url, selectedDestinationSheet.sheet_name)] || 'Unknown'
-      } : null,
-      allowSheetModification: outputType === 'online' ? allowSheetModification : null
-    });
-  }, [files, query, outputType, downloadFileType, selectedInputSheets, selectedDestinationSheet, allowSheetModification, sheetTitles]);
+  
+  //FULL FORMDATA LOGGING
+  // useEffect(() => {
+  //   // Log form state whenever key form elements change
+  //   logFormState('Form State', {
+  //     files: files.map(f => ({ name: f.name, size: f.size })),
+  //     query,
+  //     outputType,
+  //     downloadFileType: outputType === 'download' ? downloadFileType : null,
+  //     selectedInputSheets: selectedInputSheets.map(sheet => ({
+  //       url: sheet.url,
+  //       sheet_name: sheet.sheet_name,
+  //       doc_name: sheet.doc_name,
+  //       picker_token: sheet.picker_token,
+  //       display_title: sheetTitles[formatTitleKey(sheet.url, sheet.sheet_name)] || 'Unknown'
+  //     })),
+  //     selectedDestinationSheet: selectedDestinationSheet ? {
+  //       url: selectedDestinationSheet.url,
+  //       sheet_name: selectedDestinationSheet.sheet_name,
+  //       doc_name: selectedDestinationSheet.doc_name,
+  //       picker_token: selectedDestinationSheet.picker_token,
+  //       display_title: sheetTitles[formatTitleKey(selectedDestinationSheet.url, selectedDestinationSheet.sheet_name)] || 'Unknown'
+  //     } : null,
+  //     allowSheetModification: outputType === 'online' ? allowSheetModification : null
+  //   });
+  // }, [files, query, outputType, downloadFileType, selectedInputSheets, selectedDestinationSheet, allowSheetModification, sheetTitles]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || [])
