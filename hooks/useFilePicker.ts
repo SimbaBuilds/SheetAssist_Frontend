@@ -652,7 +652,11 @@ export function useFilePicker() {
             accessToken: access_token,
             viewType: "files",
             sourceInputMode: "files",
-            readonlyMode: true,
+            readonlyMode: false,
+            scopes: [
+              'Files.ReadWrite',
+              'offline_access',
+            ]
           },
           success: (response: any) => {
             console.log('[openMicrosoftPicker] Raw response:', response);

@@ -13,7 +13,7 @@ async function exchangeCodeForTokens(code: string, redirectUri: string) {
     body: new URLSearchParams({
       code,
       client_id: process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID!,
-      client_secret: process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_SECRET!,
+      client_secret: process.env.MICROSOFT_CLIENT_SECRET!,
       redirect_uri: redirectUri,
       grant_type: 'authorization_code',
     }),

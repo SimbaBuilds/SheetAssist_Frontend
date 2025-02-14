@@ -2,14 +2,15 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useFilePicker } from '@/hooks/useFilePicker';
 import { getSheetNames } from '@/lib/services/get_sheet_names';
-import type { InputSheet } from '@/lib/types/dashboard';
+import type { OnlineSheet } from '@/lib/types/dashboard';
+import { getUrlProvider, isTokenExpired } from '@/lib/utils/dashboard-utils';
 
 type PickerType = 'input' | 'output' | 'visualization';
 type Provider = 'google' | 'microsoft' | 'recent';
 
 interface UsePickerProps {
   type: PickerType;
-  onSelect: (inputUrl: InputSheet) => void;
+  onSelect: (inputUrl: OnlineSheet) => void;
   onError: (error: string) => void;
   updateRecentSheets?: (url: string, sheetName: string, docName: string, pickerToken?: string) => void;
   onPermissionRedirect?: (provider: 'google' | 'microsoft') => boolean;
@@ -48,7 +49,7 @@ export function usePicker({ type, onSelect, onError, updateRecentSheets, onPermi
     });
   };
 
-  const launchProviderPicker = async (provider: Provider, selectedItem?: InputSheet) => {
+  const launchProviderPicker = async (provider: Provider, selectedItem?: OnlineSheet) => {
     if (!user?.id) {
       onError('User not authenticated');
       return;
@@ -56,6 +57,23 @@ export function usePicker({ type, onSelect, onError, updateRecentSheets, onPermi
 
     // Handle recent selection
     if (provider === 'recent' && selectedItem) {
+      console.log('[launchProviderPicker] Checking token expiry for recent sheet:', {
+        url: selectedItem.url,
+        sheet_name: selectedItem.sheet_name,
+        token_expiry: selectedItem.token_expiry
+      });
+
+      if (isTokenExpired(selectedItem.token_expiry)) {
+        console.log('[launchProviderPicker] Token expired, launching picker for provider:', selectedItem.provider);
+        // Re-launch picker with the original provider
+        if (selectedItem.provider && (selectedItem.provider === 'google' || selectedItem.provider === 'microsoft')) {
+          return launchProviderPicker(selectedItem.provider);
+        } else {
+          onError('Invalid provider for expired token');
+          return;
+        }
+      }
+
       onSelect(selectedItem);
       return;
     }
@@ -103,13 +121,15 @@ export function usePicker({ type, onSelect, onError, updateRecentSheets, onPermi
 
         if (workbook.sheet_names.length === 1) {
           console.log(`[${type}] Single sheet found, auto-selecting`);
-          const inputSheet: InputSheet = {
+          const OnlineSheet: OnlineSheet = {
             url: pickerResult.url,
             sheet_name: workbook.sheet_names[0],
             doc_name: workbook.doc_name,
-            picker_token: pickerResult.accessToken
+            picker_token: pickerResult.accessToken,
+            token_expiry: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes from now
+            provider: provider
           };
-          onSelect(inputSheet);
+          onSelect(OnlineSheet);
           updateRecentSheets?.(pickerResult.url, workbook.sheet_names[0], workbook.doc_name, pickerResult.accessToken);
         } else {
           console.log(`[${type}] Multiple sheets found (${workbook.sheet_names.length}), showing selector`);
@@ -138,15 +158,17 @@ export function usePicker({ type, onSelect, onError, updateRecentSheets, onPermi
     }
 
     try {
-      const inputSheet: InputSheet = {
+      const OnlineSheet: OnlineSheet = {
         url: selectedSheetUrl,
         sheet_name: sheetName,
         doc_name: workbookInfo?.doc_name || '',
-        picker_token: workbookInfo?.picker_token
+        picker_token: workbookInfo?.picker_token || null,
+        token_expiry: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+        provider: getUrlProvider(selectedSheetUrl)
       };
 
       setShowSheetSelector(false);
-      onSelect(inputSheet);
+      onSelect(OnlineSheet);
       
       if (workbookInfo?.doc_name) {
         updateRecentSheets?.(selectedSheetUrl, sheetName, workbookInfo.doc_name, workbookInfo.picker_token || undefined);

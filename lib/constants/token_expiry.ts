@@ -1,0 +1,1 @@
+export const TOKEN_EXPIRY = 30 // minute(s)

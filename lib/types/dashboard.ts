@@ -32,25 +32,18 @@ export interface FileUploadMetadata {
   s3_url?: string
 }
 
-export interface InputSheet {
-    url: string;
-    sheet_name?: string | null;
-    doc_name?: string | null;
-    picker_token?: string | null;
-}
-
 export interface OnlineSheet {
-  url: string;
-  provider: string;
-  doc_name: string;
-  sheet_name: string;
-  picker_token: string;
-  token_expiry: string;
+    url: string;
+    sheet_name: string;
+    doc_name: string;
+    picker_token: string | null;
+    token_expiry?: string;
+    provider?: string | null;
 }
 
 export interface QueryRequest {
   query: string
-  input_urls?: InputSheet[]
+  input_urls?: OnlineSheet[]
   files_metadata?: FileUploadMetadata[]
   output_preferences?: OutputPreferences,
   job_id?: string
@@ -175,7 +168,7 @@ export const SEABORN_SEQUENTIAL_PALETTES = {
 export type SeabornSequentialPalette = keyof typeof SEABORN_SEQUENTIAL_PALETTES;
 
 export interface VisualizationRequest {
-  input_urls?: InputSheet[]
+  input_urls?: OnlineSheet[]
   files_metadata?: FileUploadMetadata[]
   options: VisualizationOptions
 }

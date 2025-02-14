@@ -114,11 +114,26 @@ export function handleUrlValidation(
 }
 
 export function isTokenExpired(tokenExpiry: string | undefined | null): boolean {
-  if (!tokenExpiry) return true;
+  if (!tokenExpiry) {
+    console.log('[isTokenExpired] No expiry date provided');
+    return true;
+  }
   try {
     const expiryDate = new Date(tokenExpiry);
-    return expiryDate.getTime() < Date.now();
+    const now = new Date();
+    const isExpired = expiryDate.getTime() < now.getTime();
+    const minutesUntilExpiry = (expiryDate.getTime() - now.getTime()) / (1000 * 60);
+    
+    console.log('[isTokenExpired] Token expiry check:', {
+      expiryDate: expiryDate.toISOString(),
+      currentTime: now.toISOString(),
+      isExpired,
+      minutesUntilExpiry: minutesUntilExpiry.toFixed(2)
+    });
+    
+    return isExpired;
   } catch {
+    console.log('[isTokenExpired] Invalid date format');
     return true;
   }
 }

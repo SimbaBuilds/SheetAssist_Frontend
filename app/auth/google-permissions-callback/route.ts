@@ -14,7 +14,7 @@ async function exchangeCodeForTokens(code: string, provider: string, redirectUri
     : process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID
   const clientSecret = provider === 'google'
     ? process.env.NEXT_PUBLIC_GOOGLE_CLIENT_SECRET
-    : process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_SECRET
+    : process.env.MICROSOFT_CLIENT_SECRET
 
   const response = await fetch(tokenUrl, {
     method: 'POST',

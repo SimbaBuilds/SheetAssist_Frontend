@@ -93,7 +93,7 @@ export function Names() {
                     </FormControl>
                     <div className="space-y-1 leading-none">
                       <FormLabel>
-                        I don&apos;t belong to an organization
+                        No Organization
                       </FormLabel>
                     </div>
                   </FormItem>

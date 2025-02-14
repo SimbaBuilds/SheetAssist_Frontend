@@ -1,6 +1,6 @@
 import { AxiosResponse } from 'axios';
 import api from './api';
-import { OutputPreferences, FileUploadMetadata, QueryRequest, QueryResponse, InputSheet, ProcessingState } from '@/lib/types/dashboard';
+import { OutputPreferences, FileUploadMetadata, QueryRequest, QueryResponse, OnlineSheet, ProcessingState } from '@/lib/types/dashboard';
 import { AcceptedMimeType, MIME_TYPES } from '@/lib/constants/file-types';
 import { createClient } from '@/lib/supabase/client';
 import { isUserOnProPlan, getUserSubscriptionId, trackUsage } from '@/lib/stripe/usage'
@@ -378,7 +378,7 @@ class QueryService {
 
   async processQuery(
     query: string,
-    webUrls: InputSheet[] = [],
+    webUrls: OnlineSheet[] = [],
     files?: File[],
     outputPreferences?: OutputPreferences,
     signal?: AbortSignal,

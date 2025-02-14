@@ -1,13 +1,13 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
-import { InputSheet, FileUploadMetadata } from '@/lib/types/dashboard';
+import { OnlineSheet, FileUploadMetadata } from '@/lib/types/dashboard';
 
 interface LogRequestParams {
   userId: string;
   query?: string;
   fileMetadata?: FileUploadMetadata[];
-  inputUrls?: InputSheet[];
+  inputUrls?: OnlineSheet[];
   startTime: number;
   status: string;
   success: boolean;

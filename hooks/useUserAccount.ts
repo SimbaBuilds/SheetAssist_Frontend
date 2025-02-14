@@ -312,10 +312,6 @@ export function useUserAccount({
       setIsUpdating(true)
       await handleGoogleSetup()
       
-      toast({
-        title: "Success",
-        description: "Google account reconnected successfully.",
-      })
     } catch (error) {
       toast({
         title: "Error",
@@ -332,10 +328,7 @@ export function useUserAccount({
       setIsUpdating(true)
       await handleMicrosoftSetup()
       
-      toast({
-        title: "Success",
-        description: "Microsoft account reconnected successfully.",
-      })
+
     } catch (error) {
       toast({
         title: "Error",

@@ -17,17 +17,4 @@ export const CALLBACK_ROUTES = {
     ERROR: '/auth/error'
   } as const 
   
-  export const DOCUMENT_SCOPES = {
-    google: [
-      'https://www.googleapis.com/auth/drive.file'
-    ].join(' '),
-    microsoft: [
-      'offline_access',
-      'Files.Read',
-      'Files.ReadWrite.Selected',
-      'email',
-      'User.Read',
-      'openid'
-    ].join(' ')
-  } as const
   

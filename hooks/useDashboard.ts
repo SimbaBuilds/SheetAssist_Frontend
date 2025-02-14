@@ -3,8 +3,9 @@ import { useAuth } from '@/hooks/useAuth'
 import {downloadFile} from '@/lib/services/download_file'
 import {getSheetNames} from '@/lib/services/get_sheet_names'
 import { createClient } from '@/lib/supabase/client'
-import type { DownloadFileType, DashboardInitialData, OutputPreferences, QueryResponse, SheetTitleMap, InputSheet, OnlineSheet, ProcessingState } from '@/lib/types/dashboard'
+import type { DownloadFileType, DashboardInitialData, OutputPreferences, QueryResponse, SheetTitleMap, OnlineSheet, ProcessingState } from '@/lib/types/dashboard'
 import { MAX_FILES, MAX_FILE_SIZE } from '@/lib/constants/file-types'
+import { TOKEN_EXPIRY } from '@/lib/constants/token_expiry'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/use-toast'
 import {
@@ -19,7 +20,7 @@ import {
 } from '@/lib/utils/dashboard-utils'
 import { queryService } from '@/lib/services/process_query'
 import { useUsageLimits } from '@/hooks/useUsageLimits'
-import { usePicker } from '@/hooks/usePicker'
+import { usePicker } from '@/hooks/usePickerController'
 
 
 type UserPreferences = DashboardInitialData
@@ -65,14 +66,14 @@ export function useDashboard(initialData?: UserPreferences) {
   const [workbookCache, setWorkbookCache] = useState<{ [url: string]: { doc_name: string, sheet_names: string[] } }>({})
   const [isRetrievingData, setIsRetrievingData] = useState(false)
   const [isRetrievingDestinationData, setIsRetrievingDestinationData] = useState(false)
-  const [selectedInputSheets, setSelectedSheets] = useState<InputSheet[]>([])
+  const [selectedOnlineSheets, setSelectedSheets] = useState<OnlineSheet[]>([])
   const [isUpdating, setIsUpdating] = useState(false)
   const { toast } = useToast()
   const [isInitializing, setIsInitializing] = useState(true)
   const [abortController, setAbortController] = useState<AbortController | null>(null)
   const [destinationSheets, setDestinationSheets] = useState<string[]>([])
   const [showDestinationSheetSelector, setShowDestinationSheetSelector] = useState(false)
-  const [selectedDestinationSheet, setSelectedDestinationSheet] = useState<InputSheet | null>(null)
+  const [selectedDestinationSheet, setSelectedDestinationSheet] = useState<OnlineSheet | null>(null)
   const [processingState, setProcessingState] = useState<ProcessingState>({
     status: 'idle',
     message: ''
@@ -99,7 +100,7 @@ export function useDashboard(initialData?: UserPreferences) {
       }
 
       // Calculate token expiry (30 minutes from now)
-      const tokenExpiry = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+      const tokenExpiry = new Date(Date.now() + TOKEN_EXPIRY * 60 * 1000).toISOString();
 
       // Create new sheet entry
       const newSheet: OnlineSheet = {
@@ -283,7 +284,7 @@ export function useDashboard(initialData?: UserPreferences) {
   //     query,
   //     outputType,
   //     downloadFileType: outputType === 'download' ? downloadFileType : null,
-  //     selectedInputSheets: selectedInputSheets.map(sheet => ({
+  //     selectedOnlineSheets: selectedOnlineSheets.map(sheet => ({
   //       url: sheet.url,
   //       sheet_name: sheet.sheet_name,
   //       doc_name: sheet.doc_name,
@@ -299,7 +300,7 @@ export function useDashboard(initialData?: UserPreferences) {
   //     } : null,
   //     allowSheetModification: outputType === 'online' ? allowSheetModification : null
   //   });
-  // }, [files, query, outputType, downloadFileType, selectedInputSheets, selectedDestinationSheet, allowSheetModification, sheetTitles]);
+  // }, [files, query, outputType, downloadFileType, selectedOnlineSheets, selectedDestinationSheet, allowSheetModification, sheetTitles]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || [])
@@ -381,10 +382,12 @@ export function useDashboard(initialData?: UserPreferences) {
         throw new Error('Failed to get document information');
       }
 
-      const destinationPair: InputSheet = { 
+      const destinationPair: OnlineSheet = { 
         url, 
         sheet_name: sheet,
-        doc_name: workbook.doc_name
+        doc_name: workbook.doc_name,
+        picker_token: selectedDestinationSheet.picker_token,
+        provider: provider
       };
       
       setSelectedDestinationSheet(destinationPair);
@@ -469,7 +472,7 @@ export function useDashboard(initialData?: UserPreferences) {
 
       const result = await queryService.processQuery(
         query,
-        selectedInputSheets,
+        selectedOnlineSheets,
         files,
         outputPreferences,
         controller.signal,
@@ -559,7 +562,7 @@ export function useDashboard(initialData?: UserPreferences) {
 
   const handleQueryChange = (value: string) => {
     setQuery(value);
-    logFormState('Query Updated', { query: value });
+    // logFormState('Query Updated', { query: value });
   };
 
   const handleOutputTypeChange = (value: 'download' | 'online' | null) => {
@@ -598,7 +601,7 @@ export function useDashboard(initialData?: UserPreferences) {
     destinationUrlError,
     availableSheets,
     showSheetSelector,
-    selectedInputSheets,
+    selectedOnlineSheets,
     setFiles,
     setQuery: handleQueryChange,
     setOutputType: handleOutputTypeChange,
@@ -634,9 +637,9 @@ export function useDashboard(initialData?: UserPreferences) {
     selectedSheetUrl: inputPicker.selectedSheetUrl,
     workbookInfo: inputPicker.workbookInfo,
     inputAvailableSheets: inputPicker.availableSheets,
-    handleInputSheetSelection: inputPicker.handleSheetNameSelection,
-    showInputSheetSelector: inputPicker.showSheetSelector,
-    setShowInputSheetSelector: inputPicker.setShowSheetSelector,
+    handleOnlineSheetSelection: inputPicker.handleSheetNameSelection,
+    showOnlineSheetSelector: inputPicker.showSheetSelector,
+    setShowOnlineSheetSelector: inputPicker.setShowSheetSelector,
     destinationPicker,
   } as const;
 }

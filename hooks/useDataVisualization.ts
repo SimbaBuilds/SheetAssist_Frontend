@@ -15,11 +15,10 @@ import {
 } from '@/lib/utils/dashboard-utils'
 import type { 
   VisualizationOptions,
-  InputSheet,
   VisualizationResult,
 } from '@/lib/types/dashboard'
 import { useUsageLimits } from '@/hooks/useUsageLimits'
-import { usePicker } from '@/hooks/usePicker'
+import { usePicker } from '@/hooks/usePickerController'
 
 interface FileError {
   file: File;
@@ -43,7 +42,7 @@ export function useDataVisualization({ sheetTitles, setSheetTitles }: UseDataVis
   const [visualizationError, setVisualizationError] = useState('')
   const [visualizationFileError, setVisualizationFileError] = useState<FileError | null>(null)
   const [visualizationResult, setVisualizationResult] = useState<VisualizationResult | null>(null)
-  const [selectedVisualizationSheet, setSelectedVisualizationSheet] = useState<InputSheet | null>(null)
+  const [selectedVisualizationSheet, setSelectedVisualizationSheet] = useState<OnlineSheet | null>(null)
   const [isVisualizationUrlProcessing, setIsVisualizationUrlProcessing] = useState(false)
   const [showVisualizationDialog, setShowVisualizationDialog] = useState(false)
   const [visualizationAbortController, setVisualizationAbortController] = useState<AbortController | null>(null)
@@ -118,8 +117,8 @@ export function useDataVisualization({ sheetTitles, setSheetTitles }: UseDataVis
     pickerActive: visualizationPickerActive
   } = usePicker({
     type: 'visualization',
-    onSelect: (inputSheet) => {
-      setSelectedVisualizationSheet(inputSheet);
+    onSelect: (OnlineSheet) => {
+      setSelectedVisualizationSheet(OnlineSheet);
       setVisualizationFile(null); // Clear file when URL is selected
       setVisualizationError(''); // Clear any previous errors
     },
@@ -265,7 +264,9 @@ export function useDataVisualization({ sheetTitles, setSheetTitles }: UseDataVis
         ? [{ 
             url: selectedVisualizationSheet.url, 
             sheet_name: selectedVisualizationSheet.sheet_name,
-            doc_name: selectedVisualizationSheet.doc_name
+            doc_name: selectedVisualizationSheet.doc_name,
+            picker_token: selectedVisualizationSheet.picker_token || null,
+            provider: selectedVisualizationSheet.provider || null
           }] 
         : [];
       

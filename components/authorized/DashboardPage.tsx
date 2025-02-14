@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { useDashboard } from '@/hooks/useDashboard'
-import type { DownloadFileType, InputSheet } from '@/lib/types/dashboard'
+import type { DownloadFileType, OnlineSheet } from '@/lib/types/dashboard'
 import { DOWNLOAD_FILE_TYPES, ACCEPTED_FILE_EXTENSIONS, MAX_FILES, MAX_FILE_SIZE, MAX_QUERY_LENGTH } from '@/lib/constants/file-types'
 import { ProcessingResultDialog } from '@/components/authorized/ProcessingResultDialog'
 import { Switch } from "@/components/ui/switch"
@@ -74,7 +74,7 @@ export default function DashboardPage() {
     setShowResultDialog,
     allowSheetModification,
     destinationUrlError,
-    selectedInputSheets,
+    selectedOnlineSheets,
     setFiles,
     setQuery,
     setOutputType,
@@ -100,9 +100,9 @@ export default function DashboardPage() {
     selectedSheetUrl,
     workbookInfo,
     inputAvailableSheets,
-    handleInputSheetSelection,
-    showInputSheetSelector,
-    setShowInputSheetSelector,
+    handleOnlineSheetSelection,
+    showOnlineSheetSelector,
+    setShowOnlineSheetSelector,
     destinationPicker,
   } = useDashboard()
 
@@ -169,9 +169,9 @@ export default function DashboardPage() {
           <form onSubmit={(e) => {
             e.preventDefault();
             const hasFiles = files.length > 0;
-            const hasInputSheets = selectedInputSheets.length > 0;
+            const hasOnlineSheets = selectedOnlineSheets.length > 0;
             
-            if (!hasFiles && !hasInputSheets) {
+            if (!hasFiles && !hasOnlineSheets) {
               setOutputTypeError('Please attach a file or select an input URL');
               return;
             }
@@ -274,7 +274,7 @@ export default function DashboardPage() {
                             const titleKey = sheet.sheet_name ? formatTitleKey(sheet.url, sheet.sheet_name) : '';
                             const displayTitle = titleKey && sheetTitles[titleKey] 
                               ? sheetTitles[titleKey] 
-                              : formatDisplayTitle(sheet.doc_name, sheet.sheet_name || '');
+                              : formatDisplayTitle(sheet.doc_name, sheet.sheet_name);
                             return (
                               <CommandItem
                                 key={index}
@@ -344,11 +344,11 @@ export default function DashboardPage() {
                 )}
               </div>
 
-              {selectedInputSheets.length > 0 && (
+              {selectedOnlineSheets.length > 0 && (
                 <div className="space-y-2">
                   <Label>Selected Documents</Label>
                   <div className="space-y-2">
-                    {selectedInputSheets.map((pair, index) => {
+                    {selectedOnlineSheets.map((pair, index) => {
                       const titleKey = pair.sheet_name ? formatTitleKey(pair.url, pair.sheet_name) : '';
                       const displayTitle = titleKey && sheetTitles[titleKey] 
                         ? sheetTitles[titleKey] 
@@ -375,7 +375,7 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {selectedInputSheets.length >= 6 && (
+              {selectedOnlineSheets.length >= 6 && (
                 <p className="text-sm text-amber-600">
                   Maximum number of input sheets (6) reached. Remove some to add more.
                 </p>
@@ -532,7 +532,7 @@ export default function DashboardPage() {
                                   : formatDisplayTitle(sheet.doc_name, sheet.sheet_name || '');
                                 return (
                                   <CommandItem
-                                    key={index}
+                                    key={`recent-${index}`}
                                     onSelect={() => handleOutputPicker('recent', sheet)}
                                   >
                                     {displayTitle}
@@ -767,7 +767,7 @@ export default function DashboardPage() {
                                     : formatDisplayTitle(sheet.doc_name, sheet.sheet_name || '');
                                   return (
                                     <CommandItem
-                                      key={index}
+                                      key={`recent-${index}`}
                                       onSelect={() => handleVisualizationPicker('recent', sheet)}
                                     >
                                       {displayTitle}
@@ -1008,9 +1008,9 @@ export default function DashboardPage() {
                 <SheetSelector
                   url={selectedSheetUrl}
                   sheets={inputAvailableSheets}
-                  onSelect={handleInputSheetSelection}
-                  onClose={() => setShowInputSheetSelector(false)}
-                  open={showInputSheetSelector}
+                  onSelect={handleOnlineSheetSelection}
+                  onClose={() => setShowOnlineSheetSelector(false)}
+                  open={showOnlineSheetSelector}
                   isProcessing={isInputPickerProcessing}
                   docName={workbookInfo?.doc_name}
                   pickerActive={isInputPickerProcessing}
@@ -1122,9 +1122,9 @@ export default function DashboardPage() {
           <SheetSelector
             url={selectedSheetUrl}
             sheets={inputAvailableSheets}
-            onSelect={handleInputSheetSelection}
-            onClose={() => setShowInputSheetSelector(false)}
-            open={showInputSheetSelector}
+            onSelect={handleOnlineSheetSelection}
+            onClose={() => setShowOnlineSheetSelector(false)}
+            open={showOnlineSheetSelector}
             isProcessing={isInputPickerProcessing}
             docName={workbookInfo?.doc_name}
             pickerActive={isInputPickerProcessing}
