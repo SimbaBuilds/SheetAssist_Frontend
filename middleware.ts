@@ -18,7 +18,6 @@ export const PUBLIC_PATHS = [
   '/contact-us',
   '/terms-of-service',
   '/privacy-policy',
-  '/scopes-note',
   '/api/contact',
   '/.well-known/microsoft-identity-association.json',
   '/api/stripe/webhooks',
