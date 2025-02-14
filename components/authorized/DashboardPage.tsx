@@ -662,13 +662,13 @@ export default function DashboardPage() {
               <div className="text-red-500 text-sm mt-2">
                 {currentPlan === 'free' ? (
                   <>
-                    You&apos;ve reached your monthly request limit ({requestLimit} requests).
+                    You&apos;ve reached your monthly request limit ({requestLimit} requests). 
                     <Button
                       variant="link"
                       className="p-0 h-auto text-sm text-blue-600 hover:text-blue-800"
-                      onClick={() => router.push('/pricing')}
+                      onClick={() => router.push('/user-account')}
                     >
-                      Upgrade to Pro for more requests
+                       Upgrade to Pro for more requests
                     </Button>
                   </>
                 ) : (
@@ -1049,11 +1049,11 @@ export default function DashboardPage() {
                   <div className="text-red-500 text-sm mt-2">
                     {currentPlan === 'free' ? (
                       <>
-                        You&apos;ve reached your monthly visualization limit ({visualizationLimit} visualizations).
+                        You&apos;ve reached your monthly visualization limit ({visualizationLimit} visualizations). 
                         <Button
                           variant="link"
                           className="p-0 h-auto text-sm text-blue-600 hover:text-blue-800"
-                          onClick={() => router.push('/pricing')}
+                          onClick={() => router.push('/user-account')}
                         >
                           Upgrade to Pro for more visualizations
                         </Button>
