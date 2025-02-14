@@ -36,16 +36,28 @@ export default function PrivacyPolicyPage() {
         <section>
           <h2 className="text-lg font-semibold mb-3">3. Third-Party Services</h2>
           <p className="text-muted-foreground">
-            Our service integrates with third-party services like Google Sheets and Microsoft Excel Online. 
+            Our service integrates with third-party services Google Sheets and Microsoft Excel Online. 
             When you connect these services, their respective privacy policies also apply to your data.
           </p>
           <p className="text-muted-foreground mt-2">
             To offer you the best experience with our application, we request specific permissions from you to access these services. 
-            Please accept all Google and/or Microsoft permissions to get the most out of this application. 
-            See <Link href="/scopes-note" className="underline hover:text-primary">here</Link> for 
-            a detailed note on drive permissions.  App verification pending.
-
+            We ask for the minimum permissions required to offer you the best experience with our application.
           </p>
+          <p className="text-muted-foreground mt-2">
+            Google Permissions:
+          </p>
+          <ul className="list-disc pl-6 mt-2 space-y-2 text-muted-foreground">
+            <li>Google drive.file scope: This google scope is a truly file specific scope that only gives us access to your selected file for one hour.  We can only access, read, and edit the Google file you select.  Additionally, our application is programmed to only perform additive edits.  Data will only be appended to a current sheet or added to a new sheet - never replacing existing data.</li>
+          </ul>
+          <p className="text-muted-foreground mt-2">
+              Microsoft Permissions:
+          </p>
+          <ul className="list-disc pl-6 mt-2 space-y-2 text-muted-foreground">
+            <li> offline_access, email, User.Read, openid: These are basic permissions that are required to interact with the Microsoft API.
+            </li>
+            <li> Files.ReadWrite: This is a scope we'd prefer not to ask for as it is not a file specific scope like the Google drive.file scope.  Unfortunately, the Microsoft ReadWrite.Selected file specific scope introduces more friction to the user experience, so we decided to ask for this broader scope.  However, our app uses picker tokens that only give us access to your selected file for 30 minutes.  We will not access, modify, or read files that you do not use within the app.  Additionally, our application is programmed to only perform additive edits.  Data will only be appended to a current sheet or added to a new sheet - never replacing existing data.  
+            </li>
+          </ul>
           <p className="text-muted-foreground mt-8">
             If you have any questions about this Privacy Policy, please <Link href="/contact-us" className="underline hover:text-primary">contact us</Link>.
           </p>

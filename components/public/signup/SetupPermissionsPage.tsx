@@ -19,9 +19,7 @@ export function SetupPermissionsPage() {
           <h1 className="text-2xl font-bold">Set Up Permissions</h1>
           <div className="bg-primary/10 border-2 border-primary rounded-lg p-4">
           <p className="text-xs text-foreground">
-                  Please accept all Google or Microsoft permissions to get the most out of this application.<br/>
-                  See <Link href="/scopes-note" className="underline">here</Link> for a note on drive permissions. <br/>
-                  App verification pending.
+                  Please accept all Google or Microsoft permissions to get the most out of this application.
                 </p>
           </div>
         </div>
