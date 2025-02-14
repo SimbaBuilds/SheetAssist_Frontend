@@ -55,7 +55,7 @@ export default function PrivacyPolicyPage() {
           <ul className="list-disc pl-6 mt-2 space-y-2 text-muted-foreground">
             <li> offline_access, email, User.Read, openid: These are basic permissions that are required to interact with the Microsoft API.
             </li>
-            <li> Files.ReadWrite: This is a scope we'd prefer not to ask for as it is not a file specific scope like the Google drive.file scope.  Unfortunately, the Microsoft ReadWrite.Selected file specific scope introduces more friction to the user experience, so we decided to ask for this broader scope.  However, our app uses picker tokens that only give us access to your selected file for 30 minutes.  We will not access, modify, or read files that you do not use within the app.  Additionally, our application is programmed to only perform additive edits.  Data will only be appended to a current sheet or added to a new sheet - never replacing existing data.  
+            <li> Files.ReadWrite: This is a scope we would prefer not to ask for as it is not a file specific scope like the Google drive.file scope.  Unfortunately, the Microsoft ReadWrite.Selected file specific scope introduces more friction to the user experience, so we decided to ask for this broader scope.  However, our app uses picker tokens that only give us access to your selected file for 30 minutes.  We will not access, modify, or read files that you do not use within the app.  Additionally, our application is programmed to only perform additive edits.  Data will only be appended to a current sheet or added to a new sheet - never replacing existing data.  
             </li>
           </ul>
           <p className="text-muted-foreground mt-8">
