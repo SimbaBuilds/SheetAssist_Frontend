@@ -180,6 +180,7 @@ export function useFilePicker() {
 
       if (fetchError || !tokenData) {
         console.error(`[refreshAccessToken] Error fetching tokens:`, fetchError);
+        router.push(`/auth/setup-permissions?provider=${provider}&reauth=true`);
         return { success: false };
       }
 
@@ -208,6 +209,7 @@ export function useFilePicker() {
           console.error('[refreshAccessToken] Google refresh failed:', data);
           if (data.error === 'invalid_grant') {
             console.error('[refreshAccessToken] Invalid refresh token, user needs to reauthorize');
+            router.push('/auth/setup-permissions?provider=google&reauth=true');
             return { success: false };
           }
           throw new Error(data.error_description || 'Failed to refresh token');
@@ -251,6 +253,7 @@ export function useFilePicker() {
             console.error('[refreshAccessToken] Microsoft refresh failed:', data);
             if (data.error === 'invalid_grant' || data.error === 'invalid_request') {
               console.error('[refreshAccessToken] Token refresh failed, user needs to reauthorize');
+              router.push('/auth/setup-permissions?provider=microsoft&reauth=true');
               return { success: false };
             }
             throw new Error(data.error || data.message || 'Failed to refresh token');
@@ -276,6 +279,7 @@ export function useFilePicker() {
           return { success: true, access_token: data.access_token };
         } catch (error) {
           console.error('[refreshAccessToken] Microsoft refresh error:', error);
+          router.push('/auth/setup-permissions?provider=microsoft&reauth=true');
           return { success: false };
         }
       }
@@ -283,6 +287,7 @@ export function useFilePicker() {
       return { success: false };
     } catch (error) {
       console.error(`[refreshAccessToken] Unexpected error:`, error);
+      router.push(`/auth/setup-permissions?provider=${provider}&reauth=true`);
       return { success: false };
     }
   }
@@ -472,6 +477,11 @@ export function useFilePicker() {
         if (refreshResult.success && refreshResult.access_token) {
           accessData.access_token = refreshResult.access_token;
         } else {
+          toast({
+            title: "Authentication Error",
+            description: "Your Google account connection has expired. Please reconnect your account.",
+            className: "bg-destructive text-destructive-foreground",
+          });
           return {
             fileId: '',
             url: '',
@@ -483,6 +493,11 @@ export function useFilePicker() {
       }
 
       if (tokenError || !accessData?.access_token) {
+        toast({
+          title: "Authentication Error",
+          description: "Your Google account connection has expired. Please reconnect your account.",
+          className: "bg-destructive text-destructive-foreground",
+        });
         return {
           fileId: '',
           url: '',
@@ -598,6 +613,11 @@ export function useFilePicker() {
         if (refreshResult.success && refreshResult.access_token) {
           accessData.access_token = refreshResult.access_token;
         } else {
+          toast({
+            title: "Authentication Error",
+            description: "Your Microsoft account connection has expired. Please reconnect your account.",
+            className: "bg-destructive text-destructive-foreground",
+          });
           return {
             fileId: '',
             url: '',
@@ -609,7 +629,11 @@ export function useFilePicker() {
       }
 
       if (tokenError || !accessData?.access_token) {
-        console.error('[openMicrosoftPicker] Token error:', tokenError);
+        toast({
+          title: "Authentication Error",
+          description: "Your Microsoft account connection has expired. Please reconnect your account.",
+          className: "bg-destructive text-destructive-foreground",
+        });
         return {
           fileId: '',
           url: '',
