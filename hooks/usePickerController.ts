@@ -4,6 +4,8 @@ import { useFilePicker } from '@/hooks/useFilePicker';
 import { getSheetNames } from '@/lib/services/get_sheet_names';
 import type { OnlineSheet } from '@/lib/types/dashboard';
 import { getUrlProvider, isTokenExpired } from '@/lib/utils/dashboard-utils';
+import { TOKEN_EXPIRY } from '@/lib/constants/token_expiry';
+import { toast } from '@/components/ui/use-toast';
 
 type PickerType = 'input' | 'output' | 'visualization';
 type Provider = 'google' | 'microsoft' | 'recent';
@@ -67,6 +69,11 @@ export function usePicker({ type, onSelect, onError, updateRecentSheets, onPermi
         console.log('[launchProviderPicker] Token expired, launching picker for provider:', selectedItem.provider);
         // Re-launch picker with the original provider
         if (selectedItem.provider && (selectedItem.provider === 'google' || selectedItem.provider === 'microsoft')) {
+          toast({
+            title: "Access Expired",
+            description: `Our access to your sheets expires ${TOKEN_EXPIRY} minutes after your selection.`,
+            className: "bg-destructive text-destructive-foreground"
+          });
           return launchProviderPicker(selectedItem.provider);
         } else {
           onError('Invalid provider for expired token');
@@ -126,7 +133,7 @@ export function usePicker({ type, onSelect, onError, updateRecentSheets, onPermi
             sheet_name: workbook.sheet_names[0],
             doc_name: workbook.doc_name,
             picker_token: pickerResult.accessToken,
-            token_expiry: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes from now
+            token_expiry: new Date(Date.now() + TOKEN_EXPIRY * 60 * 1000).toISOString(),
             provider: provider
           };
           onSelect(OnlineSheet);
@@ -163,7 +170,7 @@ export function usePicker({ type, onSelect, onError, updateRecentSheets, onPermi
         sheet_name: sheetName,
         doc_name: workbookInfo?.doc_name || '',
         picker_token: workbookInfo?.picker_token || null,
-        token_expiry: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+        token_expiry: new Date(Date.now() + TOKEN_EXPIRY * 60 * 1000).toISOString(),
         provider: getUrlProvider(selectedSheetUrl)
       };
 

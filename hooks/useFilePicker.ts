@@ -543,7 +543,7 @@ export function useFilePicker() {
                 fileId: '',
                 url: '',
                 success: false,
-                error: 'Selection cancelled',
+                error: '',
                 provider: 'google' as const
               });
             }
@@ -718,7 +718,7 @@ export function useFilePicker() {
               fileId: '',
               url: '',
               success: false,
-              error: 'Selection cancelled',
+              error: '',
               provider: 'microsoft' as const
             });
           },

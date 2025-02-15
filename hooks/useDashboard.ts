@@ -99,8 +99,10 @@ export function useDashboard(initialData?: UserPreferences) {
         throw new Error('Invalid URL provider');
       }
 
-      // Calculate token expiry (30 minutes from now)
-      const tokenExpiry = new Date(Date.now() + TOKEN_EXPIRY * 60 * 1000).toISOString();
+      // Calculate token expiry (30 minutes from now) ONLY if we have a new pickerToken
+      const tokenExpiry = pickerToken 
+        ? new Date(Date.now() + TOKEN_EXPIRY * 60 * 1000).toISOString()
+        : undefined;
 
       // Create new sheet entry
       const newSheet: OnlineSheet = {
@@ -109,11 +111,23 @@ export function useDashboard(initialData?: UserPreferences) {
         sheet_name: sheetName,
         provider,
         picker_token: pickerToken || '',
-        token_expiry: tokenExpiry
+        token_expiry: tokenExpiry || new Date(Date.now() - 1000).toISOString() // If no new token, set as expired
       };
 
       // Update recentUrls state - filter out expired and matching sheets
       setRecentUrls(prev => {
+        // If we're updating an existing sheet and don't have a new picker token,
+        // try to preserve the original token expiry
+        if (!pickerToken) {
+          const existingSheet = prev.find(sheet => 
+            sheet.url === url && sheet.sheet_name === sheetName
+          );
+          if (existingSheet) {
+            newSheet.token_expiry = existingSheet.token_expiry;
+            newSheet.picker_token = existingSheet.picker_token;
+          }
+        }
+
         const filteredSheets = prev.filter(sheet => 
           !(sheet.url === url && sheet.sheet_name === sheetName) && !isTokenExpired(sheet.token_expiry)
         );
@@ -420,8 +434,6 @@ export function useDashboard(initialData?: UserPreferences) {
     e.preventDefault();
     if (isProcessing) return;
 
-
-
     setError(null);
     setOutputTypeError(null);
     setDestinationUrlError(null);
@@ -443,6 +455,72 @@ export function useDashboard(initialData?: UserPreferences) {
 
     if (outputType === 'online' && !selectedDestinationSheet) {
       setDestinationUrlError('Please select a destination sheet');
+      return;
+    }
+
+    // Check for expired tokens using First Expired Provider approach
+    const checkExpiredTokens = () => {
+      let expiredProvider: 'google' | 'microsoft' | null = null;
+      let expiredSheets: string[] = [];
+
+      // Check input sheets
+      for (const sheet of selectedOnlineSheets) {
+        console.log('[handleSubmit] Checking token expiry for input sheet:', {
+          url: sheet.url,
+          sheet_name: sheet.sheet_name,
+          token_expiry: sheet.token_expiry
+        });
+
+        if (isTokenExpired(sheet.token_expiry)) {
+          expiredSheets.push(`${sheet.doc_name} - ${sheet.sheet_name}`);
+          if (!expiredProvider && sheet.provider && 
+              (sheet.provider === 'google' || sheet.provider === 'microsoft')) {
+            expiredProvider = sheet.provider;
+          }
+        }
+      }
+
+      // Check destination sheet
+      if (outputType === 'online' && selectedDestinationSheet) {
+        console.log('[handleSubmit] Checking token expiry for destination sheet:', {
+          url: selectedDestinationSheet.url,
+          sheet_name: selectedDestinationSheet.sheet_name,
+          token_expiry: selectedDestinationSheet.token_expiry
+        });
+
+        if (isTokenExpired(selectedDestinationSheet.token_expiry)) {
+          expiredSheets.push(`${selectedDestinationSheet.doc_name} - ${selectedDestinationSheet.sheet_name}`);
+          if (!expiredProvider && selectedDestinationSheet.provider && 
+              (selectedDestinationSheet.provider === 'google' || selectedDestinationSheet.provider === 'microsoft')) {
+            expiredProvider = selectedDestinationSheet.provider;
+          }
+        }
+      }
+
+      return { expiredProvider, expiredSheets };
+    };
+
+    const { expiredProvider, expiredSheets } = checkExpiredTokens();
+    
+    if (expiredProvider) {
+      console.log('[handleSubmit] Found expired sheets:', {
+        provider: expiredProvider,
+        sheets: expiredSheets
+      });
+
+      // Clear all sheets from expired provider
+      setSelectedSheets(prev => prev.filter(sheet => sheet.provider !== expiredProvider));
+      if (selectedDestinationSheet?.provider === expiredProvider) {
+        setSelectedDestinationSheet(null);
+      }
+
+      setError(`Our access to your sheets expires ${TOKEN_EXPIRY} minutes after your selection.`);
+      toast({
+        title: "Access Expired",
+        description: `Our access to your sheets expires ${TOKEN_EXPIRY} minutes after your selection.`,
+        className: "bg-destructive text-destructive-foreground"
+      });
+      inputPicker.launchProviderPicker(expiredProvider);
       return;
     }
 
