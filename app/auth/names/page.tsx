@@ -21,7 +21,10 @@ export default async function Page() {
   if (profileError) {
     const { error: createError } = await supabase
       .from('user_profile')
-      .insert({ id: data.user.id })
+      .insert({ id: data.user.id, terms_acceptance: [{
+        acceptedAt: new Date().toISOString(),
+        termsVersion: "1.0"
+      }] })
 
     if (createError) {
       console.error('Error creating user profile:', createError)

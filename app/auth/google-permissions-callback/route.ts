@@ -114,6 +114,10 @@ export async function GET(request: NextRequest) {
         .insert({
           id: user.id,
           google_permissions_set: true,
+          terms_acceptance: [{
+            acceptedAt: new Date().toISOString(),
+            termsVersion: "1.0"
+          }]
         })
 
       if (createError) {

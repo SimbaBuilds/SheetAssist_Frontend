@@ -101,7 +101,11 @@ export async function GET(request: NextRequest) {
         .from('user_profile')
         .insert({
           id: user.id,
-          microsoft_permissions_set: true
+          microsoft_permissions_set: true,
+          terms_acceptance: [{
+            acceptedAt: new Date().toISOString(),
+            termsVersion: "1.0"
+          }]
         })
 
       if (createError) {

@@ -46,7 +46,11 @@ export async function GET(request: Request) {
         profileExists.error && supabase
           .from('user_profile')
           .insert({
-            id: user.id
+            id: user.id,
+            terms_acceptance: [{
+              acceptedAt: new Date().toISOString(),
+              termsVersion: "1.0"
+            }]
           }),
         usageExists.error && supabase
           .from('user_usage')

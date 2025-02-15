@@ -608,13 +608,23 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
                 <div>
                   <h3 className="font-medium">Delete Account</h3>
                   <p className="text-sm text-muted-foreground">
-                    Permanently delete your account and all associated data
+                    {currentProfile?.subscription_status === 'active' 
+                      ? "Subscription must be cancelled before deleting your account"
+                      : "Permanently delete your account and all associated data"}
                   </p>
                 </div>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="destructive" disabled={isDeletingAccount}>
-                      {isDeletingAccount ? "Deleting..." : "Delete Account"}
+                    <Button 
+                      variant="destructive" 
+                      disabled={isDeletingAccount || currentProfile?.subscription_status === 'active'}
+                    >
+                      {isDeletingAccount 
+                        ? "Deleting..." 
+                        : currentProfile?.subscription_status === 'active'
+                          ? "Cancel Subscription First"
+                          : "Delete Account"
+                      }
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
