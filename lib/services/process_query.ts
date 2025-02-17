@@ -238,9 +238,7 @@ class QueryService {
         }
 
         const hasError = 
-          job.status === 'error' || 
-          job.error_message || 
-          (job.message && job.message.toLowerCase().includes('error'));
+          job.status === 'error'
 
         if (hasError) {
           const errorMessage = job.error_message || job.message || 'Backend processing error';

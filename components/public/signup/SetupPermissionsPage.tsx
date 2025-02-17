@@ -19,7 +19,7 @@ export function SetupPermissionsPage() {
           <h1 className="text-2xl font-bold">Set Up Permissions</h1>
           <div className="bg-primary/10 border-2 border-primary rounded-lg p-4">
           <p className="text-xs text-foreground">
-                  Please accept all Google or Microsoft permissions to get the most out of this application.
+          All Google or Microsoft permissions must be accepted in order to integrate with the respective service.
                 </p>
           </div>
         </div>

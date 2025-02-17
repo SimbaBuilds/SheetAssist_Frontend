@@ -1,1 +1,1 @@
-export const TOKEN_EXPIRY = 30 // minute(s)
+export const TOKEN_EXPIRY = 4320 // minute(s)

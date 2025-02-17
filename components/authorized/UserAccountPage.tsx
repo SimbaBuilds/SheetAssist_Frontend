@@ -292,7 +292,7 @@ export function UserAccountPage({ profile, user, usage }: UserAccountPageProps) 
             <CardDescription className="space-y-2">
               <span className="block">
                 <p className="text-xs text-foreground">
-                  Please accept all Google or Microsoft permissions to get the most out of this application.
+                  All Google or Microsoft permissions must be accepted in order to integrate with the respective service.
                 </p>
               </span>
               <span className="block">
