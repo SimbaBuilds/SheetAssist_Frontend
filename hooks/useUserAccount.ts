@@ -171,16 +171,6 @@ export function useUserAccount({
     try {
       setIsUpdating(true)
       await handleGoogleSetup()
-      
-      const { error } = await supabase
-        .from('user_profile')
-        .update({ google_permissions_set: true })
-        .eq('id', user.id)
-
-      if (error) throw error
-
-      setUserProfile(prev => ({ ...prev, google_permissions_set: true }))
-      
       toast({
         title: "Success",
         description: "Google permissions have been set up successfully.",

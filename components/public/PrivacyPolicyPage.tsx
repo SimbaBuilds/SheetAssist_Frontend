@@ -50,7 +50,7 @@ export default function PrivacyPolicyPage() {
             <li>Google drive.file scope: This google scope is a truly file specific scope that only gives us access to your selected file for one hour.  We can only access, read, and edit the Google file you select.  Additionally, our application is programmed to only perform additive edits.  Data will only be appended to a current sheet or added to a new sheet - never replacing existing data.</li>
           </ul>
           <ul className="list-disc pl-6 mt-2 space-y-2 text-muted-foreground">
-          <li>Google spreadsheets and drive.readonly scopes: Unfortunately, we must request these broader scopes as the drive.file scope and picker functionality only provide one hour non-refreshable access tokens.  If this token expires during backend processing, much time consuming friction and complexity is introduced to the user experience thus the need for these broader permissions.
+          <li>Google spreadsheets and drive.readonly scopes: Unfortunately, we must request these broader scopes as the drive.file scope and picker functionality only provide one hour non-refreshable access tokens.  If this token expires during backend processing, much time consuming friction and complexity is introduced to the user experience -- thus the need for these broader permissions.
             </li>
           </ul>
 

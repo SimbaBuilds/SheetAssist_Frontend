@@ -3,9 +3,17 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { DOCUMENT_SCOPES } from '@/lib/constants/scopes'
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token'
 const MICROSOFT_TOKEN_URL = 'https://login.microsoftonline.com/common/oauth2/v2.0/token'
+
+function hasAllRequiredScopes(grantedScopes: string): boolean {
+  const requiredScopes = DOCUMENT_SCOPES.google.split(' ')
+  const grantedScopesList = grantedScopes.split(' ')
+  
+  return requiredScopes.every(scope => grantedScopesList.includes(scope))
+}
 
 async function exchangeCodeForTokens(code: string, provider: string, redirectUri: string) {
   const tokenUrl = provider === 'google' ? GOOGLE_TOKEN_URL : MICROSOFT_TOKEN_URL
@@ -107,13 +115,15 @@ export async function GET(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
+    const hasAllScopes = provider === 'google' ? hasAllRequiredScopes(tokens.scope) : true
+
     if (profileCheckError) {
       // Create profile if it doesn't exist
       const { error: createError } = await supabase
         .from('user_profile')
         .insert({
           id: user.id,
-          google_permissions_set: true,
+          google_permissions_set: provider === 'google' ? hasAllScopes : false,
           terms_acceptance: [{
             acceptedAt: new Date().toISOString(),
             termsVersion: "1.0"
@@ -127,24 +137,26 @@ export async function GET(request: NextRequest) {
         )
       }
     } else {
-      // Update existing profile
-      const { error: updateError } = await supabase
-        .from('user_profile')
-        .update({
-          google_permissions_set: true
-        })
-        .eq('id', user.id)
+      // Update existing profile only if all scopes are present for Google
+      if (provider === 'google' && hasAllScopes) {
+        const { error: updateError } = await supabase
+          .from('user_profile')
+          .update({
+            google_permissions_set: true
+          })
+          .eq('id', user.id)
 
-      if (updateError) {
-        console.error('Profile update error:', updateError)
-        return NextResponse.redirect(
-          `${requestUrl.origin}/dashboard?error=profile_update`
-        )
+        if (updateError) {
+          console.error('Profile update error:', updateError)
+          return NextResponse.redirect(
+            `${requestUrl.origin}/dashboard?error=profile_update`
+          )
+        }
       }
     }
 
     const response = NextResponse.redirect(
-      `${requestUrl.origin}/dashboard?setup=success`
+      `${requestUrl.origin}/dashboard?setup=${hasAllScopes ? 'success' : 'incomplete_permissions'}`
     )
 
     return response
