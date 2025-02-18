@@ -59,7 +59,7 @@ export function GeneratingVisualizationDialog({
               </div>
             </div>
             <p className="text-sm text-muted-foreground mt-2 text-base">
-               We&apos;ve lost connection to your Google or Microsoft account. Please reconnect the necessary service in your account settings and re-enter URL.
+               We&apos;ve lost connection to your Google or Microsoft account. Please reconnect the necessary service in your account settings.
             </p>
           </>
         )
