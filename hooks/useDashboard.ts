@@ -424,13 +424,39 @@ export function useDashboard(initialData?: UserPreferences) {
     }
   };
 
-  const handleCancel = () => {
-    if (abortController) {
+  const handleCancel = async () => {
+    if (abortController && processedResult?.job_id) {
+      console.log('Canceling request', { jobId: processedResult.job_id });
+      
+      // Update job status in database
+      const supabase = createClient();
+      try {
+        const { error } = await supabase
+          .from('jobs')
+          .update({
+            status: 'canceled',
+            message: 'Request was canceled by user',
+            completed_at: new Date().toISOString()
+          })
+          .eq('job_id', processedResult.job_id);
+
+        if (error) {
+          console.error('Failed to update job status:', error);
+        }
+      } catch (error) {
+        console.error('Error updating job status:', error);
+      }
+
+      // Abort the request and clean up
       abortController.abort();
       setAbortController(null);
       setIsProcessing(false);
       setShowResultDialog(false);
       setError('Request was canceled');
+      setProcessingState({
+        status: 'canceled',
+        message: 'Request was canceled'
+      });
     }
   };
 
