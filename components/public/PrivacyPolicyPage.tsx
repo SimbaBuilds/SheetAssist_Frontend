@@ -47,10 +47,12 @@ export default function PrivacyPolicyPage() {
             Google Permissions:
           </p>
           <ul className="list-disc pl-6 mt-2 space-y-2 text-muted-foreground">
-            <li>Google drive.file scope: This google scope is a truly file specific scope that only gives us access to your selected file for one hour.  We can only access, read, and edit the Google file you select.  Additionally, our application is programmed to only perform additive edits.  Data will only be appended to a current sheet or added to a new sheet - never replacing existing data.</li>
+            <li>Google drive.file scope: This google scope is a file specific scope that only gives us access to your selected file for one hour.  However, we must ask for addiitonal broader scopes - see below.
+
+            </li>
           </ul>
           <ul className="list-disc pl-6 mt-2 space-y-2 text-muted-foreground">
-          <li>Google spreadsheets and drive.readonly scopes: Unfortunately, we must request these broader scopes as the drive.file scope and picker functionality only provide one hour non-refreshable access tokens.  If this token expires during backend processing, much time consuming friction and complexity is introduced to the user experience -- thus the need for these broader permissions.
+          <li>Google spreadsheets and drive.readonly scopes: Unfortunately, we must request this broader scope as the drive.file scope and picker functionality only provide one hour non-refreshable access tokens.  If this token expires during backend processing, much time consuming friction and complexity is introduced to the user experience -- thus the need for this broader permission.  However, we will not access, modify, or read files that you do not use within the app.  
             </li>
           </ul>
 
@@ -60,7 +62,7 @@ export default function PrivacyPolicyPage() {
           <ul className="list-disc pl-6 mt-2 space-y-2 text-muted-foreground">
             <li> offline_access, email, User.Read, openid: These are basic permissions that are required to interact with the Microsoft API.
             </li>
-            <li> Files.ReadWrite: This is a scope we would prefer not to ask for as it is not a file specific scope like the Google drive.file scope.  Unfortunately, the Microsoft ReadWrite.Selected file specific scope introduces more friction to the user experience, so we decided to ask for this broader scope.  However, our app uses picker tokens that only give us access to your selected file for 30 minutes.  We will not access, modify, or read files that you do not use within the app.  Additionally, our application is programmed to only perform additive edits.  Data will only be appended to a current sheet or added to a new sheet - never replacing existing data.  
+            <li> Files.ReadWrite: Unfortunately, the Microsoft ReadWrite.Selected file specific scope introduces unnecessary friction to the user experience, so we must ask for this broader scope.  However, we will not access, modify, or read files that you do not use within the app.  
             </li>
           </ul>
           <p className="text-muted-foreground mt-2">
