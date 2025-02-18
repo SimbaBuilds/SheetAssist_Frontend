@@ -63,6 +63,9 @@ export default function PrivacyPolicyPage() {
             <li> Files.ReadWrite: This is a scope we would prefer not to ask for as it is not a file specific scope like the Google drive.file scope.  Unfortunately, the Microsoft ReadWrite.Selected file specific scope introduces more friction to the user experience, so we decided to ask for this broader scope.  However, our app uses picker tokens that only give us access to your selected file for 30 minutes.  We will not access, modify, or read files that you do not use within the app.  Additionally, our application is programmed to only perform additive edits.  Data will only be appended to a current sheet or added to a new sheet - never replacing existing data.  
             </li>
           </ul>
+          <p className="text-muted-foreground mt-2">
+          Note: Our application will not store, modfiy, or delete your files.  All actions performed on your spreadsheets are true append operations, meaning content can only be added on to existing sheets or to new sheets — no modification or replacement of existing data.  Furthermore, the AI lanugage models working in the background do not have direct access to your spreadsheets — only to preprocessed versions of low level data (dataframes and strings).
+          </p>
           <p className="text-muted-foreground mt-8">
             If you have any questions about this Privacy Policy, please <Link href="/contact-us" className="underline hover:text-primary">contact us</Link>.
           </p>
