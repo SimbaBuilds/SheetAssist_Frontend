@@ -34,7 +34,6 @@ export default function LandingPage() {
         <p className="text-xl md:text-1xl text-muted-foreground max-w-3xl mx-auto mb-12">
           Automates data entry, spreadsheet operations, and data visualization with AI.<br/> 
           Integrates with Google and Microsoft services. <br/> 
-          Delivers consistent, reliable results. <br/>
           Saves you hours. 
         </p>
         <Button size="lg" asChild>
