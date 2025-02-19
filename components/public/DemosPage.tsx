@@ -22,16 +22,16 @@ const demoVideos: Record<string, VideoDemo[]> = {
   ],
   "Spreadsheet Operations": [
     {
-        title: "Summary Statistics (Mock Student Data)",
+        title: "SheetAssist Calculates Summary Statistics",
         description: "",
         youtubeId: "SVoWQO0ReCU",
         url: "https://youtu.be/SVoWQO0ReCU"
       },
     {
-      title: "Text-Based PDF",
-      description: "Convert long text-based PDFs to sheets",
-      youtubeId: "tQ7oQQkNo3U",
-      url: "https://youtu.be/tQ7oQQkNo3U"
+      title: "SheetAssist Processes Large Text-Based PDF",
+      description: "",
+      youtubeId: "UBgJCJX427o",
+      url: "https://youtu.be/UBgJCJX427o"
     },
     {
       title: "Sheet Operation (Merge -- .csv to .xlsx)",
