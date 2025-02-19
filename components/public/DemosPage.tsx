@@ -34,14 +34,14 @@ const demoVideos: Record<string, VideoDemo[]> = {
       url: "https://youtu.be/UBgJCJX427o"
     },
     {
-      title: "Sheet Operation (Merge -- .csv to .xlsx)",
-      description: "If you are not comfortable or cannot give us access to your Google/Microsoft files, SheetAssist can still automate your workflows",
-      youtubeId: "n8Azg2f1ghU",
-      url: "https://youtu.be/n8Azg2f1ghU"
+      title: "SheetAssist Merges Sheets with Special Instructions",
+      description: "",
+      youtubeId: "JP24Z2H7mgM",
+      url: "https://youtu.be/JP24Z2H7mgM"
     },
     {
       title: "SheetAssist Handles a Complex Request",
-      description: "Give nuanced requests to our AI powered application -- we look forward to seeing what interesting requests you come up with!",
+      description: "",
       youtubeId: "plQVHKCvFkE",
       url: "https://youtu.be/plQVHKCvFkE"
     }
