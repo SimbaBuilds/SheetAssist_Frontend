@@ -16,8 +16,8 @@ const demoVideos: Record<string, VideoDemo[]> = {
     {
       title: "SheetAssist Batch Processes Scanned PDFs",
       description: "",
-      youtubeId: "UBgJCJX427o",
-      url: "https://youtu.be/UBgJCJX427o"
+      youtubeId: "JSq0pkEk5JA",
+      url: "https://youtu.be/JSq0pkEk5JA"
     }
   ],
   "Spreadsheet Operations": [
