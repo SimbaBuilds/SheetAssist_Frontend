@@ -22,10 +22,10 @@ const demoVideos: Record<string, VideoDemo[]> = {
   ],
   "Spreadsheet Operations": [
     {
-        title: "Sheet Operation (Mock Student Data)",
+        title: "Summary Statistics (Mock Student Data)",
         description: "",
-        youtubeId: "bPjA79I2vas",
-        url: "https://youtu.be/bPjA79I2vas"
+        youtubeId: "SVoWQO0ReCU",
+        url: "https://youtu.be/SVoWQO0ReCU"
       },
     {
       title: "Text-Based PDF",
@@ -42,8 +42,8 @@ const demoVideos: Record<string, VideoDemo[]> = {
     {
       title: "Complex Prompt",
       description: "Give nuanced requests to our AI powered application -- we look forward to seeing what interesting requests you come up with!",
-      youtubeId: "3ifN5SSA22Q",
-      url: "https://youtu.be/3ifN5SSA22Q"
+      youtubeId: "plQVHKCvFkE",
+      url: "https://youtu.be/plQVHKCvFkE"
     }
   ],
   "Data Visualization": [
