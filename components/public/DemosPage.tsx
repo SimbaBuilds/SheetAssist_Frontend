@@ -40,7 +40,7 @@ const demoVideos: Record<string, VideoDemo[]> = {
       url: "https://youtu.be/n8Azg2f1ghU"
     },
     {
-      title: "Complex Prompt",
+      title: "SheetAssist Handles a Complex Request",
       description: "Give nuanced requests to our AI powered application -- we look forward to seeing what interesting requests you come up with!",
       youtubeId: "plQVHKCvFkE",
       url: "https://youtu.be/plQVHKCvFkE"
@@ -48,10 +48,10 @@ const demoVideos: Record<string, VideoDemo[]> = {
   ],
   "Data Visualization": [
     {
-      title: "Data Visualization Example",
+      title: "SheetAssist Visualizes Stock Portfolio",
       description: "",
-      youtubeId: "pWZ7yMLMaQg",
-      url: "https://youtu.be/pWZ7yMLMaQg"
+      youtubeId: "iDlqQdaE6EA",
+      url: "https://youtu.be/iDlqQdaE6EA"
     }
   ]
 }
