@@ -54,9 +54,9 @@ export async function trackUsage({
     
     // Map type to event name
     const eventName = {
-      'processing': 'standard_processing',
-      'visualizations': 'visualization',
-      'images': 'image_input'
+      'processing': 'standard_processing_04',
+      'visualizations': 'visualization_04',
+      'images': 'image_input_04'
     }[type];
 
     if (!eventName) {
@@ -80,7 +80,7 @@ export async function trackUsage({
       const meterEvent = await reportUsage({
         stripeCustomerId,
         eventName,
-        quantity: eventName === 'image_input' ? imagesToLog || 1 : 1,
+        quantity: eventName === 'image_input_04' ? imagesToLog || 1 : 1,
       });
       
       console.log(`[Stripe Usage] Successfully reported usage:`, {

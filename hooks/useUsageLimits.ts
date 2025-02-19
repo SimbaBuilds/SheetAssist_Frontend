@@ -21,7 +21,7 @@ interface UsageLimits {
   overageThisMonth: number
 }
 
-const COST_PER_OVERAGE = 0.08 // 8 cents per overage item
+const COST_PER_OVERAGE = 0.04 // 4 cents per overage item
 
 export function useUsageLimits(): UsageLimits {
   const { user } = useAuth()
