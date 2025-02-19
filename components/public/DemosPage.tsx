@@ -14,10 +14,10 @@ interface VideoDemo {
 const demoVideos: Record<string, VideoDemo[]> = {
   "Batch Processing with AI": [
     {
-      title: "SheetAssist Batch Processes Scanned PDFs",
+      title: "SheetAssist Batch Processes Scanned PDF Pages",
       description: "",
       youtubeId: "JSq0pkEk5JA",
-      url: "https://youtu.be/JSq0pkEk5JA"
+      url: "https://youtu.be/JSq0pkEk5JA" //new thumbnail
     }
   ],
   "Spreadsheet Operations": [
