@@ -1,5 +1,5 @@
 import type { SheetTitleKey, Workbook } from '@/lib/types/dashboard'
-import { MAX_FILE_SIZE, ACCEPTED_FILE_TYPES } from '@/lib/constants/file-types'
+import { MAX_FILES, MAX_FILE_SIZE, ACCEPTED_FILE_TYPES, PDF_PROCESSING_RATE } from '@/lib/constants/file-types'
 
 // URL-related utilities
 export const getUrlProvider = (url: string): 'google' | 'microsoft' | null => {
@@ -158,4 +158,48 @@ export function logFormState(context: string, data: unknown) {
   console.group(`Form State Update - ${context}`);
   console.log(JSON.stringify(data, null, 2));
   console.groupEnd();
+}
+
+export async function estimateProcessingTime(files: File[]): Promise<number> {
+  let totalPages = 0;
+  
+  for (const file of files) {
+    if (file.type === 'application/pdf') {
+      try {
+        // Using dynamic import for pdfjs-dist
+        const pdfjsLib = await import('pdfjs-dist');
+        const pdf = await pdfjsLib.getDocument(await file.arrayBuffer()).promise;
+        totalPages += pdf.numPages;
+      } catch (error) {
+        console.error('Error counting PDF pages:', error);
+        // If we can't count pages, assume 1 page to avoid blocking submission
+        totalPages += 1;
+      }
+    }
+  }
+  
+  // Calculate estimated processing time in minutes
+  return totalPages / PDF_PROCESSING_RATE;
+}
+
+export function shouldRefreshToken(
+  estimatedProcessingTime: number,
+  tokenExpiry: string | undefined | null
+): boolean {
+  if (!tokenExpiry) return true;
+  
+  try {
+    const expiryDate = new Date(tokenExpiry);
+    const now = new Date();
+    const minutesUntilExpiry = (expiryDate.getTime() - now.getTime()) / (1000 * 60);
+    console.log('[shouldRefreshToken] Token expiry check:', {
+      expiryDate: expiryDate.toISOString(),
+      currentTime: now.toISOString(),
+      minutesUntilExpiry: minutesUntilExpiry.toFixed(2)
+    });
+    // Return true if token will expire before processing completes
+    return minutesUntilExpiry < estimatedProcessingTime;
+  } catch {
+    return true;
+  }
 } 

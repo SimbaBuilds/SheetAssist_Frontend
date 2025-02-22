@@ -4,7 +4,7 @@ import {downloadFile} from '@/lib/services/download_file'
 import {getSheetNames} from '@/lib/services/get_sheet_names'
 import { createClient } from '@/lib/supabase/client'
 import type { DownloadFileType, DashboardInitialData, OutputPreferences, QueryResponse, SheetTitleMap, OnlineSheet, ProcessingState } from '@/lib/types/dashboard'
-import { MAX_FILES, MAX_FILE_SIZE } from '@/lib/constants/file-types'
+import { MAX_FILES, MAX_FILE_SIZE, MAX_PDF_PAGES, PDF_PROCESSING_RATE } from '@/lib/constants/file-types'
 import { TOKEN_EXPIRY } from '@/lib/constants/token_expiry'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/use-toast'
@@ -16,7 +16,9 @@ import {
   validateCumulativeFileSize,
   getUrlProvider,
   isTokenExpired,
-  logFormState
+  logFormState,
+  estimateProcessingTime,
+  shouldRefreshToken
 } from '@/lib/utils/dashboard-utils'
 import { queryService } from '@/lib/services/process_query'
 import { useUsageLimits } from '@/hooks/useUsageLimits'
@@ -443,6 +445,92 @@ export function useDashboard(initialData?: UserPreferences) {
 
     if (outputType === 'online' && !selectedDestinationSheet) {
       setDestinationUrlError('Please select a destination sheet');
+      return;
+    }
+
+    // Validate PDF page count and estimate processing time
+    try {
+      let totalPages = 0;
+      for (const file of files) {
+        if (file.type === 'application/pdf') {
+          try {
+            const pdfjsLib = await import('pdfjs-dist');
+            const pdf = await pdfjsLib.getDocument(await file.arrayBuffer()).promise;
+            totalPages += pdf.numPages;
+            console.log('[handleSubmit] PDF page count:', { totalPages });
+          } catch (error) {
+            console.error('Error counting PDF pages:', error);
+            totalPages += 1; // Assume 1 page if we can't count
+          }
+        }
+      }
+
+      // Check if total pages exceed limit
+      if (totalPages > MAX_PDF_PAGES) {
+        setError(`Total PDF pages (${totalPages}) exceeds the maximum limit of ${MAX_PDF_PAGES} pages.`);
+        return;
+      }
+
+      const estimatedTime = totalPages / PDF_PROCESSING_RATE;
+      
+      // Check if any sheet tokens will expire before processing completes
+      let needsReauth = false;
+      let expiredProvider: 'google' | 'microsoft' | null = null;
+      let expiredSheets: string[] = [];
+
+      // Check input sheets
+      for (const sheet of selectedOnlineSheets) {
+        if (shouldRefreshToken(estimatedTime, sheet.token_expiry)) {
+          expiredSheets.push(`${sheet.doc_name} - ${sheet.sheet_name}`);
+          if (!expiredProvider && sheet.provider && 
+              (sheet.provider === 'google' || sheet.provider === 'microsoft')) {
+            expiredProvider = sheet.provider;
+            needsReauth = true;
+          }
+        }
+      }
+
+      // Check destination sheet if using online output
+      if (outputType === 'online' && selectedDestinationSheet) {
+        if (shouldRefreshToken(estimatedTime, selectedDestinationSheet.token_expiry)) {
+          console.log('[handleSubmit] Destination sheet token will expire during processing:', {
+            estimatedTime,
+            tokenExpiry: selectedDestinationSheet.token_expiry
+          });
+          expiredSheets.push(`${selectedDestinationSheet.doc_name} - ${selectedDestinationSheet.sheet_name}`);
+          if (!expiredProvider && selectedDestinationSheet.provider && 
+              (selectedDestinationSheet.provider === 'google' || selectedDestinationSheet.provider === 'microsoft')) {
+            expiredProvider = selectedDestinationSheet.provider;
+            needsReauth = true;
+          }
+        }
+      }
+
+      if (needsReauth && expiredProvider) {
+        console.log('[handleSubmit] Token(s) will expire during processing:', {
+          estimatedTime,
+          expiredProvider,
+          expiredSheets
+        });
+
+        // Clear sheets from expired provider
+        setSelectedSheets(prev => prev.filter(sheet => sheet.provider !== expiredProvider));
+        if (selectedDestinationSheet?.provider === expiredProvider) {
+          setSelectedDestinationSheet(null);
+        }
+
+        setError(`Based on the estimated processing time (${Math.ceil(estimatedTime)} minutes), we need to refresh access to your sheets.`);
+        toast({
+          title: "Access Refresh Required",
+          description: `Based on the estimated processing time (${Math.ceil(estimatedTime)} minutes), we need to refresh access to your sheets.`,
+          className: "bg-destructive text-destructive-foreground"
+        });
+        inputPicker.launchProviderPicker(expiredProvider);
+        return;
+      }
+    } catch (error) {
+      console.error('Error validating files:', error);
+      setError('Error validating files. Please try again.');
       return;
     }
 
