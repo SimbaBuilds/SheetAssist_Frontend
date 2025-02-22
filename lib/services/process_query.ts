@@ -17,7 +17,6 @@ interface CancellableError extends Error {
 
 // Helper function to update user usage statistics
 async function updateUserUsage(userId: string, success: boolean, numImagesProcessed: number = 0) {
-  console.log('Starting updateUserUsage', { userId, success, numImagesProcessed });
   const supabase = createClient();
   
   // Get current usage data
@@ -74,7 +73,6 @@ async function updateUserUsage(userId: string, success: boolean, numImagesProces
       if (subscriptionId) {
         // Track processing usage if over limit
         if (newRequestCount > PLAN_REQUEST_LIMITS.pro) {
-          console.log('Tracking processing usage overage', { userId, newRequestCount, limit: PLAN_REQUEST_LIMITS.pro });
           try {
             await trackUsage({
               subscriptionId,
@@ -501,10 +499,6 @@ class QueryService {
 
     // Wait for all S3 uploads to complete
     if (fileUploads.length > 0) {
-      console.log('Waiting for S3 uploads to complete', { 
-        numUploads: fileUploads.length,
-        jobId: job.job_id 
-      });
       await Promise.all(fileUploads);
     }
 
@@ -525,11 +519,6 @@ class QueryService {
         message: 'Processing your request...'
       });
 
-      console.log('Sending request to backend', { 
-        jobId: job.job_id,
-        hasFiles: filesMetadata.length > 0,
-        numUrls: webUrls.length 
-      });
 
       // Start both the API call and polling in parallel
       const [apiResponse] = await Promise.all([

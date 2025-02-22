@@ -167,7 +167,6 @@ export function useFilePicker() {
     userId: string,
     supabase: any
   ): Promise<{ success: boolean; access_token?: string }> {
-    console.log(`[refreshAccessToken] Attempting to refresh ${provider} token for user ${userId}`);
     
     try {
       // Get current tokens
@@ -298,11 +297,9 @@ export function useFilePicker() {
     fileInfo: FileInfo | null
     error?: string
   }> {
-    console.log('[verifyFileAccess] Starting file access verification for URL:', url);
     const fileInfo = extractFileInfo(url)
 
     if (!fileInfo || !user?.id) {
-      console.log('[verifyFileAccess] Invalid URL or no user ID');
       return {
         hasPermission: false,
         fileInfo: null,
@@ -321,7 +318,6 @@ export function useFilePicker() {
 
       // If token exists but might be expired, try refreshing
       if (accessData && new Date(accessData.expires_at) < new Date()) {
-        console.log('[verifyFileAccess] Token expired, attempting refresh');
         const refreshResult = await refreshAccessToken(fileInfo.provider, user.id, supabase);
         
         if (refreshResult.success && refreshResult.access_token) {
@@ -409,19 +405,15 @@ export function useFilePicker() {
       // Remove Google API script
       const gapiScript = document.querySelector('script[src*="apis.google.com"]');
       if (gapiScript) {
-        console.log('[useFilePicker] Removing Google API script');
         gapiScript.remove();
       } else {
-        console.log('[useFilePicker] No Google API script found to remove');
       }
       
       // Clear any Google API instances
       if (window.gapi) {
-        console.log('[useFilePicker] Clearing window.gapi');
         delete window.gapi;
       }
       if (window.google?.picker) {
-        console.log('[useFilePicker] Clearing window.google.picker');
         delete window.google.picker;
       }
     }
@@ -471,7 +463,6 @@ export function useFilePicker() {
         .single();
 
       if (accessData && new Date(accessData.expires_at) < new Date()) {
-        console.log('[openGooglePicker] Token expired, attempting refresh');
         const refreshResult = await refreshAccessToken('google', user?.id!, supabase);
         
         if (refreshResult.success && refreshResult.access_token) {
@@ -524,11 +515,9 @@ export function useFilePicker() {
           .setOrigin(window.location.protocol + '//' + window.location.host)
           .setDeveloperKey(process.env.NEXT_PUBLIC_GOOGLE_API_KEY!)
           .setCallback((data: any) => {
-            console.log('[openGooglePicker] Picker callback data:', data);
             
             if (data.action === window.google.picker.Action.PICKED) {
               const doc = data.docs[0];
-              console.log('[openGooglePicker] Selected document:', doc);
               
               // Get the OAuth token either from the picker response or use the existing one
               const oauthToken = data.oauthToken || access_token;
@@ -566,7 +555,6 @@ export function useFilePicker() {
           .build();
 
         picker.setVisible(true);
-        console.log('[openGooglePicker] Picker dialog opened');
       });
     } catch (error) {
       if (error instanceof Error && 

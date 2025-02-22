@@ -71,8 +71,8 @@ export function useDataVisualization({ sheetTitles, setSheetTitles }: UseDataVis
         throw new Error('Invalid URL provider');
       }
 
-      // Calculate token expiry (30 minutes from now)
-      const tokenExpiry = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+      // Calculate token expiry 
+      const tokenExpiry = new Date(Date.now() + TOKEN_EXPIRY * 60 * 1000).toISOString();
 
       // Create new sheet entry
       const newSheet: OnlineSheet = {

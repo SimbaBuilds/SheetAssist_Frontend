@@ -1,5 +1,17 @@
+import '@ungap/with-resolvers';
 import type { SheetTitleKey, Workbook } from '@/lib/types/dashboard'
-import { MAX_FILE_SIZE, ACCEPTED_FILE_TYPES } from '@/lib/constants/file-types'
+import { MAX_FILE_SIZE, ACCEPTED_FILE_TYPES, MAX_PDF_PAGES, PDF_PROCESSING_RATE } from '@/lib/constants/file-types'
+import * as pdfjs from 'pdfjs-dist'
+
+// Initialize PDF.js worker lazily
+let isWorkerInitialized = false;
+async function initializeWorker() {
+  if (!isWorkerInitialized) {
+    // @ts-expect-error: pdf.worker.min.mjs is not typed
+    await import('pdfjs-dist/build/pdf.worker.min.mjs');
+    isWorkerInitialized = true;
+  }
+}
 
 // URL-related utilities
 export const getUrlProvider = (url: string): 'google' | 'microsoft' | null => {
@@ -124,12 +136,7 @@ export function isTokenExpired(tokenExpiry: string | undefined | null): boolean 
     const isExpired = expiryDate.getTime() < now.getTime();
     const minutesUntilExpiry = (expiryDate.getTime() - now.getTime()) / (1000 * 60);
     
-    console.log('[isTokenExpired] Token expiry check:', {
-      expiryDate: expiryDate.toISOString(),
-      currentTime: now.toISOString(),
-      isExpired,
-      minutesUntilExpiry: minutesUntilExpiry.toFixed(2)
-    });
+
     
     return isExpired;
   } catch {
@@ -158,4 +165,55 @@ export function logFormState(context: string, data: unknown) {
   console.group(`Form State Update - ${context}`);
   console.log(JSON.stringify(data, null, 2));
   console.groupEnd();
+}
+
+// PDF processing utilities
+export async function getPdfPageCount(file: File): Promise<number> {
+  if (file.type !== 'application/pdf') {
+    return 0;
+  }
+  
+  try {
+    await initializeWorker();
+    
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+    console.log('[getPdfPageCount] PDF page count:', pdf.numPages);
+    return pdf.numPages;
+  } catch (error: any) {
+    console.error('[getPdfPageCount] Error getting PDF page count:', error);
+    throw new Error(`Failed to get page count for ${file.name}: ${error?.message || 'Unknown error'}`);
+  }
+}
+
+export async function estimateProcessingTime(files: File[]): Promise<{ 
+  totalPages: number;
+  estimatedMinutes: number;
+  exceedsLimit: boolean;
+}> {
+  let totalPages = 0;
+  
+  try {
+    // Get page counts for all PDF files
+    const pageCounts = await Promise.all(
+      files.map(async (file) => {
+        if (file.type === 'application/pdf') {
+          return getPdfPageCount(file);
+        }
+        return 0;
+      })
+    );
+    
+    totalPages = pageCounts.reduce((sum, count) => sum + count, 0);
+    console.log('[estimateProcessingTime] Total pages:', totalPages, 'Estimated minutes:', totalPages / PDF_PROCESSING_RATE);
+    
+    return {
+      totalPages,
+      estimatedMinutes: totalPages / PDF_PROCESSING_RATE,
+      exceedsLimit: totalPages > MAX_PDF_PAGES
+    };
+  } catch (error: any) {
+    console.error('[estimateProcessingTime] Error estimating processing time:', error);
+    throw new Error('Failed to estimate processing time: ' + (error?.message || 'Unknown error'));
+  }
 } 

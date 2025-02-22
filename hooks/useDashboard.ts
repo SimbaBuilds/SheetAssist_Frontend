@@ -4,7 +4,7 @@ import {downloadFile} from '@/lib/services/download_file'
 import {getSheetNames} from '@/lib/services/get_sheet_names'
 import { createClient } from '@/lib/supabase/client'
 import type { DownloadFileType, DashboardInitialData, OutputPreferences, QueryResponse, SheetTitleMap, OnlineSheet, ProcessingState } from '@/lib/types/dashboard'
-import { MAX_FILES, MAX_FILE_SIZE } from '@/lib/constants/file-types'
+import { MAX_FILES, MAX_FILE_SIZE, MAX_PDF_PAGES } from '@/lib/constants/file-types'
 import { TOKEN_EXPIRY } from '@/lib/constants/token_expiry'
 import { useRouter } from 'next/navigation'
 import { useToast } from '@/components/ui/use-toast'
@@ -16,7 +16,8 @@ import {
   validateCumulativeFileSize,
   getUrlProvider,
   isTokenExpired,
-  logFormState
+  logFormState,
+  estimateProcessingTime
 } from '@/lib/utils/dashboard-utils'
 import { queryService } from '@/lib/services/process_query'
 import { useUsageLimits } from '@/hooks/useUsageLimits'
@@ -113,6 +114,7 @@ export function useDashboard(initialData?: UserPreferences) {
         picker_token: pickerToken || '',
         token_expiry: tokenExpiry || new Date(Date.now() - 1000).toISOString() // If no new token, set as expired
       };
+      console.log('[updateRecentSheets] New sheet:', newSheet);
 
       // Update recentUrls state - filter out expired and matching sheets
       setRecentUrls(prev => {
@@ -320,7 +322,7 @@ export function useDashboard(initialData?: UserPreferences) {
   //   });
   // }, [files, query, outputType, downloadFileType, selectedOnlineSheets, selectedDestinationSheet, allowSheetModification, sheetTitles]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || [])
     const newErrors: FileError[] = []
     const validFiles: File[] = []
@@ -337,7 +339,7 @@ export function useDashboard(initialData?: UserPreferences) {
     const currentTotalSize = files.reduce((sum, file) => sum + file.size, 0);
 
     // Validate each file
-    selectedFiles.forEach(file => {
+    for (const file of selectedFiles) {
       const sizeError = validateCumulativeFileSize(file, files, MAX_FILE_SIZE);
       const validationError = validateFile(file);
       
@@ -353,7 +355,80 @@ export function useDashboard(initialData?: UserPreferences) {
       } else {
         validFiles.push(file);
       }
-    })
+    }
+
+    // Check PDF page count limits
+    if (validFiles.length > 0) {
+      try {
+        const allFiles = [...files, ...validFiles];
+        const { totalPages, estimatedMinutes, exceedsLimit } = await estimateProcessingTime(allFiles);
+        console.log('[handleFileChange] Estimated processing time:', {
+          totalPages,
+          estimatedMinutes,
+          exceedsLimit
+        });
+        if (exceedsLimit) {
+          setError(`Total PDF pages (${totalPages}) exceeds limit of ${MAX_PDF_PAGES} pages`);
+          e.target.value = '';
+          return;
+        }
+
+        // Check if processing time would exceed token expiry for any selected sheets
+        if (selectedOnlineSheets.length > 0) {
+          let earliestExpiry = null;
+          let expiringSheet = null;
+
+          // Find the sheet with earliest expiry
+          for (const sheet of selectedOnlineSheets) {
+            if (!sheet.token_expiry) continue;
+            const expiryTime = new Date(sheet.token_expiry).getTime();
+            if (!earliestExpiry || expiryTime < earliestExpiry) {
+              earliestExpiry = expiryTime;
+              expiringSheet = sheet;
+            }
+          }
+          console.log('[handleFileChange] Earliest expiry:', {
+            earliestExpiry,
+            selectedOnlineSheets
+          });
+          if (earliestExpiry && expiringSheet) {
+            const minutesUntilExpiry = (earliestExpiry - Date.now()) / (1000 * 60);
+            if (estimatedMinutes > minutesUntilExpiry) {
+              console.log('[handleFileChange] Estimated processing time exceeds token expiry:', {
+                estimatedMinutes,
+                minutesUntilExpiry,
+                earliestExpiry,
+                expiringSheet
+              });
+
+              if (expiringSheet.provider && 
+                  (expiringSheet.provider === 'google' || expiringSheet.provider === 'microsoft')) {
+                const message = `Estimated processing time (${Math.ceil(estimatedMinutes)} minutes) exceeds token expiry. Please reconnect to ${expiringSheet.provider}.`;
+                setError(message);
+                toast({
+                  title: "Token Expiry Warning",
+                  description: message,
+                  className: "bg-destructive text-destructive-foreground"
+                });
+
+                // Clear files before redirecting
+                setFiles([]);
+                e.target.value = '';
+                console.log('[handleFileChange] Redirecting to reauth');
+                // Redirect to reauth
+                router.push(`/auth/setup-permissions?provider=${expiringSheet.provider}&reauth=true`);
+                return;
+              }
+            }
+          }
+        }
+      } catch (error: any) {
+        console.error('[handleFileChange] Error processing PDFs:', error);
+        setError(error?.message || 'Failed to process PDF files');
+        e.target.value = '';
+        return;
+      }
+    }
 
     setFileErrors(newErrors)
     if (validFiles.length > 0) {
@@ -490,7 +565,8 @@ export function useDashboard(initialData?: UserPreferences) {
 
     // Check for expired tokens using First Expired Provider approach
     const checkExpiredTokens = () => {
-      let expiredProvider: 'google' | 'microsoft' | null = null;
+      let earliestExpiry = null;
+      let expiringSheet = null;
       let expiredSheets: string[] = [];
 
       // Check input sheets
@@ -501,12 +577,18 @@ export function useDashboard(initialData?: UserPreferences) {
           token_expiry: sheet.token_expiry
         });
 
+        if (!sheet.token_expiry) continue;
+        const expiryTime = new Date(sheet.token_expiry).getTime();
+        
         if (isTokenExpired(sheet.token_expiry)) {
           expiredSheets.push(`${sheet.doc_name} - ${sheet.sheet_name}`);
-          if (!expiredProvider && sheet.provider && 
+          if (!expiringSheet && sheet.provider && 
               (sheet.provider === 'google' || sheet.provider === 'microsoft')) {
-            expiredProvider = sheet.provider;
+            expiringSheet = sheet;
           }
+        } else if (!earliestExpiry || expiryTime < earliestExpiry) {
+          earliestExpiry = expiryTime;
+          if (!expiringSheet) expiringSheet = sheet;
         }
       }
 
@@ -520,38 +602,57 @@ export function useDashboard(initialData?: UserPreferences) {
 
         if (isTokenExpired(selectedDestinationSheet.token_expiry)) {
           expiredSheets.push(`${selectedDestinationSheet.doc_name} - ${selectedDestinationSheet.sheet_name}`);
-          if (!expiredProvider && selectedDestinationSheet.provider && 
+          if (!expiringSheet && selectedDestinationSheet.provider && 
               (selectedDestinationSheet.provider === 'google' || selectedDestinationSheet.provider === 'microsoft')) {
-            expiredProvider = selectedDestinationSheet.provider;
+            expiringSheet = selectedDestinationSheet;
+          }
+        } else if (selectedDestinationSheet.token_expiry) {
+          const expiryTime = new Date(selectedDestinationSheet.token_expiry).getTime();
+          if (!earliestExpiry || expiryTime < earliestExpiry) {
+            earliestExpiry = expiryTime;
+            if (!expiringSheet) expiringSheet = selectedDestinationSheet;
           }
         }
       }
 
-      return { expiredProvider, expiredSheets };
+      return { expiringSheet, expiredSheets, earliestExpiry };
     };
 
-    const { expiredProvider, expiredSheets } = checkExpiredTokens();
+    const { expiringSheet, expiredSheets, earliestExpiry } = checkExpiredTokens();
     
-    if (expiredProvider) {
+    if (expiringSheet && expiredSheets.length > 0) {
       console.log('[handleSubmit] Found expired sheets:', {
-        provider: expiredProvider,
+        provider: expiringSheet.provider,
         sheets: expiredSheets
       });
 
-      // Clear all sheets from expired provider
-      setSelectedSheets(prev => prev.filter(sheet => sheet.provider !== expiredProvider));
-      if (selectedDestinationSheet?.provider === expiredProvider) {
-        setSelectedDestinationSheet(null);
-      }
+      // Clear sheets from expired provider
+      if (expiringSheet.provider) {
+        setSelectedSheets(prev => prev.filter(sheet => sheet.provider !== expiringSheet.provider));
+        if (selectedDestinationSheet?.provider === expiringSheet.provider) {
+          setSelectedDestinationSheet(null);
+        }
 
-      setError(`Our access to your sheets expires ${TOKEN_EXPIRY} minutes after your selection.`);
-      toast({
-        title: "Access Expired",
-        description: `Our access to your sheets expires ${TOKEN_EXPIRY} minutes after your selection.`,
-        className: "bg-destructive text-destructive-foreground"
-      });
-      inputPicker.launchProviderPicker(expiredProvider);
-      return;
+        const message = `Our access to your sheets expires ${TOKEN_EXPIRY} minutes after your selection.`;
+        setError(message);
+        toast({
+          title: "Access Expired",
+          description: message,
+          className: "bg-destructive text-destructive-foreground"
+        });
+
+        // Reset processing state before redirecting
+        setIsProcessing(false);
+        setShowResultDialog(false);
+        if (abortController) {
+          abortController.abort();
+          setAbortController(null);
+        }
+
+        // Redirect to reauth
+        router.push(`/auth/setup-permissions?provider=${expiringSheet.provider}&reauth=true`);
+        return;
+      }
     }
 
     // Clean up any existing abort controller

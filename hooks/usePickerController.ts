@@ -42,13 +42,6 @@ export function usePicker({ type, onSelect, onError, updateRecentSheets, onPermi
     setShowSheetSelector(true);
     setPickerActive(false); // Important: Reset picker active when showing sheet selector
     
-    console.log(`[${type}] Sheet selector states updated:`, {
-      url,
-      sheets,
-      docName,
-      selectorOpen: true,
-      pickerActive: false
-    });
   };
 
   const launchProviderPicker = async (provider: Provider, selectedItem?: OnlineSheet) => {
@@ -66,7 +59,6 @@ export function usePicker({ type, onSelect, onError, updateRecentSheets, onPermi
       });
 
       if (isTokenExpired(selectedItem.token_expiry)) {
-        console.log('[launchProviderPicker] Token expired, launching picker for provider:', selectedItem.provider);
         // Re-launch picker with the original provider
         if (selectedItem.provider && (selectedItem.provider === 'google' || selectedItem.provider === 'microsoft')) {
           toast({
@@ -90,7 +82,6 @@ export function usePicker({ type, onSelect, onError, updateRecentSheets, onPermi
     }
 
     try {
-      console.log(`[${type}] Starting provider picker for ${provider}`);
       setPickerActive(true);
       setIsProcessing(true);
       
@@ -103,18 +94,15 @@ export function usePicker({ type, onSelect, onError, updateRecentSheets, onPermi
       // Only call launchPicker for google or microsoft
       if (provider !== 'recent') {
         const pickerResult = await launchPicker(provider);
-        console.log(`[${type}] Picker result:`, pickerResult);
 
         if (!pickerResult.success || !pickerResult.url) {
           throw new Error(pickerResult.error || 'Failed to select file');
         }
 
-        console.log(`[${type}] Getting sheet names for URL:`, pickerResult.url);
         if (!pickerResult.accessToken) {
           throw new Error('No access token available');
         }
         const workbook = await getSheetNames(pickerResult.url, provider, pickerResult.accessToken);
-        console.log(`[${type}] Workbook response:`, workbook);
         
         if (!workbook.success || workbook.error) {
           throw new Error(workbook.error || 'Failed to get sheet names');
@@ -127,7 +115,6 @@ export function usePicker({ type, onSelect, onError, updateRecentSheets, onPermi
         setIsProcessing(false);
 
         if (workbook.sheet_names.length === 1) {
-          console.log(`[${type}] Single sheet found, auto-selecting`);
           const OnlineSheet: OnlineSheet = {
             url: pickerResult.url,
             sheet_name: workbook.sheet_names[0],
@@ -139,7 +126,6 @@ export function usePicker({ type, onSelect, onError, updateRecentSheets, onPermi
           onSelect(OnlineSheet);
           updateRecentSheets?.(pickerResult.url, workbook.sheet_names[0], workbook.doc_name, pickerResult.accessToken);
         } else {
-          console.log(`[${type}] Multiple sheets found (${workbook.sheet_names.length}), showing selector`);
           handleMultipleSheets(pickerResult.url, workbook.sheet_names, workbook.doc_name, pickerResult.accessToken);
         }
       }
@@ -153,11 +139,6 @@ export function usePicker({ type, onSelect, onError, updateRecentSheets, onPermi
   };
 
   const handleSheetNameSelection = async (sheetName: string) => {
-    console.log(`[${type}] handleSheetNameSelection called:`, {
-      sheetName,
-      url: selectedSheetUrl,
-      hasWorkbookInfo: !!workbookInfo
-    });
     
     if (!selectedSheetUrl || !sheetName) {
       onError('Missing URL or sheet name');
