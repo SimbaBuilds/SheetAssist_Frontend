@@ -12,7 +12,7 @@ interface VideoDemo {
 }
 
 const demoVideos: Record<string, VideoDemo[]> = {
-  "Batch Processing with AI": [
+  "Batch Processing": [
     {
       title: "SheetAssist Batch Processes Scanned PDF Pages",
       description: "",

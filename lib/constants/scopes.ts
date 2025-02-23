@@ -1,8 +1,6 @@
 export const DOCUMENT_SCOPES = {
     google: [
-      'https://www.googleapis.com/auth/drive.file',
-      'https://www.googleapis.com/auth/spreadsheets',
-      'https://www.googleapis.com/auth/drive.readonly'
+      'https://www.googleapis.com/auth/drive.file'
     ].join(' '),
     microsoft: [
       'offline_access',
