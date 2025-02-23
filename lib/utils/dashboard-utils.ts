@@ -180,9 +180,9 @@ export async function getPdfPageCount(file: File): Promise<number> {
     const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
     console.log('[getPdfPageCount] PDF page count:', pdf.numPages);
     return pdf.numPages;
-  } catch (error: any) {
+  } catch (error) {
     console.error('[getPdfPageCount] Error getting PDF page count:', error);
-    throw new Error(`Failed to get page count for ${file.name}: ${error?.message || 'Unknown error'}`);
+    throw new Error(`Failed to get page count for ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
@@ -212,8 +212,8 @@ export async function estimateProcessingTime(files: File[]): Promise<{
       estimatedMinutes: totalPages / PDF_PROCESSING_RATE,
       exceedsLimit: totalPages > MAX_PDF_PAGES
     };
-  } catch (error: any) {
+  } catch (error) {
     console.error('[estimateProcessingTime] Error estimating processing time:', error);
-    throw new Error('Failed to estimate processing time: ' + (error?.message || 'Unknown error'));
+    throw new Error('Failed to estimate processing time: ' + (error instanceof Error ? error.message : 'Unknown error'));
   }
 } 
