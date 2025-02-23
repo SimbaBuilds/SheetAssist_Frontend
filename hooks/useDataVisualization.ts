@@ -49,6 +49,13 @@ export function useDataVisualization({ sheetTitles, setSheetTitles }: UseDataVis
   const [showVisualizationDialog, setShowVisualizationDialog] = useState(false)
   const [visualizationAbortController, setVisualizationAbortController] = useState<AbortController | null>(null)
   const [recentUrls, setRecentUrls] = useState<OnlineSheet[]>([])
+  const [permissions, setPermissions] = useState<{
+    google: boolean | null;
+    microsoft: boolean | null;
+  }>({
+    google: null,
+    microsoft: null
+  })
   const visualizationFileInputRef = useRef<HTMLInputElement>(null)
 
   const { user } = useAuth()
@@ -59,6 +66,33 @@ export function useDataVisualization({ sheetTitles, setSheetTitles }: UseDataVis
     currentPlan 
   } = useUsageLimits()
   const router = useRouter()
+
+  useEffect(() => {
+    const initializePermissions = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const { data: profile, error } = await supabase
+          .from('user_profile')
+          .select('google_permissions_set, microsoft_permissions_set')
+          .eq('id', user.id)
+          .single();
+
+        if (error) throw error;
+
+        if (profile) {
+          setPermissions({
+            google: profile.google_permissions_set,
+            microsoft: profile.microsoft_permissions_set
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching permissions:', error);
+      }
+    };
+
+    initializePermissions();
+  }, [user?.id]);
 
   const updateRecentSheets = async (url: string, sheetName: string, docName: string, pickerToken?: string) => {
     if (!url.trim() || !sheetName.trim() || !docName.trim()) {
@@ -128,7 +162,18 @@ export function useDataVisualization({ sheetTitles, setSheetTitles }: UseDataVis
     onError: (error) => {
       setVisualizationError(error);
     },
-    updateRecentSheets
+    updateRecentSheets,
+    onPermissionRedirect: (provider: 'google' | 'microsoft') => {
+      if (provider === 'google' && !permissions.google) {
+        router.push('/auth/setup-permissions?provider=google');
+        return true;
+      }
+      if (provider === 'microsoft' && !permissions.microsoft) {
+        router.push('/auth/setup-permissions?provider=microsoft');
+        return true;
+      }
+      return false;
+    }
   });
 
   const handleClearVisualization = () => {
