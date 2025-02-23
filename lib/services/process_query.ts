@@ -151,10 +151,34 @@ class QueryService {
       // Check for abort signal at the start of each loop
       if (signal?.aborted) {
         console.log('Polling aborted by signal during loop', { jobId });
+        
+        // Update the job status to canceled if it's still in progress
+        try {
+          const { data: currentJob } = await supabase
+            .from('jobs')
+            .select('status')
+            .eq('job_id', jobId)
+            .single();
+
+          if (currentJob?.status === 'processing' || currentJob?.status === 'created') {
+            await supabase
+              .from('jobs')
+              .update({
+                status: 'canceled',
+                message: 'Request was canceled by user',
+                completed_at: new Date().toISOString()
+              })
+              .eq('job_id', jobId);
+          }
+        } catch (error) {
+          console.error('Error updating job status on cancellation:', error);
+        }
+
         return {
           status: 'canceled',
           message: 'Request was canceled',
-          num_images_processed: 0
+          num_images_processed: 0,
+          job_id: jobId
         };
       }
 
@@ -305,6 +329,17 @@ class QueryService {
             status: 'error',
             message: errorState.message,
             num_images_processed: job.images_processed || 0
+          };
+        }
+
+        // Add explicit check for canceled status
+        if (job.status === 'canceled') {
+          console.log('Job was canceled', { jobId });
+          return {
+            status: 'canceled',
+            message: 'Request was canceled',
+            num_images_processed: job.images_processed || 0,
+            job_id: jobId
           };
         }
 

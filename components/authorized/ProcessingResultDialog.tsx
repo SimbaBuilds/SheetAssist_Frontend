@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import type { ProcessingState } from '@/lib/types/dashboard'
 import { AlertCircle, CheckCircle, Link, Loader2, XCircle } from "lucide-react"
 import { Button } from '@/components/ui/button'
@@ -30,6 +30,7 @@ export function ProcessingResultDialog({
   }, [isOpen])
 
   const handleCancel = async () => {
+    console.log('[handleCancel- ProcessingResultDialog] Canceling...')
     if (!onCancel || isCanceling) return
     setIsCanceling(true)
     try {
@@ -189,6 +190,9 @@ export function ProcessingResultDialog({
              state.status === 'completed' ? 'Success' : 
              'Processing Request'}
           </DialogTitle>
+          <DialogDescription aria-live="polite">
+            
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4">

@@ -133,7 +133,7 @@ export interface SheetTitleMap {
 
 // Add new type for processing state
 export interface ProcessingState {
-  status: 'idle' | 'processing' | 'created' | 'completed' | 'completed_with_error(s)' | 'error' | 'canceled';
+  status: 'idle' | 'processing' | 'created' | 'completed' | 'completed_with_error(s)' | 'error' | 'canceled' | 'canceling';
   message: string;
   progress?: {
     processed: number;

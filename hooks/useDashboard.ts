@@ -421,9 +421,9 @@ export function useDashboard(initialData?: UserPreferences) {
       const newFiles = [...files, ...validFiles];
       setFiles(newFiles)
       setError('')
-      logFormState('Files Updated', {
-        files: newFiles.map(f => ({ name: f.name, size: f.size }))
-      });
+      // logFormState('Files Updated', {
+      //   files: newFiles.map(f => ({ name: f.name, size: f.size }))
+      // });
     }
     
     // Reset the file input value to allow selecting the same file again
@@ -486,38 +486,67 @@ export function useDashboard(initialData?: UserPreferences) {
   };
 
   const handleCancel = async () => {
-    if (abortController && processedResult?.job_id) {
-      console.log('Canceling request', { jobId: processedResult.job_id });
-      
-      // Update job status in database
-      const supabase = createClient();
-      try {
-        const { error } = await supabase
-          .from('jobs')
-          .update({
-            status: 'canceled',
-            message: 'Request was canceled by user',
-            completed_at: new Date().toISOString()
-          })
-          .eq('job_id', processedResult.job_id);
+    console.log('[handleCancel- UseDashboard] Canceling...')
+    console.log('[handleCancel- UseDashboard] current state:', {
+      isProcessing,
+      showResultDialog,
+      processingState
+    })
 
-        if (error) {
-          console.error('Failed to update job status:', error);
-        }
-      } catch (error) {
-        console.error('Error updating job status:', error);
-      }
-
-      // Abort the request and clean up
-      abortController.abort();
-      setAbortController(null);
-      setIsProcessing(false);
-      setShowResultDialog(false);
-      setError('Request was canceled');
+    if (isProcessing) {
+      // Immediately update UI state to show cancellation in progress
       setProcessingState({
-        status: 'canceled',
-        message: 'Request was canceled'
+        status: 'canceling',
+        message: 'Canceling request...'
       });
+
+      try {
+        // Abort any ongoing requests
+        if (abortController) {
+          abortController.abort();
+          setAbortController(null);
+        }
+
+        // Update job status in database regardless of job_id availability
+        const supabase = createClient();
+        
+        // If we have a specific job ID, update that job
+        if (processedResult?.job_id) {
+          const { error } = await supabase
+            .from('jobs')
+            .update({
+              status: 'canceled',
+              message: 'Request was canceled by user',
+              completed_at: new Date().toISOString()
+            })
+            .eq('job_id', processedResult.job_id);
+
+          if (error) {
+            console.error('Failed to update job status:', error);
+          }
+        }
+
+        // Update final states
+        setIsProcessing(false);
+        setShowResultDialog(false);
+        setProcessingState({
+          status: 'canceled',
+          message: 'Request was canceled'
+        });
+
+        // Clear processed result
+        setProcessedResult(null);
+
+      } catch (error) {
+        console.error('Error during cancellation:', error);
+        // Even if there's an error, we want to stop processing
+        setIsProcessing(false);
+        setShowResultDialog(false);
+        setProcessingState({
+          status: 'error',
+          message: 'Error while canceling request'
+        });
+      }
     }
   };
 
@@ -737,16 +766,16 @@ export function useDashboard(initialData?: UserPreferences) {
   const handleOutputTypeChange = (value: 'download' | 'online' | null) => {
     setOutputType(value);
     setOutputTypeError(null);
-    logFormState('Output Type Updated', { 
-      outputType: value,
-      downloadFileType: value === 'download' ? downloadFileType : null,
-      allowSheetModification: value === 'online' ? allowSheetModification : null
-    });
+    // logFormState('Output Type Updated', { 
+    //   outputType: value,
+    //   downloadFileType: value === 'download' ? downloadFileType : null,
+    //   allowSheetModification: value === 'online' ? allowSheetModification : null
+    // });
   };
 
   const handleDownloadFormatChange = (value: DownloadFileType) => {
     setDownloadFileType(value);
-    logFormState('Download Format Updated', { downloadFileType: value });
+    // logFormState('Download Format Updated', { downloadFileType: value });
   };
 
   return {
