@@ -55,7 +55,7 @@ export async function trackUsage({
     // Map type to event name
     const eventName = {
       'processing': 'standard_processing_04',
-      'visualizations': 'visualization_04',
+      'visualizations': 'vizualization_04',
       'images': 'image_input_04'
     }[type];
 
