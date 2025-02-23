@@ -114,7 +114,6 @@ export function useDashboard(initialData?: UserPreferences) {
         picker_token: pickerToken || '',
         token_expiry: tokenExpiry || new Date(Date.now() - 1000).toISOString() // If no new token, set as expired
       };
-      console.log('[updateRecentSheets] New sheet:', newSheet);
 
       // Update recentUrls state - filter out expired and matching sheets
       setRecentUrls(prev => {
@@ -362,11 +361,7 @@ export function useDashboard(initialData?: UserPreferences) {
       try {
         const allFiles = [...files, ...validFiles];
         const { totalPages, estimatedMinutes, exceedsLimit } = await estimateProcessingTime(allFiles);
-        console.log('[handleFileChange] Estimated processing time:', {
-          totalPages,
-          estimatedMinutes,
-          exceedsLimit
-        });
+        
         if (exceedsLimit) {
           setError(`Total PDF pages (${totalPages}) exceeds limit of ${MAX_PDF_PAGES} pages`);
           e.target.value = '';
@@ -375,48 +370,39 @@ export function useDashboard(initialData?: UserPreferences) {
 
         // Check if processing time would exceed token expiry for any selected sheets
         if (selectedOnlineSheets.length > 0) {
-          let earliestExpiry = null;
-          let expiringSheet = null;
-
-          // Find the sheet with earliest expiry
-          for (const sheet of selectedOnlineSheets) {
-            if (!sheet.token_expiry) continue;
+          const earliestExpiry = selectedOnlineSheets.reduce((earliest, sheet) => {
+            if (!sheet.token_expiry) return earliest;
             const expiryTime = new Date(sheet.token_expiry).getTime();
-            if (!earliestExpiry || expiryTime < earliestExpiry) {
-              earliestExpiry = expiryTime;
-              expiringSheet = sheet;
-            }
-          }
+            return earliest ? Math.min(earliest, expiryTime) : expiryTime;
+          }, 0);
           console.log('[handleFileChange] Earliest expiry:', {
             earliestExpiry,
             selectedOnlineSheets
           });
-          if (earliestExpiry && expiringSheet) {
+          if (earliestExpiry) {
             const minutesUntilExpiry = (earliestExpiry - Date.now()) / (1000 * 60);
             if (estimatedMinutes > minutesUntilExpiry) {
               console.log('[handleFileChange] Estimated processing time exceeds token expiry:', {
                 estimatedMinutes,
                 minutesUntilExpiry,
-                earliestExpiry,
-                expiringSheet
+                earliestExpiry
+              });
+              // Find the provider of the sheet that will expire
+              const expiringSheet = selectedOnlineSheets.find(sheet => {
+                if (!sheet.token_expiry) return false;
+                return new Date(sheet.token_expiry).getTime() === earliestExpiry;
               });
 
-              if (expiringSheet.provider && 
-                  (expiringSheet.provider === 'google' || expiringSheet.provider === 'microsoft')) {
-                const message = `Estimated processing time (${Math.ceil(estimatedMinutes)} minutes) exceeds token expiry. Please reconnect to ${expiringSheet.provider}.`;
-                setError(message);
+              if (expiringSheet?.provider) {
+                setError(`Estimated processing time (${Math.ceil(estimatedMinutes)} minutes) exceeds token expiry. Please reconnect to ${expiringSheet.provider}.`);
                 toast({
-                  title: "Token Expiry Warning",
-                  description: message,
+                  title: "Token Expired",
+                  description: `Estimated processing time (${Math.ceil(estimatedMinutes)} minutes) exceeds token expiry. Please reconnect to ${expiringSheet.provider}.`,
                   className: "bg-destructive text-destructive-foreground"
                 });
-
-                // Clear files before redirecting
-                setFiles([]);
-                e.target.value = '';
-                console.log('[handleFileChange] Redirecting to reauth');
-                // Redirect to reauth
+                // Handle reauth through router redirect
                 router.push(`/auth/setup-permissions?provider=${expiringSheet.provider}&reauth=true`);
+                e.target.value = '';
                 return;
               }
             }
@@ -565,8 +551,7 @@ export function useDashboard(initialData?: UserPreferences) {
 
     // Check for expired tokens using First Expired Provider approach
     const checkExpiredTokens = () => {
-      let earliestExpiry = null;
-      let expiringSheet = null;
+      let expiredProvider: 'google' | 'microsoft' | null = null;
       let expiredSheets: string[] = [];
 
       // Check input sheets
@@ -577,18 +562,12 @@ export function useDashboard(initialData?: UserPreferences) {
           token_expiry: sheet.token_expiry
         });
 
-        if (!sheet.token_expiry) continue;
-        const expiryTime = new Date(sheet.token_expiry).getTime();
-        
         if (isTokenExpired(sheet.token_expiry)) {
           expiredSheets.push(`${sheet.doc_name} - ${sheet.sheet_name}`);
-          if (!expiringSheet && sheet.provider && 
+          if (!expiredProvider && sheet.provider && 
               (sheet.provider === 'google' || sheet.provider === 'microsoft')) {
-            expiringSheet = sheet;
+            expiredProvider = sheet.provider;
           }
-        } else if (!earliestExpiry || expiryTime < earliestExpiry) {
-          earliestExpiry = expiryTime;
-          if (!expiringSheet) expiringSheet = sheet;
         }
       }
 
@@ -602,57 +581,38 @@ export function useDashboard(initialData?: UserPreferences) {
 
         if (isTokenExpired(selectedDestinationSheet.token_expiry)) {
           expiredSheets.push(`${selectedDestinationSheet.doc_name} - ${selectedDestinationSheet.sheet_name}`);
-          if (!expiringSheet && selectedDestinationSheet.provider && 
+          if (!expiredProvider && selectedDestinationSheet.provider && 
               (selectedDestinationSheet.provider === 'google' || selectedDestinationSheet.provider === 'microsoft')) {
-            expiringSheet = selectedDestinationSheet;
-          }
-        } else if (selectedDestinationSheet.token_expiry) {
-          const expiryTime = new Date(selectedDestinationSheet.token_expiry).getTime();
-          if (!earliestExpiry || expiryTime < earliestExpiry) {
-            earliestExpiry = expiryTime;
-            if (!expiringSheet) expiringSheet = selectedDestinationSheet;
+            expiredProvider = selectedDestinationSheet.provider;
           }
         }
       }
 
-      return { expiringSheet, expiredSheets, earliestExpiry };
+      return { expiredProvider, expiredSheets };
     };
 
-    const { expiringSheet, expiredSheets, earliestExpiry } = checkExpiredTokens();
+    const { expiredProvider, expiredSheets } = checkExpiredTokens();
     
-    if (expiringSheet && expiredSheets.length > 0) {
+    if (expiredProvider) {
       console.log('[handleSubmit] Found expired sheets:', {
-        provider: expiringSheet.provider,
+        provider: expiredProvider,
         sheets: expiredSheets
       });
 
-      // Clear sheets from expired provider
-      if (expiringSheet.provider) {
-        setSelectedSheets(prev => prev.filter(sheet => sheet.provider !== expiringSheet.provider));
-        if (selectedDestinationSheet?.provider === expiringSheet.provider) {
-          setSelectedDestinationSheet(null);
-        }
-
-        const message = `Our access to your sheets expires ${TOKEN_EXPIRY} minutes after your selection.`;
-        setError(message);
-        toast({
-          title: "Access Expired",
-          description: message,
-          className: "bg-destructive text-destructive-foreground"
-        });
-
-        // Reset processing state before redirecting
-        setIsProcessing(false);
-        setShowResultDialog(false);
-        if (abortController) {
-          abortController.abort();
-          setAbortController(null);
-        }
-
-        // Redirect to reauth
-        router.push(`/auth/setup-permissions?provider=${expiringSheet.provider}&reauth=true`);
-        return;
+      // Clear all sheets from expired provider
+      setSelectedSheets(prev => prev.filter(sheet => sheet.provider !== expiredProvider));
+      if (selectedDestinationSheet?.provider === expiredProvider) {
+        setSelectedDestinationSheet(null);
       }
+
+      setError(`Our access to your sheets expires ${TOKEN_EXPIRY} minutes after your selection.`);
+      toast({
+        title: "Access Expired",
+        description: `Our access to your sheets expires ${TOKEN_EXPIRY} minutes after your selection.`,
+        className: "bg-destructive text-destructive-foreground"
+      });
+      inputPicker.launchProviderPicker(expiredProvider);
+      return;
     }
 
     // Clean up any existing abort controller

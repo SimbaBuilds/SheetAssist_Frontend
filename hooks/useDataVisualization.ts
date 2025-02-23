@@ -1,11 +1,10 @@
 import type { SeabornSequentialPalette } from '@/lib/types/dashboard'
-import { TOKEN_EXPIRY } from '@/lib/constants/token_expiry'
+
 import { useState, useRef, useEffect } from 'react'
 import { processDataVisualization } from '@/lib/services/data_visualization'
 import { OnlineSheet } from '@/lib/types/dashboard'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/hooks/useAuth'
-import { toast } from '@/components/ui/use-toast'
 import { 
   validateVisualizationFile,
   formatTitleKey,
@@ -71,8 +70,8 @@ export function useDataVisualization({ sheetTitles, setSheetTitles }: UseDataVis
         throw new Error('Invalid URL provider');
       }
 
-      // Calculate token expiry 
-      const tokenExpiry = new Date(Date.now() + TOKEN_EXPIRY * 60 * 1000).toISOString();
+      // Calculate token expiry (30 minutes from now)
+      const tokenExpiry = new Date(Date.now() + 30 * 60 * 1000).toISOString();
 
       // Create new sheet entry
       const newSheet: OnlineSheet = {
@@ -240,32 +239,6 @@ export function useDataVisualization({ sheetTitles, setSheetTitles }: UseDataVis
       return;
     }
 
-    // Check token expiration for visualization sheet
-    if (selectedVisualizationSheet) {
-      console.log('[handleVisualizationSubmit] Checking token expiry for visualization sheet:', {
-        url: selectedVisualizationSheet.url,
-        sheet_name: selectedVisualizationSheet.sheet_name,
-        token_expiry: selectedVisualizationSheet.token_expiry
-      });
-
-      if (isTokenExpired(selectedVisualizationSheet.token_expiry)) {
-        console.log('[handleVisualizationSubmit] Token expired for visualization sheet, clearing form data');
-        setSelectedVisualizationSheet(null);
-        setVisualizationSheetUrl('');
-        setVisualizationError('Selected sheet has expired. Please reselect your sheet.');
-        toast({
-          title: "Access Expired",
-          description: `Our access to your sheets expires ${TOKEN_EXPIRY} minutes after your selection.`,
-          className: "bg-destructive text-destructive-foreground"
-        });
-        if (selectedVisualizationSheet.provider && 
-            (selectedVisualizationSheet.provider === 'google' || selectedVisualizationSheet.provider === 'microsoft')) {
-          handleVisualizationPicker(selectedVisualizationSheet.provider);
-        }
-        return;
-      }
-    }
-
     // Clean up any existing abort controller
     if (visualizationAbortController) {
       visualizationAbortController.abort();
@@ -278,6 +251,7 @@ export function useDataVisualization({ sheetTitles, setSheetTitles }: UseDataVis
 
     setIsVisualizationProcessing(true);
     setShowVisualizationDialog(true);
+
 
     try {
       const options: VisualizationOptions = {
