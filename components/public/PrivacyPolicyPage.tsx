@@ -47,13 +47,9 @@ export default function PrivacyPolicyPage() {
             Google Permissions:
           </p>
           <ul className="list-disc pl-6 mt-2 space-y-2 text-muted-foreground">
-            <li>Google drive.file scope: This google scope is a file specific scope that only gives us access to your selected file for one hour.  However, we must ask for addiitonal broader scopes - see below.
-
-            </li>
-          </ul>
-          <ul className="list-disc pl-6 mt-2 space-y-2 text-muted-foreground">
-          <li>Google spreadsheets and drive.readonly scopes: Unfortunately, we must request this broader scope as the drive.file scope and picker functionality only provide one hour non-refreshable access tokens.  If this token expires during backend processing, much time consuming friction and complexity is introduced to the user experience -- thus the need for this broader permission.  However, we will not access, modify, or read files that you do not use within the app.  
-            </li>
+          <li>Google drive.file scope: This is a truly file specific scope that, upon file selection from the picker, gives us access to only your selected file and only for one hour.  You will be prompted to reselect the file once access is close to expiration.
+            
+          </li>
           </ul>
 
           <p className="text-muted-foreground mt-2">
@@ -62,11 +58,11 @@ export default function PrivacyPolicyPage() {
           <ul className="list-disc pl-6 mt-2 space-y-2 text-muted-foreground">
             <li> offline_access, email, User.Read, openid: These are basic permissions that are required to interact with the Microsoft API.
             </li>
-            <li> Files.ReadWrite: Unfortunately, the Microsoft ReadWrite.Selected file specific scope introduces unnecessary friction to the user experience, so we must ask for this broader scope.  However, we will not access, modify, or read files that you do not use within the app.  
+            <li> Files.ReadWrite, ReadWrite.Selected: Unfortunately, incorporating only the Microsoft ReadWrite.Selected file specific scope introduces unnecessary friction to the user experience, so we must ask for the broader Read.Write scope.  However, we will not access, modify, or read files that you do not use within the app.  
             </li>
           </ul>
           <p className="text-muted-foreground mt-2">
-          Note: Our application will not store, modfiy, or delete your files.  All actions performed on your spreadsheets are true append operations, meaning content can only be added on to existing sheets or to new sheets — no modification or replacement of existing data.  Furthermore, the AI lanugage models working in the background do not have direct access to your spreadsheets — only to preprocessed versions of low level data (dataframes and strings).
+          Note: Our application will not store, modfiy, or delete your files.  All actions performed on your spreadsheets are true append operations, meaning content can only be added on to existing sheets or to new sheets within the selected workbook — no modification or replacement of existing data can occur.  Furthermore, the AI lanugage models working in the background of this application do not have direct access to your spreadsheets — only to preprocessed versions of low level data (dataframes and strings).
           </p>
           <p className="text-muted-foreground mt-8">
             If you have any questions about this Privacy Policy, please <Link href="/contact-us" className="underline hover:text-primary">contact us</Link>.

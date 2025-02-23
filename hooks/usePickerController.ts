@@ -105,6 +105,28 @@ export function usePicker({ type, onSelect, onError, updateRecentSheets, onPermi
         const workbook = await getSheetNames(pickerResult.url, provider, pickerResult.accessToken);
         
         if (!workbook.success || workbook.error) {
+          // Check for browser cache related errors
+          if (workbook.error?.toLowerCase().includes('browser cache and cookies')) {
+            toast({
+              title: "Access Error",
+              description: `Error accessing ${provider} sheets. Please clear your browser cache and cookies and try again.`,
+              className: "bg-destructive text-destructive-foreground"
+            });
+            return;
+          }
+          // Check for Microsoft reconnection error
+          if (workbook.error?.includes('Please reconnect your microsoft account')) {
+            toast({
+              title: "Authentication Error",
+              description: "Your Microsoft account connection has expired. Redirecting to reconnect.",
+              className: "bg-destructive text-destructive-foreground"
+            });
+            // Add 3 second delay before redirect
+            setTimeout(() => {
+              window.location.href = '/auth/setup-permissions?provider=microsoft&reauth=true';
+            }, 3000);
+            return;
+          }
           throw new Error(workbook.error || 'Failed to get sheet names');
         }
 
