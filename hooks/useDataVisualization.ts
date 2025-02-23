@@ -19,6 +19,8 @@ import type {
 } from '@/lib/types/dashboard'
 import { useUsageLimits } from '@/hooks/useUsageLimits'
 import { usePicker } from '@/hooks/usePickerController'
+import { useRouter } from 'next/navigation'
+import { toast } from '@/components/ui/use-toast'
 
 interface FileError {
   file: File;
@@ -56,6 +58,7 @@ export function useDataVisualization({ sheetTitles, setSheetTitles }: UseDataVis
     hasReachedOverageLimit, 
     currentPlan 
   } = useUsageLimits()
+  const router = useRouter()
 
   const updateRecentSheets = async (url: string, sheetName: string, docName: string, pickerToken?: string) => {
     if (!url.trim() || !sheetName.trim() || !docName.trim()) {
@@ -237,6 +240,44 @@ export function useDataVisualization({ sheetTitles, setSheetTitles }: UseDataVis
     if (!colorPalette) {
       setVisualizationError('Please select a color palette');
       return;
+    }
+
+    // Check for expired tokens and processing time
+    if (selectedVisualizationSheet) {
+      try {
+        // Get estimated processing time (visualization typically takes 1-2 minutes)
+        const estimatedMinutes = 2;
+
+        // Check token expiry
+        if (selectedVisualizationSheet.token_expiry) {
+          const expiryTime = new Date(selectedVisualizationSheet.token_expiry).getTime();
+          const minutesUntilExpiry = (expiryTime - Date.now()) / (1000 * 60);
+
+          if (10 > minutesUntilExpiry) {
+            console.log('[handleVisualizationSubmit] Estimated processing time exceeds token expiry:', {
+              estimatedMinutes,
+              minutesUntilExpiry,
+              expiryTime
+            });
+
+            setVisualizationError(`Estimated processing time (${Math.ceil(estimatedMinutes)} minutes) exceeds token expiry. Please reconnect to ${selectedVisualizationSheet.provider}.`);
+            toast({
+              title: "Token Expired",
+              description: `Estimated processing time exceeds access duration. Redirecting to service re-connect.`,
+              className: "bg-destructive text-destructive-foreground"
+            });
+            // Add 3 second delay before redirect
+            setTimeout(() => {
+              router.push(`/auth/setup-permissions?provider=${selectedVisualizationSheet.provider}&reauth=true`);
+            }, 3000);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('[handleVisualizationSubmit] Error checking processing time:', error);
+        setVisualizationError('Failed to estimate processing time');
+        return;
+      }
     }
 
     // Clean up any existing abort controller

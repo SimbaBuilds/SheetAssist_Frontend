@@ -536,13 +536,19 @@ export function useDashboard(initialData?: UserPreferences) {
     }
 
     // Check for expired tokens and processing time
-    if (selectedOnlineSheets.length > 0) {
+    if (selectedOnlineSheets.length > 0 || (outputType === 'online' && selectedDestinationSheet)) {
       try {
         // Get estimated processing time for all files
         const { estimatedMinutes } = await estimateProcessingTime(files);
 
+        // Combine input and destination sheets for expiry check
+        const sheetsToCheck = [...selectedOnlineSheets];
+        if (outputType === 'online' && selectedDestinationSheet) {
+          sheetsToCheck.push(selectedDestinationSheet);
+        }
+
         // Find earliest token expiry
-        const earliestExpiry = selectedOnlineSheets.reduce((earliest, sheet) => {
+        const earliestExpiry = sheetsToCheck.reduce((earliest, sheet) => {
           if (!sheet.token_expiry) return earliest;
           const expiryTime = new Date(sheet.token_expiry).getTime();
           return earliest ? Math.min(earliest, expiryTime) : expiryTime;
@@ -558,7 +564,7 @@ export function useDashboard(initialData?: UserPreferences) {
             });
 
             // Find the provider of the sheet that will expire
-            const expiringSheet = selectedOnlineSheets.find(sheet => {
+            const expiringSheet = sheetsToCheck.find(sheet => {
               if (!sheet.token_expiry) return false;
               return new Date(sheet.token_expiry).getTime() === earliestExpiry;
             });
