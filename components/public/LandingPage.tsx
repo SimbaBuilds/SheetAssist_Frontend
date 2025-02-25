@@ -126,7 +126,7 @@ export default function LandingPage() {
                 </li>
                 <li className="flex items-center">
                   <CheckIcon className="mr-2" />
-                  <span>{PLAN_IMAGE_LIMITS.free} input images per month</span>
+                  <span>{PLAN_IMAGE_LIMITS.free} input images/scanned documents per month</span>
                 </li>
               </ul>
               {/* <Button className="w-full mt-6" asChild>
@@ -153,7 +153,7 @@ export default function LandingPage() {
                 </li>
                 <li className="flex items-center">
                   <CheckIcon className="mr-2" />
-                  <span>{PLAN_IMAGE_LIMITS.pro} input images per month</span>
+                  <span>{PLAN_IMAGE_LIMITS.pro} input images/scanned documents per month</span>
                 </li>
                 <li className="flex items-center">
                   <CheckIcon className="mr-2" />

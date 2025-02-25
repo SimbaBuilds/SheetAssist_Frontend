@@ -12,7 +12,7 @@ export const PLAN_REQUEST_LIMITS = {
 } as const
 
 export const PLAN_IMAGE_LIMITS = {
-  free: 10,
+  free: 30,
   pro: 200
 } as const
 
