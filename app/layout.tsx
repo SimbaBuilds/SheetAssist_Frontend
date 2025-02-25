@@ -6,6 +6,7 @@ import Footer from "@/components/public/Footer";
 import { Toaster } from "@/components/ui/use-toast"
 import { Suspense } from 'react'
 import { LoadingSpinner } from "@/components/public/LoadingSpinner";
+import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
 
 const inter = Inter({
   subsets: ['latin'],
@@ -19,7 +20,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "SheetAssist",
-  description: "AI-powered spreadsheet assistant",
+  description: "AI-powered spreadsheet automation and data visualization",
 };
 
 export default function RootLayout({
@@ -32,6 +33,7 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} antialiased min-h-screen flex flex-col`}
       >
+        <GoogleAnalytics />
         <Suspense fallback={<LoadingSpinner />}>
           <Header />
           <main className="flex-grow">
