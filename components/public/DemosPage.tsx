@@ -58,7 +58,7 @@ const demoVideos: Record<string, VideoDemo[]> = {
 
 const demoFeatures = [
   {
-    title: "Batch Processing with AI",
+    title: "Batch Processing",
     description: "Vision-Enabled Document Processing",
     details: [
       "Extracts text and data from PDFs, images, and scanned documents with vision-enabled AI",
