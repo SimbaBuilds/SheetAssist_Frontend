@@ -386,7 +386,7 @@ export default function DashboardPage() {
             <div>
               <div className="flex justify-between items-center">
                 <Label htmlFor="query">What can we do for you?</Label>
-                <div className="flex gap-2 items-center">
+                <div className="flex gap-6 items-center">
                   <Button 
                     variant="ghost" 
                     size="sm"
@@ -399,12 +399,12 @@ export default function DashboardPage() {
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button variant="link" size="sm">
-                        See examples
+                        Example Requests
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-2xl">
                       <DialogHeader>
-                        <DialogTitle>Example Queries</DialogTitle>
+                        <DialogTitle>Example Requests</DialogTitle>
                       </DialogHeader>
                       <ul className="space-y-2 max-h-[60vh] overflow-y-auto">
                         {EXAMPLE_QUERIES.map((query, index) => (
@@ -423,6 +423,11 @@ export default function DashboardPage() {
                       </ul>
                     </DialogContent>
                   </Dialog>
+                  <Link href="/demos">
+                    <Button variant="link" size="sm">
+                      See Demos
+                    </Button>
+                  </Link>
                 </div>
               </div>
               <textarea
