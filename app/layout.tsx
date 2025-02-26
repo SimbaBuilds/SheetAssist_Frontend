@@ -6,7 +6,7 @@ import Footer from "@/components/public/Footer";
 import { Toaster } from "@/components/ui/use-toast"
 import { Suspense } from 'react'
 import { LoadingSpinner } from "@/components/public/LoadingSpinner";
-import GoogleAnalytics from "@/components/analytics/GoogleAnalytics";
+import Analytics from "@/components/analytics/Analytics";
 
 const inter = Inter({
   subsets: ['latin'],
@@ -33,7 +33,7 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${jetbrainsMono.variable} antialiased min-h-screen flex flex-col`}
       >
-        <GoogleAnalytics />
+        <Analytics />
         <Suspense fallback={<LoadingSpinner />}>
           <Header />
           <main className="flex-grow">
