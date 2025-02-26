@@ -40,6 +40,7 @@ export function useDashboard(initialData?: UserPreferences) {
   const [files, setFiles] = useState<File[]>([])
   const [urls, setUrls] = useState<string[]>([''])
   const [query, setQuery] = useState('')
+  const [userEmail, setUserEmail] = useState<string | null>(null)
   const [outputType, setOutputType] = useState<'download' | 'online' | null>(null)
   const [destinationSheet, setOutputUrl] = useState('')
   const [isProcessing, setIsProcessing] = useState(false)
@@ -203,6 +204,9 @@ export function useDashboard(initialData?: UserPreferences) {
       
       setIsInitializing(true)
       try {
+        // Set email from user object
+        setUserEmail(user.email || null);
+
         // First check if records exist and create them if they don't
         const [profileExists, usageExists] = await Promise.all([
           supabase
@@ -729,6 +733,7 @@ export function useDashboard(initialData?: UserPreferences) {
     isInitializing,
     query,
     files,
+    userEmail,
     error,
     outputType,
     destinationSheet,

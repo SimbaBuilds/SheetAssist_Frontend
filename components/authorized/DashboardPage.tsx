@@ -33,6 +33,7 @@ import { SEABORN_SEQUENTIAL_PALETTES, SeabornSequentialPalette } from '@/lib/typ
 import { useUsageLimits } from '@/hooks/useUsageLimits'
 import Link from 'next/link'
 import Image from 'next/image'
+import Script from 'next/script'
 
 
 
@@ -62,6 +63,7 @@ export default function DashboardPage() {
     isInitializing,
     query,
     files,
+    userEmail,
     outputType,
     isProcessing,
     recentUrls,
@@ -159,6 +161,14 @@ export default function DashboardPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <Script id="twitter-event" strategy="afterInteractive">
+        {`
+          twq('event', 'tw-p6pi8-p6rqk', {
+            email_address: "${userEmail || ''}"
+          });
+        `}
+      </Script>
+      
       {isInitializing ? (
         <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900" />
