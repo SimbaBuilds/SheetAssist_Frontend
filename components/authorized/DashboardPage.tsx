@@ -48,6 +48,7 @@ export const EXAMPLE_QUERIES = [
   "extract all unpaid invoices from the finance sheet",
   "remove duplicate entries based on the employee id column", 
   "merge on id",
+  "clean up this sheet",
   "populate the student sheet with phone numbers from the household contacts sheet",
   "match client id from the contract sheet to populate missing addresses in the billing sheet",
   "remove paid invoices",

@@ -58,13 +58,17 @@ serve(async (req: Request) => {
             </div>
 
             <!-- Greeting -->
-            <h1 style="color: #1a1a1a; margin-bottom: 10px; font-size: 18px;">Hello,</h1>
+            <h1 style="color: #444444; margin-bottom: 10px; font-size: 18px;"></h1>
             <p style="color: #444444; line-height: 1.5; font-size: 18px;">
-              Welcome to SheetAssist! Congratulations on being an early adopter of a potentially industry transforming technology. As an early adopter, you are crucially important to the development of SheetAssist - please let us know if you have any requests or desires and we will see what we can do! 😊</p>
+            Hello,
+            </p>
+            <p style="color: #444444; line-height: 1.5; font-size: 18px;">
+            Welcome to SheetAssist! Congratulations on being an early adopter of a potentially industry transforming technology. As an early adopter, you are crucially important to the development of SheetAssist - please let us know if you have any requests or desires and we will see what we can do! 😊
+            </p>
 
 
             <!-- Quick Steps -->
-            <h2 style="color: #1a1a1a; margin: 30px 0 15px;">Get Started</h2>
+            <h2 style="color: #444444; margin: 30px 0 15px;">Get Started</h2>
             <ol style="color: #444444; line-height: 1.6; font-size: 18px;">
               <li>Try a Spreadsheet Task: Connect your Google/Excel Sheet or upload a file - type something like "clean up this spreadsheet" or "sort by date"—watch the magic happen!</li>
               <li>Test Batch Processing: Upload a PDF or image into the app and see it convert to a spreadsheet in seconds.</li>
@@ -81,9 +85,9 @@ serve(async (req: Request) => {
 
             <!-- Help Section -->
             <div style="margin: 30px 0;">
-              <h2 style="color: #1a1a1a; margin-bottom: 15px;">We're Here to Help</h2>
+              <h2 style="color: #444444; margin-bottom: 15px;">We're Here to Help</h2>
               <p style="color: #444444; line-height: 1.5; font-size: 18px;">
-                Questions? Tips? Just reply to this email or check out our <a href="https://aidocassist.com/demos" style="color:rgba(0, 5, 11, 0.92); text-decoration: underline;">demos</a> page for tutorials and examples.<br><br>
+                Questions? Feedback? Reply to this email or check out our <a href="https://aidocassist.com/demos" style="color:rgba(0, 5, 11, 0.92); text-decoration: underline;">demos</a> page for tutorials and examples.<br><br>
                 Welcome aboard!
               </p>
             </div>
@@ -119,8 +123,8 @@ NEED MORE REQUESTS?
 If you find yourself running out of requests, our Pro Plan ($25/month) gives you 200 requests, visualizations, and image inputs. Upgrade anytime or stick with free—no pressure!
 
 WE'RE HERE TO HELP
-Questions? Tips? Just reply to this email or check out our demos page (https://aidocassist.com/demos) for tutorials and examples.
-Let's work smarter, not harder. Welcome aboard!
+Questions? Feedback? Reply to this email or check out our demos page (https://aidocassist.com/demos) for tutorials and examples.
+Welcome aboard!
 
 Best,
 Cameron Hightower
@@ -154,10 +158,12 @@ Privacy Policy: https://aidocassist.com/privacy`
 
 /* To invoke locally:
   deploy: 
-  supabase functions deploy send-welcome-email --project-ref rquddzzbpbyzxtgeeczr
   
   1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
   
+  supabase functions deploy send-welcome-email --project-ref rquddzzbpbyzxtgeeczr
+
+
   2. Make an HTTP request:
 
 curl -L -X POST 'https://db.aidocassist.com/functions/v1/send-welcome-email' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJxdWRkenpicGJ5enh0Z2VlY3pyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzAwMTYwNDksImV4cCI6MjA0NTU5MjA0OX0.XeEuvbjz-_AzDHtQzZjcvc7f6fTLn5I_qonKgA3-nLg' -H 'Content-Type: application/json' --data '{"email": "cameron.hightower@aidocassist.com", "firstName": "Cameron", "userId": "test-user-id"}'
