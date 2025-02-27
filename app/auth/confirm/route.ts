@@ -19,12 +19,77 @@ export async function GET(request: NextRequest) {
       type,
       token_hash,
     })
+    
     if (!error) {
+      try {
+        // Get user data after verification
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        if (userError || !user) {
+          throw userError || new Error('No user found')
+        }
+
+        // Check if records exist
+        const [profileExists, usageExists] = await Promise.all([
+          supabase
+            .from('user_profile')
+            .select('id')
+            .eq('id', user.id)
+            .single(),
+          supabase
+            .from('user_usage')
+            .select('user_id')
+            .eq('user_id', user.id)
+            .single()
+        ]);
+
+        // Create records if they don't exist
+        if (profileExists.error || usageExists.error) {
+          const [profileError, usageError] = await Promise.all([
+            profileExists.error && supabase
+              .from('user_profile')
+              .insert({
+                id: user.id,
+                terms_acceptance: [{
+                  acceptedAt: new Date().toISOString(),
+                  termsVersion: "1.0"
+                }]
+              }),
+            usageExists.error && supabase
+              .from('user_usage')
+              .insert({
+                user_id: user.id
+              })
+          ]);
+
+          // Check for errors in creation
+          if (profileError?.error || usageError?.error) {
+            throw new Error('Failed to create user records');
+          }
+
+          // Send welcome email if this is a new user
+          try {
+            await supabase.functions.invoke('send-welcome-email', {
+              body: {
+                userId: user.id,
+                email: user.email,
+                name: user.user_metadata?.full_name || user.email?.split('@')[0]
+              }
+            });
+          } catch (emailError) {
+            // Log error but don't fail the signup process
+            console.error('Failed to send welcome email:', emailError);
+          }
+        }
+      } catch (error) {
+        console.error('Error in user setup:', error);
+        // Continue with redirect even if setup has issues
+      }
+      
       // redirect user to specified redirect URL or root of app
       redirect(next)
     }
   }
 
   // redirect the user to an error page with some instructions
-  redirect('/error')
+  redirect('/auth/error?error=Invalid verification link')
 }

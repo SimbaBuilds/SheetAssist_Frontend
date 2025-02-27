@@ -1,0 +1,11 @@
+{
+  "imports": {
+    "@supabase/functions-js": "jsr:@supabase/functions-js",
+    "std/http": "https://deno.land/std@0.168.0/http/server.ts",
+    "denomailer": "https://deno.land/x/denomailer@1.6.0/mod.ts"
+  },
+  "tasks": {
+    "serve": "deno run --allow-net --allow-env index.ts",
+    "deploy": "supabase functions deploy"
+  }
+}

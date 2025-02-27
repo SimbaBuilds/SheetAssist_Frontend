@@ -161,13 +161,13 @@ export default function DashboardPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <Script id="twitter-event" strategy="afterInteractive">
+      {/* <Script id="twitter-event" strategy="afterInteractive">
         {`
           twq('event', 'tw-p6pi8-p6rqk', {
             email_address: "${userEmail || ''}"
           });
         `}
-      </Script>
+      </Script> */}
       
       {isInitializing ? (
         <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">

@@ -63,6 +63,20 @@ export async function GET(request: Request) {
       if (profileError?.error || usageError?.error) {
         throw new Error('Failed to create user records');
       }
+
+      // Send welcome email if this is a new user
+      try {
+        await supabase.functions.invoke('send-welcome-email', {
+          body: {
+            userId: user.id,
+            email: user.email,
+            name: user.user_metadata?.full_name || user.email?.split('@')[0]
+          }
+        });
+      } catch (emailError) {
+        // Log error but don't fail the signup process
+        console.error('Failed to send welcome email:', emailError);
+      }
     }
 
     // Use the same redirect pattern as the confirm route
