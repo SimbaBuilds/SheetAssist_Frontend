@@ -14,7 +14,7 @@ interface VideoDemo {
 const demoVideos: Record<string, VideoDemo[]> = {
   "Batch Processing": [
     {
-      title: "SheetAssist Performs Data Entry from PDF",
+      title: "SheetAssist Enters Receipt Data from Large PDF",
       description: "",
       youtubeId: "9in0cZW_iE4",
       url: "https://youtu.be/9in0cZW_iE4"
