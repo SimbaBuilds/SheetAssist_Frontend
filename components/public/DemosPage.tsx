@@ -14,7 +14,7 @@ interface VideoDemo {
 const demoVideos: Record<string, VideoDemo[]> = {
   "Batch Processing": [
     {
-      title: "SheetAssist Batch Processes Scanned PDF Pages",
+      title: "SheetAssist Performs Data Entry from PDF",
       description: "",
       youtubeId: "9in0cZW_iE4",
       url: "https://youtu.be/9in0cZW_iE4"
@@ -61,9 +61,9 @@ const demoFeatures = [
     title: "Batch Processing",
     description: "Vision-Enabled Document Processing",
     details: [
-      "Extracts text and data from PDFs, images, and scanned documents with vision-enabled AI",
-      "Transfers dozens of pages of scanned documents to a spreadsheet in minutes"
-    ]
+      "Extracts and organizes text and data from PDFs, images, and scanned documents with vision-enabled AI",
+      "Performs hours of manual data entry in minutes" 
+       ]
   },
   {
     title: "Spreadsheet Operations",

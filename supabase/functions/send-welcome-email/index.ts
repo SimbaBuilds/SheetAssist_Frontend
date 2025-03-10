@@ -68,9 +68,9 @@ serve(async (req: Request) => {
 
 
             <!-- Quick Steps -->
-            <h2 style="color: #444444; margin: 30px 0 15px;">Get Started</h2>
+            <h2 style="color: #444444; margin: 30px 0 15px;">How To Get Started</h2>
             <ol style="color: #444444; line-height: 1.6; font-size: 18px;">
-              <li>Try a Spreadsheet Task: Connect your Google/Excel Sheet or upload a file - type something like "clean up this spreadsheet" or "sort by date"—watch the magic happen!</li>
+              <li>Try a Spreadsheet Task: Connect your Google/Excel Sheet or upload a file - type something like "clean up this spreadsheet", "sort by date", or "give me summary statistics"—watch the magic happen!</li>
               <li>Test Batch Processing: Upload a PDF or image into the app and see it convert to a spreadsheet in seconds.</li>
               <li>Visualize Your Data: Select your data and keep the "Surprise Me" option selected or say something like "make a bar chart"—customize it however you like.</li>
             </ol>
@@ -158,13 +158,14 @@ Privacy Policy: https://aidocassist.com/privacy`
 
 /* To invoke locally:
   deploy: 
-  
-  1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
+  Start Docker Desktop
+
+  // Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
   
   supabase functions deploy send-welcome-email --project-ref rquddzzbpbyzxtgeeczr
 
 
-  2. Make an HTTP request:
+  2. (Test) Make an HTTP request:
 
 curl -L -X POST 'https://db.aidocassist.com/functions/v1/send-welcome-email' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJxdWRkenpicGJ5enh0Z2VlY3pyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzAwMTYwNDksImV4cCI6MjA0NTU5MjA0OX0.XeEuvbjz-_AzDHtQzZjcvc7f6fTLn5I_qonKgA3-nLg' -H 'Content-Type: application/json' --data '{"email": "cameron.hightower@aidocassist.com", "firstName": "Cameron", "userId": "test-user-id"}'
 
