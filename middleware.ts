@@ -15,6 +15,7 @@ export const PUBLIC_PATHS = [
   '/auth/setup-permissions', 
   'auth/names',
   '/demos',
+  '/examples',
   '/contact-us',
   '/terms-of-service',
   '/privacy-policy',

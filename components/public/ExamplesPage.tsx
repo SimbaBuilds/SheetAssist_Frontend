@@ -103,11 +103,11 @@ function VideoCard({ video }: { video: VideoDemo }) {
   )
 }
 
-export function DemosPage() {
+export function ExamplesPage() {
   return (
     <div className="container max-w-3xl mx-auto py-4 space-y-8 pt-20">
       <div className="space-y-3 text-left">
-        <h1 className="text-2xl font-bold">Product Demos</h1>
+        <h1 className="text-2xl font-bold">Product Usage Examples</h1>
         {/* <p className="text-sm text-foreground">
           Explore our key features and see how they can transform your data management workflow:
         </p> */}

@@ -100,7 +100,7 @@ export default function LandingPage() {
       {/* Demo Button Section */}
       <div className="container mx-auto px-4 py-10 text-center">
         <Button size="lg" variant="outline" asChild>
-          <Link href="/demos">See Demos</Link>
+          <Link href="/examples">See Examples</Link>
         </Button>
       </div>
 

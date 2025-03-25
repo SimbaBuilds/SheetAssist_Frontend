@@ -87,7 +87,7 @@ serve(async (req: Request) => {
             <div style="margin: 30px 0;">
               <h2 style="color: #444444; margin-bottom: 15px;">We're Here to Help</h2>
               <p style="color: #444444; line-height: 1.5; font-size: 18px;">
-                Questions? Feedback? Reply to this email or check out our <a href="https://aidocassist.com/demos" style="color:rgba(0, 5, 11, 0.92); text-decoration: underline;">demos</a> page for tutorials and examples.<br><br>
+                Questions? Feedback? Reply to this email or check out our <a href="https://aidocassist.com/examples" style="color:rgba(0, 5, 11, 0.92); text-decoration: underline;">examples</a> page for tutorials and examples.<br><br>
                 Welcome aboard!
               </p>
             </div>
@@ -123,7 +123,7 @@ NEED MORE REQUESTS?
 If you find yourself running out of requests, our Pro Plan ($25/month) gives you 200 requests, visualizations, and image inputs. Upgrade anytime or stick with free—no pressure!
 
 WE'RE HERE TO HELP
-Questions? Feedback? Reply to this email or check out our demos page (https://aidocassist.com/demos) for tutorials and examples.
+Questions? Feedback? Reply to this email or check out our examples page (https://aidocassist.com/examples) for tutorials and examples.
 Welcome aboard!
 
 Best,

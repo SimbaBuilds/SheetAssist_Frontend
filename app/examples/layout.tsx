@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import { RouteLoadingIndicator } from '@/components/public/signup/RouteLoadingIndicator'
 
-export default function DemosLayout({
+export default function ExamplesLayout({
   children,
 }: {
   children: React.ReactNode
