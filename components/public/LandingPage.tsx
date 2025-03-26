@@ -60,7 +60,7 @@ export default function LandingPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Batch Processing</CardTitle>
+              <CardTitle>Data Entry</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground">
