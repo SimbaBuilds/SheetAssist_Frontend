@@ -486,12 +486,15 @@ class QueryService {
         };
 
         const isImage = file.type === MIME_TYPES.PNG || file.type === MIME_TYPES.JPEG || file.type === MIME_TYPES.JPG;
-        if (file.size >= S3_SIZE_THRESHOLD || isImage) {
+        const isLargePDF = file.type === MIME_TYPES.PDF && file.size >= S3_SIZE_THRESHOLD;
+        const shouldUploadToS3 = isImage || isLargePDF;
+
+        if (shouldUploadToS3) {
           console.debug('File qualifies for S3 upload', {
             fileName: file.name,
             fileSize: file.size,
             fileType: file.type,
-            reason: file.size >= S3_SIZE_THRESHOLD ? 'size' : 'image type',
+            reason: isImage ? 'image type' : 'large PDF',
             userId
           });
           
