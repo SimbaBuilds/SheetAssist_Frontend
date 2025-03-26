@@ -62,7 +62,7 @@ export default function PrivacyPolicyPage() {
             </li>
           </ul>
           <p className="text-muted-foreground mt-2">
-          Note: Our application will not store, modfiy, or delete your files.  All actions performed on your spreadsheets are true append operations, meaning content can only be added on to existing sheets or to new sheets within the selected workbook — no modification or replacement of existing data can occur.  Furthermore, the AI lanugage models working in the background of this application do not have direct access to your spreadsheets — only to preprocessed versions of low level data (dataframes and strings).
+          Note: Our application will not store, modfiy, or delete your files.  All actions performed on your spreadsheets are true append operations, meaning content can only be added on to existing sheets or to new sheets within the selected workbook — no modification or replacement of existing data can occur.  Furthermore, the AI lanugage models working in the background of this application do not have direct access to your spreadsheets, only to preprocessed versions of low level data (dataframes and strings).
           </p>
           <p className="text-muted-foreground mt-8">
             If you have any questions about this Privacy Policy, please <Link href="/contact-us" className="underline hover:text-primary">contact us</Link>.
