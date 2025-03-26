@@ -97,11 +97,50 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* Demo Button Section */}
-      <div className="container mx-auto px-4 py-10 text-center">
-        <Button size="lg" variant="outline" asChild>
-          <Link href="/examples">See Examples</Link>
-        </Button>
+      {/* Demo Videos Section */}
+      <div className="container mx-auto px-4 py-10">
+        <h2 className="text-3xl font-bold text-center mb-12">See It In Action</h2>
+        <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
+          <Card>
+            <CardHeader>
+              <CardTitle>Batch Processing</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="relative aspect-video">
+                <iframe
+                  className="absolute inset-0 w-full h-full rounded-lg"
+                  src="https://www.youtube.com/embed/9in0cZW_iE4"
+                  title="SheetAssist Enters Receipt Data from Large PDF"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+              <p className="mt-4 text-muted-foreground">
+                Watch how SheetAssist automatically extracts and organizes data from PDFs and scanned documents.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Spreadsheet Operations</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="relative aspect-video">
+                <iframe
+                  className="absolute inset-0 w-full h-full rounded-lg"
+                  src="https://www.youtube.com/embed/JP24Z2H7mgM"
+                  title="SheetAssist Merges Sheets with Special Instructions"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+              <p className="mt-4 text-muted-foreground">
+                See how SheetAssist merges and transforms spreadsheets with natural language instructions.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Plans Section */}
