@@ -100,7 +100,7 @@ export default function LandingPage() {
       {/* Demo Videos Section */}
       <div className="container mx-auto px-4 py-10">
         <h2 className="text-3xl font-bold text-center mb-12">See It In Action</h2>
-        <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
+        <div className="grid md:grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
           <Card>
             <CardHeader>
               <CardTitle>Batch Processing</CardTitle>
@@ -140,9 +140,67 @@ export default function LandingPage() {
               </p>
             </CardContent>
           </Card>
-        </div>
 
-        <div className="mt-8 max-w-3xl mx-auto">
+          <Card>
+            <CardHeader>
+              <CardTitle>Spreadsheet Operations</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="relative aspect-video">
+                <iframe
+                  className="absolute inset-0 w-full h-full rounded-lg"
+                  src="https://www.youtube.com/embed/plQVHKCvFkE"
+                  title="SheetAssist Handles a Complex Request"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+              <p className="mt-4 text-muted-foreground">
+                Watch how SheetAssist handles complex spreadsheet operations with natural language commands.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Batch Processing</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="relative aspect-video">
+                <iframe
+                  className="absolute inset-0 w-full h-full rounded-lg"
+                  src="https://www.youtube.com/embed/UBgJCJX427o"
+                  title="SheetAssist Processes Large Text-Based PDF"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+              <p className="mt-4 text-muted-foreground">
+                See how SheetAssist processes and extracts data from large text-based PDFs.
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Spreadsheet Operations</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="relative aspect-video">
+                <iframe
+                  className="absolute inset-0 w-full h-full rounded-lg"
+                  src="https://www.youtube.com/embed/SVoWQO0ReCU"
+                  title="SheetAssist Calculates Summary Statistics"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+              <p className="mt-4 text-muted-foreground">
+                Watch how SheetAssist performs statistical analysis with natural language commands.
+              </p>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Data Visualization</CardTitle>
@@ -158,7 +216,7 @@ export default function LandingPage() {
                 />
               </div>
               <p className="mt-4 text-muted-foreground">
-                Watch how SheetAssist creates sleek data visualizations with natural language commands.
+                Watch how SheetAssist creates beautiful data visualizations with natural language commands.
               </p>
             </CardContent>
           </Card>
