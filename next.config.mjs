@@ -5,7 +5,7 @@ const nextConfig = {
   },
   experimental: {
     serverActions: {
-      bodySizeLimit: '160mb' // CANNOT ACCESS CONSTANTS IN LIB FROM NEXT.CONFIG.MJS
+      bodySizeLimit: '80mb' // CANNOT ACCESS CONSTANTS IN LIB FROM NEXT.CONFIG.MJS
     }
   }
 };
