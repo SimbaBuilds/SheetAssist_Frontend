@@ -216,7 +216,7 @@ export default function LandingPage() {
                 />
               </div>
               <p className="mt-4 text-muted-foreground">
-                Watch how SheetAssist creates beautiful data visualizations with natural language commands.
+                Watch how SheetAssist creates sleek data visualizations with natural language commands.
               </p>
             </CardContent>
           </Card>
