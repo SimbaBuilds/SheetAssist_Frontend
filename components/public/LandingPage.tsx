@@ -103,7 +103,7 @@ export default function LandingPage() {
         <div className="grid md:grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
           <Card>
             <CardHeader>
-              <CardTitle>Batch Processing</CardTitle>
+              <CardTitle>Data Entry: Scanned PDFs</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="relative aspect-video">
@@ -123,7 +123,7 @@ export default function LandingPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Spreadsheet Operations</CardTitle>
+              <CardTitle>Spreadsheet Operation: Merge and Filter</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="relative aspect-video">
@@ -143,7 +143,7 @@ export default function LandingPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Spreadsheet Operations</CardTitle>
+              <CardTitle>Spreadsheet Operation: Nested Sort</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="relative aspect-video">
@@ -163,7 +163,7 @@ export default function LandingPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Batch Processing</CardTitle>
+              <CardTitle>Data Entry: Text PDFs</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="relative aspect-video">
@@ -183,7 +183,7 @@ export default function LandingPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Spreadsheet Operations</CardTitle>
+              <CardTitle>Spreadsheet Operation: Statistical Analysis</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="relative aspect-video">
