@@ -32,11 +32,13 @@ export default function Header() {
         <>
           <Link href="/dashboard" className="text-foreground hover:text-primary">Dashboard</Link>
           <Link href="/user-account" className="text-foreground hover:text-primary">Account</Link>
+          <Link href="/privacy-policy" className="text-foreground hover:text-primary">Privacy</Link>
           <Button onClick={handleLogout}>Logout</Button>
         </>
       ) : (
         <>
-          <Link href="/examples" className="text-foreground hover:text-primary">Examples</Link>
+          <Link href="/examples" className="text-foreground hover:text-primary">Example Use</Link>
+          <Link href="/privacy-policy" className="text-foreground hover:text-primary">Privacy</Link>
           <Link href="/auth/login">
             <Button variant="outline">Login</Button>
           </Link>

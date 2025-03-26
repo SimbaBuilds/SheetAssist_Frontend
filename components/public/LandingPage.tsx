@@ -141,6 +141,28 @@ export default function LandingPage() {
             </CardContent>
           </Card>
         </div>
+
+        <div className="mt-8 max-w-3xl mx-auto">
+          <Card>
+            <CardHeader>
+              <CardTitle>Data Visualization</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="relative aspect-video">
+                <iframe
+                  className="absolute inset-0 w-full h-full rounded-lg"
+                  src="https://www.youtube.com/embed/iDlqQdaE6EA"
+                  title="SheetAssist Visualizes Stock Portfolio"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+              <p className="mt-4 text-muted-foreground">
+                Watch how SheetAssist creates sleek data visualizations with natural language commands.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Plans Section */}
