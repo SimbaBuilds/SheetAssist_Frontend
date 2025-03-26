@@ -16,7 +16,7 @@ export default function TermsOfServicePage() {
         <section>
           <h2 className="text-lg font-semibold mb-3">2. Description of Service</h2>
           <p className="text-muted-foreground">
-            We provide tools for automating spreadsheet operations and data visualization through 
+            We provide tools for automating spreadsheet operations and data visualizations through 
             integration with Google Sheets and Microsoft Excel Online.
           </p>
         </section>
