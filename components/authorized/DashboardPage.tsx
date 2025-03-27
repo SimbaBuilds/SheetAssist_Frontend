@@ -434,7 +434,7 @@ export default function DashboardPage() {
                       </ul>
                     </DialogContent>
                   </Dialog>
-                  <Link href="/examples">
+                  <Link href="/demos">
                     <Button variant="link" size="sm">
                       See Examples
                     </Button>

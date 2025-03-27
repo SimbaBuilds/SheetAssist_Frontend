@@ -37,7 +37,7 @@ export default function Header() {
         </>
       ) : (
         <>
-          <Link href="/examples" className="text-foreground hover:text-primary">Example Use</Link>
+          <Link href="/demos" className="text-foreground hover:text-primary">Example Use</Link>
           <Link href="/privacy-policy" className="text-foreground hover:text-primary">Privacy</Link>
           <Link href="/auth/login">
             <Button variant="outline">Login</Button>
