@@ -48,7 +48,7 @@ serve(async (req: Request) => {
     // Send email using SMTP
     try {
       await client.send({
-        from: 'SheetAssist <cameron.hightower@aidocassist.com>',
+        from: 'SheetAssist <cameron@hightower-ai.com>',
         to: [email],
         subject: 'Welcome to SheetAssist! 🎉',
         html: `
@@ -77,7 +77,7 @@ serve(async (req: Request) => {
 
             <!-- CTA Link -->
             <div style="text-align: center; margin: 40px 0;">
-              <a href="https://aidocassist.com/dashboard" 
+              <a href="https://sheetassistapp.com/dashboard" 
                  style="color:rgb(1, 9, 18); text-decoration: underline; font-size: 18px;">
                 Get Started Now
               </a>
@@ -87,7 +87,7 @@ serve(async (req: Request) => {
             <div style="margin: 30px 0;">
               <h2 style="color: #444444; margin-bottom: 15px;">We're Here to Help</h2>
               <p style="color: #444444; line-height: 1.5; font-size: 18px;">
-                Questions? Feedback? Reply to this email or check out our <a href="https://aidocassist.com/demos" style="color:rgba(0, 5, 11, 0.92); text-decoration: underline;">demos</a> page for tutorials and examples.<br><br>
+                Questions? Feedback? Reply to this email or check out our <a href="https://sheetassistapp.com/demos" style="color:rgba(0, 5, 11, 0.92); text-decoration: underline;">demos</a> page for tutorials and examples.<br><br>
                 Welcome aboard!
               </p>
             </div>
@@ -97,14 +97,14 @@ serve(async (req: Request) => {
               Best,<br>
               Cameron Hightower<br>
               Builder, SheetAssist<br>
-              cameron.hightower@aidocassist.com
+              cameron@hightower-ai.com
             </div>
 
             <!-- Footer -->
             <div style="border-top: 1px solid #eaeaea; padding-top: 20px; margin-top: 40px; 
                         text-align: center; color: #898989; font-size: 14px;">
               SheetAssist - Automate Spreadsheet Operations, Extract and Visualize Data<br>
-              <a href="https://aidocassist.com/privacy" style="color:rgb(0, 4, 9); text-decoration: underline;">Privacy Policy</a>
+              <a href="https://sheetassistapp.com/privacy" style="color:rgb(0, 4, 9); text-decoration: underline;">Privacy Policy</a>
             </div>
           </div>
         `,    
@@ -123,17 +123,17 @@ NEED MORE REQUESTS?
 If you find yourself running out of requests, our Pro Plan ($25/month) gives you 200 requests, visualizations, and image inputs. Upgrade anytime or stick with free—no pressure!
 
 WE'RE HERE TO HELP
-Questions? Feedback? Reply to this email or check out our examples page (https://aidocassist.com/examples) for tutorials and examples.
+Questions? Feedback? Reply to this email or check out our examples page (https://sheetassistapp.com/examples) for tutorials and examples.
 Welcome aboard!
 
 Best,
 Cameron Hightower
 Builder, SheetAssist
-cameron.hightower@aidocassist.com
+cameron@hightower-ai.com
 
 ---
 SheetAssist - Automate Spreadsheet Operations, Extract and Visualize Data
-Privacy Policy: https://aidocassist.com/privacy`
+Privacy Policy: https://sheetassistapp.com/privacy`
       });
 
       await client.close();
@@ -167,6 +167,6 @@ Privacy Policy: https://aidocassist.com/privacy`
 
   2. (Test) Make an HTTP request:
 
-curl -L -X POST 'https://db.aidocassist.com/functions/v1/send-welcome-email' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJxdWRkenpicGJ5enh0Z2VlY3pyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzAwMTYwNDksImV4cCI6MjA0NTU5MjA0OX0.XeEuvbjz-_AzDHtQzZjcvc7f6fTLn5I_qonKgA3-nLg' -H 'Content-Type: application/json' --data '{"email": "cameron.hightower@aidocassist.com", "firstName": "Cameron", "userId": "test-user-id"}'
+curl -L -X POST 'https://db.sheetassistapp.com/functions/v1/send-welcome-email' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJxdWRkenpicGJ5enh0Z2VlY3pyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzAwMTYwNDksImV4cCI6MjA0NTU5MjA0OX0.XeEuvbjz-_AzDHtQzZjcvc7f6fTLn5I_qonKgA3-nLg' -H 'Content-Type: application/json' --data '{"email": "cameron@hightower-ai.com", "firstName": "Cameron", "userId": "test-user-id"}'
 
 */
