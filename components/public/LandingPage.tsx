@@ -244,7 +244,7 @@ export default function LandingPage() {
                   <span>{VIS_GEN_LIMITS.free} visualizations per month</span>
                 </li>
                 <li className="flex items-center">
-                  <CheckIcon className="mr-2" />
+                  <CheckIcon className="mr-2 flex-shrink-0" />
                   <span>{PLAN_IMAGE_LIMITS.free} input images/scanned documents per month</span>
                 </li>
               </ul>
@@ -271,7 +271,7 @@ export default function LandingPage() {
                   <span>{VIS_GEN_LIMITS.pro} visualizations per month</span>
                 </li>
                 <li className="flex items-center">
-                  <CheckIcon className="mr-2" />
+                  <CheckIcon className="mr-2 flex-shrink-0" />
                   <span>{PLAN_IMAGE_LIMITS.pro} input images/scanned documents per month</span>
                 </li>
                 <li className="flex items-center">
