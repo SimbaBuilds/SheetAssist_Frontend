@@ -395,9 +395,9 @@ export default function DashboardPage() {
 
             {/* Query Input */}
             <div>
-              <div className="flex justify-between items-center">
-                <Label htmlFor="query">What can we do for you?</Label>
-                <div className="flex gap-6 items-center">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center space-y-2 sm:space-y-0">
+                <Label htmlFor="query" className="shrink-0">What can we do for you?</Label>
+                <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                   <Button 
                     variant="ghost" 
                     size="sm"
