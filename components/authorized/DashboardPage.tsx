@@ -1169,20 +1169,20 @@ export default function DashboardPage() {
             docName={visualizationWorkbookInfo?.doc_name}
             pickerActive={visualizationPickerActive}
           />
+
+          {/* Custom Business Solution */}
+          <div className="mt-12 border-t pt-8">
+            <div className="text-center space-y-4">
+              <h3 className="text-lg font-semibold">Need a Custom AI Solution?</h3>
+              <Button asChild className="bg-black text-white hover:bg-gray-900">
+                <Link href="https://hightower-ai.com" target="_blank" rel="noopener noreferrer">
+                  Visit HightowerAI
+                </Link>
+              </Button>
+            </div>
+          </div>
         </>
       )}
-
-      {/* Custom Business Solution */}
-      <div className="mt-12 border-t pt-8">
-        <div className="text-center space-y-4">
-          <h3 className="text-lg font-semibold">Need a Custom AI Solution?</h3>
-          <Button asChild className="bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800">
-            <Link href="https://hightower-ai.com" target="_blank" rel="noopener noreferrer">
-              Visit HightowerAI
-            </Link>
-          </Button>
-        </div>
-      </div>
     </div>
   )
 }
