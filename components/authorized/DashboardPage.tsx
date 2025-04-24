@@ -1171,6 +1171,18 @@ export default function DashboardPage() {
           />
         </>
       )}
+
+      {/* Custom Business Solution */}
+      <div className="mt-12 border-t pt-8">
+        <div className="text-center space-y-4">
+          <h3 className="text-lg font-semibold">Need a Custom AI Solution?</h3>
+          <Button asChild className="bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800">
+            <Link href="https://hightower-ai.com" target="_blank" rel="noopener noreferrer">
+              Visit HightowerAI
+            </Link>
+          </Button>
+        </div>
+      </div>
     </div>
   )
 }
