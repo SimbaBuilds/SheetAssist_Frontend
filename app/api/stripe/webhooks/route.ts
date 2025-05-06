@@ -6,7 +6,7 @@ import { handleStripeWebhook } from '@/lib/stripe/webhooks';
 // Route Segment Config
 export const runtime = 'nodejs'; // Using Node.js runtime for Stripe webhook handling
 export const dynamic = 'force-dynamic'; // Always process webhooks dynamically
-export const maxDuration = 60; // Allow longer processing time for webhooks
+export const maxDuration = 59; // Allow longer processing time for webhooks
 
 export async function POST(req: Request) {
   try {
